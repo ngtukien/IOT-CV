@@ -1,7 +1,7 @@
 # ML / Computer Vision stack (GIAI ĐOẠN 16 trở đi).
 # Tách riêng vì torch + ultralytics rất nặng; CI không cần cài phần này.
 ultralytics>=8.3
-opencv-python>=4.10
+opencv-python>=5.0.0.93
 albumentations>=1.4
 pandas>=2.2
 matplotlib>=3.9
