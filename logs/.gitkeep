@@ -1,0 +1,7 @@
+Mỗi buổi bay tạo một thư mục logs/flight_<YYYYmmdd_HHMM>/ theo GIAI ĐOẠN 87:
+
+    flight.bin  telemetry.csv  detections.csv  events.json
+    video/  snapshots/  notes.md
+
+Dữ liệu bay KHÔNG commit vào git. Thay vào đó, tóm tắt buổi bay vào
+docs/test-log.md và mở issue theo template "Flight test log".

@@ -1,0 +1,2 @@
+Thư mục này giữ weights (*.pt). Không commit — tải hoặc train lại theo
+ml/scripts/train.py.

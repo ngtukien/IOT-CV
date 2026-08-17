@@ -1,0 +1,10 @@
+# Dataset YOLO cho VisDrone đã lọc còn 1 class person (GIAI ĐOẠN 17).
+# Sửa `path` theo máy của bạn. Dataset KHÔNG commit vào git.
+
+path: ../datasets/visdrone_person
+train: train/images
+val: val/images
+test: test/images
+
+names:
+  0: person

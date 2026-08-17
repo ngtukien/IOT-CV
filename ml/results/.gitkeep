@@ -1,0 +1,2 @@
+Kết quả train/eval (run của ultralytics, metrics.csv, biểu đồ).
+Chỉ commit bảng số liệu tổng hợp vào docs/experiments.md, không commit cả run.
