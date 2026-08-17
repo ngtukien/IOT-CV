@@ -1,0 +1,68 @@
+name: Flight test log
+description: Ghi lại một buổi test/bay (theo notes.md của GIAI ĐOẠN 87)
+title: "flight: <ngày> — <mục đích>"
+labels: ["type/test", "area/flight"]
+body:
+  - type: input
+    id: log_folder
+    attributes:
+      label: Thư mục log
+      placeholder: "logs/flight_20260817_1530/"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: test_type
+    attributes:
+      label: Loại buổi test
+      options:
+        - Bench (props THÁO)
+        - Ground (motor chạy, props THÁO)
+        - Hover thấp
+        - RC flight
+        - Auto mission (Mission Planner)
+        - Auto mission (Web GCS)
+        - Web guided (WASD)
+        - Dataset collection
+    validations:
+      required: true
+
+  - type: textarea
+    id: conditions
+    attributes:
+      label: Điều kiện
+      value: |
+        Wind:
+        Battery:
+        Payload:
+        Altitude:
+        Flight mode:
+    validations:
+      required: true
+
+  - type: textarea
+    id: changes
+    attributes:
+      label: Changes since previous flight
+      description: Thay đổi gì so với buổi trước (parameter, wiring, code, payload)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: result
+    attributes:
+      label: Kết quả
+      description: Test nào trong test matrix (GIAI ĐOẠN 84) đã pass/fail?
+    validations:
+      required: true
+
+  - type: textarea
+    id: problems
+    attributes:
+      label: Problems
+      description: Vibration, EKF, GPS, battery sag, camera reset, Wi-Fi drop...
+
+  - type: textarea
+    id: next
+    attributes:
+      label: Việc cần làm trước buổi sau

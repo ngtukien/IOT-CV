@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Kế hoạch 92 giai đoạn
+    url: https://github.com/ngtukien/IOT-CV/blob/main/README.md
+    about: Toàn bộ lộ trình dự án và tiêu chí CỔNG PASS của từng giai đoạn.
+  - name: Luật an toàn
+    url: https://github.com/ngtukien/IOT-CV/blob/main/SAFETY.md
+    about: Đọc trước khi mở issue liên quan tới bay thật, motor, pin hoặc failsafe.

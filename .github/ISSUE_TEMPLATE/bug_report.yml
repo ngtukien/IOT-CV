@@ -1,0 +1,75 @@
+name: Bug report
+description: Một thứ đang hoạt động sai
+title: "bug: <mô tả ngắn>"
+labels: ["type/bug"]
+body:
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Subsystem
+      options:
+        - flight (ArduPilot / MAVLink / mode / failsafe)
+        - backend (FastAPI / telemetry / mission)
+        - frontend (web GCS / map / WASD)
+        - vision (camera stream / YOLO)
+        - iot (MQTT / ESP32 bridge)
+        - ml (training / dataset / metric)
+        - hardware (wiring / power / motor)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Môi trường xảy ra lỗi
+      options:
+        - SITL
+        - Bench test (drone trên bàn, props THÁO)
+        - Ground test (motor chạy, props THÁO)
+        - Flight
+    validations:
+      required: true
+
+  - type: dropdown
+    id: props
+    attributes:
+      label: Lúc đó có gắn cánh quạt không?
+      description: Bắt buộc trả lời. Xem SAFETY.md.
+      options:
+        - "Không có cánh"
+        - "Có cánh — đang bay"
+        - "Có cánh — trên mặt đất"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Mong đợi
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Thực tế xảy ra
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Cách tái hiện
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log / output
+      description: Log backend, MAVProxy, console browser, hoặc tên file .BIN trong logs/
+      render: text

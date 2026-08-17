@@ -1,0 +1,61 @@
+name: Giai đoạn (Phase task)
+description: Một giai đoạn trong kế hoạch 92 bước của README
+title: "GĐ <số> — <tên giai đoạn>"
+labels: ["type/feat"]
+body:
+  - type: input
+    id: phase
+    attributes:
+      label: Giai đoạn
+      description: Số giai đoạn trong README
+      placeholder: "GIAI ĐOẠN 7"
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Mục tiêu
+      description: Sau giai đoạn này thì cái gì chạy được mà trước đó chưa chạy được?
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Việc cần làm
+      value: |
+        - [ ]
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: pass_gate
+    attributes:
+      label: CỔNG PASS
+      description: Tiêu chí nghiệm thu cụ thể, quan sát được. Không viết "chạy ổn".
+      placeholder: |
+        SITL takeoff -> altitude trên website tăng
+        SITL move   -> lat/lon thay đổi
+    validations:
+      required: true
+
+  - type: dropdown
+    id: needs_hardware
+    attributes:
+      label: Cần hardware thật?
+      options:
+        - "Không — làm được với SITL"
+        - "Cần ESP32-CAM"
+        - "Cần flight controller / drone (props THÁO)"
+        - "Cần bay thật"
+    validations:
+      required: true
+
+  - type: textarea
+    id: risk
+    attributes:
+      label: Rủi ro / phụ thuộc
+      description: Giai đoạn nào phải pass trước? Có rủi ro an toàn nào?
