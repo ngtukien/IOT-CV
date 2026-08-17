@@ -1,0 +1,21 @@
+# Chuẩn hoá line ending: repo dùng LF, kể cả khi dev trên Windows.
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+
+# Binary — không diff, không merge
+*.pt binary
+*.onnx binary
+*.engine binary
+*.bin binary
+*.BIN binary
+*.tlog binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.mp4 binary
+
+# Parameter file của ArduPilot là text nhưng không nên bị "smart" merge
+*.param text eol=lf -merge
