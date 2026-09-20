@@ -8,6 +8,62 @@
 
 > **Mục tiêu:** xây một quadcopter ngân sách khoảng 5–6 triệu có thể bay thủ công bằng RC, nhận lệnh thủ công từ web, bay tự động theo waypoint, RTL/Hold/Land, truyền telemetry về laptop và dùng camera giá rẻ để phát hiện người bằng YOLO; đồng thời biến hạn chế camera thành nội dung nghiên cứu cho môn Xử lý ảnh.
 
+---
+
+## TRẠNG THÁI DỰ ÁN — cập nhật 20/09/2026
+
+**Đã chi 9.661.000 ₫. Phần cứng bay đã đủ 95%. Phần mềm chưa cài gì. Chưa lắp gì.**
+
+Nếu bạn chỉ đọc một mục trong file này, đọc mục này. Hướng dẫn thao tác từng
+bước cho người mới: **[docs/huong-dan-bat-dau-tu-con-so-0.md](docs/huong-dan-bat-dau-tu-con-so-0.md)**.
+
+### Đã mua (không mua lại)
+
+| Món | Cụ thể | Ghi chú quan trọng |
+|---|---|---|
+| Khung | Holybro **S500** 480mm | KHÔNG phải F450. Đế dưới là bo nguồn có đồng đúc chìm — **cấm khoan**. |
+| Bo bay + ESC | **SpeedyBee F405 V5** OX32 55A, bản Deluxe | Stack gộp FC + ESC 4-in-1. Chuẩn lỗ 30,5×30,5. |
+| Động cơ | **T-Motor AIR GEAR 450 II** — 4 × AIR2216II KV920 | Kèm cánh T1045. Hiện có **8 cánh** (4 + 4 dự phòng). |
+| GPS + la bàn | **Holybro M10 v1**, cáp 10 chân, **đã có cột nâng** | Bo bay KHÔNG có la bàn tích hợp → món này bắt buộc. |
+| Điều khiển | **FlySky FS-i6X + iA6B** | Nối bằng **i-BUS** vào chân **R6**. Bo không hỗ trợ PPM. |
+| Pin | **Ovonic 4S 5300mAh 110C**, đầu XT60 | **4S**, không phải 3S. Kế hoạch 3S cũ là của khung F450. |
+| Sạc | **SkyRC iMAX B6AC V2** | Bản AC, có nguồn tích hợp. |
+
+### Đã có sẵn dụng cụ
+
+`mỏ hàn ≥60W` · `đồng hồ vạn năng` · `bộ lục giác 1.5/2.0/2.5` · `túi chống cháy LiPo`
+
+### CÒN THIẾU — 3 nhóm này chặn toàn bộ khâu lắp ráp
+
+- [ ] **Bát chống rung 30,5×30,5mm** (~50–150k) — khung S500 lỗ chuẩn cũ 45×45, stack chuẩn 30,5. Không có bát này thì hoặc phải khoan khung (làm đứt mạch nguồn) hoặc bắt cứng bo bay vào khung (rung làm hỏng AltHold + Loiter). Không có đường thứ ba.
+- [ ] **Dây silicone 16AWG, ~4,5m, 3 màu** (~150k) — dây motor T-Motor chỉ dài 150mm, mỗi cần khung dài ~24cm. Phải nối dài 12 mối. **Không dùng 14AWG** (đó là cỡ dây nguồn pin, quá cứng cho dây motor).
+- [ ] **Gen co nhiệt bộ nhiều cỡ + dây rút nhựa 2.5×100mm** (~80k) — bọc 12 mối hàn, cố định dây dọc cần. Hở một mối chạm cần khung là cháy ESC.
+
+Tổng còn thiếu: **khoảng 280.000 ₫**. Đặt ngay hôm nay, hàng về mới lắp được.
+
+### Chưa mua, nhưng CHƯA CẦN (đợt 3 — sau khi drone bay ổn)
+
+`ESP32-CAM + mạch nạp` · `ESP32 DevKit` · `UBEC 5V 3A` — tổng ~380k.
+
+### Bắt đầu từ đâu — hai nhánh chạy song song
+
+```text
+NHÁNH PHẦN MỀM  (làm được ngay tối nay, 0 đồng, không rủi ro)
+  GIAI ĐOẠN 2 → 3 → 4 → 5 → 15   trên drone ảo SITL
+  Không cần chạm vào phần cứng. Sai cũng không cháy gì.
+
+NHÁNH PHẦN CỨNG (chờ 3 nhóm phụ kiện về)
+  GIAI ĐOẠN 25 → 32   nạp firmware + test trên bàn, CHƯA lắp cánh
+  GIAI ĐOẠN 26 → 49   lắp ráp, hiệu chỉnh
+  GIAI ĐOẠN 50        bay thật lần đầu
+
+Hai nhánh gặp nhau ở GIAI ĐOẠN 59 (đổi backend từ drone ảo sang drone thật).
+```
+
+**Thứ tự đúng cho hôm nay:** đặt 3 nhóm phụ kiện (15 phút) → cài phần mềm
+(2 giờ) → chạy drone ảo. Đừng lắp khung trước khi chạy được drone ảo: bạn sẽ
+không biết phần mềm hỏng hay phần cứng hỏng.
+
 ## 0. KIẾN TRÚC CUỐI CÙNG PHẢI NHỚ NGAY TỪ ĐẦU
 
 Không xây project theo kiểu:
@@ -34,7 +90,7 @@ Mà luôn giữ kiến trúc:
        ▼                  ▼                  ▼
  FLIGHT SYSTEM       VISION SYSTEM      COMMUNICATION
        │                  │                  │
- SpeedyBee F405       ESP32-CAM         ESP32 DevKit
+ SpeedyBee F405 V5    ESP32-CAM         ESP32 DevKit
  ArduPilot            OV2640             MAVLink bridge
        │                  │                  │
  GPS M10              Wi-Fi JPEG/MJPEG     Wi-Fi UDP
@@ -70,7 +126,23 @@ Mà luôn giữ kiến trúc:
 
 Flight controller phải là thành phần duy nhất chịu trách nhiệm ổn định máy bay. Web chỉ gửi lệnh mức cao; YOLO tuyệt đối không trực tiếp điều khiển ESC.
 
-SpeedyBee F405 V4 có barometer tích hợp, đầu ra motor M1–M8, I2C, nhiều UART và nhận nguồn LiPo 3S–6S; ArduPilot hiện vẫn phát hành firmware Copter stable riêng cho `speedybeef4v4`.
+**Bo bay thực tế của dự án: SpeedyBee F405 V5** (đã mua, bản stack OX32 55A Deluxe).
+Số liệu dưới đây lấy từ `libraries/AP_HAL_ChibiOS/hwdef/speedybeef4v5/` trong mã nguồn
+ArduPilot, không phải từ trang bán hàng:
+
+| Hạng mục | Thực tế trên V5 | Hệ quả với dự án |
+|---|---|---|
+| Firmware target | `speedybeef4v5`, Copter stable **4.7.1** | Có sẵn bản dựng chính thức, không phải tự biên dịch. |
+| IMU / Baro | ICM-42688P / SPA06-003 | Có barometer tích hợp → AltHold chạy được. |
+| **La bàn** | **KHÔNG có tích hợp** | Bắt buộc dùng la bàn ngoài trong module GPS. |
+| Đầu ra motor | **M1–M4** (+ S5, S6, LED) | 4 đầu cho quad là vừa đủ. Không phải M1–M8. |
+| SERIAL4 = UART4 | mặc định **GPS** | Cắm GPS vào T4/R4 là chạy, không cần đổi tham số. |
+| SERIAL6 = UART6 | mặc định **RCIN** | Cắm i-BUS của iA6B vào **R6**. |
+| SERIAL5 = UART5 | mặc định **ESC Telemetry** | OX32 có telemetry → lấy được RPM cho harmonic notch. |
+| Nguồn vào | LiPo **3S–6S** ở BAT/GND | Pin 4S của dự án nằm giữa dải. |
+| **PPM** | **KHÔNG hỗ trợ** | Đây là lý do phải dùng i-BUS chứ không phải PPM. |
+| SBUS | Có, nhưng phải **hàn nối jumper pad** | Dự án dùng i-BUS nên bỏ qua. |
+| ESC | OX32 4-in-1, 55A/kênh, **DShot300/600** | **Không có bước ESC calibration** — xem GIAI ĐOẠN 44. |
 
 ---
 
@@ -1294,71 +1366,92 @@ Deployment
 
 ---
 
-# GIAI ĐOẠN 24 — BÂY GIỜ MỚI MUA TOÀN BỘ FLIGHT HARDWARE
+# GIAI ĐOẠN 24 — FLIGHT HARDWARE — ĐÃ MUA XONG
 
-Bộ cơ bản:
-
-```text
-F450
-4 × A2212
-4 × 30A ESC
-prop 1045
-SpeedyBee F405 V4
-M10 GPS + Compass
-FS-i6X
-iA6B
-3S LiPo
-charger
-ESP32 DevKit
-ESP32-CAM
-5V UBEC
-buzzer
-dây
-XT60
-```
-
-Mua thêm:
+Giai đoạn này **đã hoàn thành** (9.661.000 ₫). Giữ lại đây làm bản kê đối chiếu
+khi mở thùng hàng.
 
 ```text
-2–4 cánh dự phòng
+ĐÃ CÓ
+  Holybro S500 480mm                     khung
+  SpeedyBee F405 V5 OX32 55A Deluxe      FC + ESC 4-in-1 gộp chung
+  T-Motor AIR GEAR 450 II                4 × AIR2216II KV920 + cánh T1045
+  8 cánh 1045                            4 dùng + 4 dự phòng
+  Holybro M10 v1 (10 chân) + cột nâng    GPS + la bàn IST8310
+  FlySky FS-i6X + iA6B                   tay phát + bộ thu i-BUS
+  Ovonic 4S 5300mAh 110C XT60            pin
+  SkyRC iMAX B6AC V2                     sạc cân bằng
+
+CÒN THIẾU — chặn khâu lắp ráp, ~280k
+  bát chống rung 30,5×30,5mm
+  dây silicone 16AWG × 4,5m, 3 màu
+  gen co nhiệt nhiều cỡ + dây rút 2.5×100
+
+CHƯA CẦN — đợt 3, sau khi bay ổn, ~380k
+  ESP32-CAM + mạch nạp
+  ESP32 DevKit
+  UBEC 5V 3A
 ```
 
-Đừng mua đúng 4 cánh.
+Bốn thứ trong bản kê cũ **không còn dùng nữa**, đừng mua:
+
+| Bản kê cũ | Vì sao bỏ |
+|---|---|
+| Khung F450 | Đã đổi sang S500 480mm. |
+| 4 × A2212 + 4 × ESC 30A rời | Motor đã là AIR2216II; ESC đã nằm trong stack. |
+| Pin 3S | Khung S500 nặng hơn, bắt buộc 4S. |
+| Power board (PDB) rời | Stack đã có ESC 4-in-1 kiêm phân phối nguồn. |
+
+Bộ ESC AIR 20A đi kèm gói T-Motor (nếu shop có gửi) thì **cất đi, không lắp** —
+OX32 55A trong stack khoẻ hơn hẳn.
 
 ---
 
 # GIAI ĐOẠN 25 — KHÔNG LẮP NGAY, TEST TỪNG LINH KIỆN
 
-## Motor
+Làm ngay khi hàng về, **trước khi lắp bất cứ thứ gì**. Phát hiện hàng lỗi lúc này
+thì còn đổi trả được; phát hiện sau khi đã hàn thì không.
 
-Từng motor kiểm tra:
+## Motor — 4 × T-Motor AIR2216II
 
 ```text
-shaft thẳng?
-bearing kêu?
-dây có đứt?
-nam châm cạ?
+trục thẳng? xoay tay có mượt, không rít?
+bearing có kêu lạo xạo?
+3 dây có đứt/tróc?
+nam châm có cạ vào stator?
 ```
 
-## ESC
+**Việc quan trọng nhất ở bước này: đếm chiều ren.** Quad cần đúng **2 ren thuận +
+2 ren nghịch**. Vặn thử ốc chóp bằng tay: siết chặt khi xoay **cùng** chiều kim đồng
+hồ là ren thuận; siết chặt khi xoay **ngược** chiều kim đồng hồ là ren nghịch. Đừng
+tin nhãn hộp. Nếu shop gửi 4 cái cùng loại ren thì phải đổi ngay.
 
-Không cháy, không biến dạng.
+## ESC — OX32 55A trong stack
 
-## FC
+Không cháy, không phồng tụ, không biến dạng. Kiểm tra sợi cáp 8 chân nối FC↔ESC
+có đủ trong hộp Deluxe (hộp có 2 sợi: 25mm và 75mm).
 
-USB nhận board.
+## FC — SpeedyBee F405 V5
 
-## GPS
+Cắm USB vào máy tính. Windows phải kêu "ting" và hiện thiết bị mới. Chưa cần cắm pin.
 
-Không vỡ antenna ceramic.
+## GPS — Holybro M10 v1
 
-## Receiver
+Không vỡ ăng-ten gốm. Kiểm tra cột nâng có đủ ống + 2 đế + ốc.
 
-Bind được FlySky.
+## Receiver — iA6B
 
-## LiPo
+Bind được với FS-i6X (xem GIAI ĐOẠN 34). Chỉ cần nguồn 5V, chưa cần bo bay.
 
-Kiểm tra điện áp từng cell bằng charger/battery checker.
+## LiPo — Ovonic 4S 5300mAh
+
+Đo điện áp **từng cell** bằng chức năng `Battery Meter` của B6AC V2.
+
+```text
+Pin mới xuất xưởng ở mức storage: 3,80 – 3,85 V mỗi cell
+Tổng 4 cell:                      15,2 – 15,4 V
+Lệch giữa cell cao nhất và thấp nhất phải < 0,05 V
+```
 
 Không dùng pin:
 
@@ -1371,7 +1464,7 @@ cell lệch bất thường
 
 ---
 
-# GIAI ĐOẠN 26 — LẮP FRAME F450
+# GIAI ĐOẠN 26 — LẮP KHUNG S500
 
 Lắp:
 
@@ -1380,6 +1473,7 @@ arm 1
 arm 2
 arm 3
 arm 4
++ 2 chân đáp
 ```
 
 Chưa gắn prop.
@@ -1395,6 +1489,21 @@ không cong
 ```
 
 Siết ốc chắc nhưng không ép nhựa biến dạng.
+
+**CẢNH BÁO RIÊNG CỦA S500 — đọc trước khi cầm mũi khoan:**
+
+Đế dưới S500 **không phải tấm nhựa trơn**. Nó là bo phân phối nguồn, có các đường
+đồng đúc **chìm bên trong lớp vật liệu**, dẫn dòng từ pin ra 4 điểm hàn ESC.
+
+```text
+Khoan trúng đường đồng  →  đứt mạch nguồn, không lên điện, không dò được bằng mắt
+Mạt đồng bám thành lỗ   →  chập chờn: lúc đầu vẫn chạy, nóng lên mới chập
+                            (và lúc đó drone đang ở trên không)
+```
+
+Nhận biết tấm nào cấm khoan: **tấm nào có điểm hàn đồng và ký hiệu cực + − thì
+tuyệt đối không khoan.** Tấm trên thường là sợi thuỷ tinh trơn, khoan được — nhưng
+với bản dựng này bạn **không cần khoan lỗ nào cả**, xem GIAI ĐOẠN 31.
 
 ---
 
@@ -1423,60 +1532,74 @@ Dây motor tạm thời chưa cần cắt ngắn.
 
 # GIAI ĐOẠN 28 — HỆ THỐNG NGUỒN
 
-F450 PDB:
+**Kiến trúc nguồn của bản dựng này đơn giản hơn bản kê cũ rất nhiều**, vì stack
+SpeedyBee đã gộp ESC 4-in-1 và mạch phân phối nguồn vào làm một. **Không dùng power
+board rời của khung S500.**
 
 ```text
-            LiPo 3S
-               │
-             XT60
-               │
-               ▼
-          F450 Power Board
-        ┌──────┼──────┬──────┐
-        ↓      ↓      ↓      ↓
-      ESC1   ESC2   ESC3   ESC4
-        │      │      │      │
-      Motor1 Motor2 Motor3 Motor4
+            LiPo 4S 5300mAh
+                  │
+                XT60
+                  │
+                  ▼
+        ┌─────────────────────┐
+        │  ESC OX32 4-in-1    │   ← hàn dây pin vào đây (cặp pad BAT+/BAT−)
+        │  (tầng dưới stack)  │   ← hàn tụ 1000uF 35V kèm theo hộp vào cùng pad
+        └─────────────────────┘
+          │    │    │    │   │
+          M1   M2   M3   M4  └── cáp 8 chân ─→ FC (tín hiệu + nguồn + đo dòng)
+          │    │    │    │
+        Motor Motor Motor Motor
 ```
 
-Thêm:
+Ba điều bắt buộc ở bước này:
 
 ```text
-F450 PDB
-   │
-   ├── BAT/GND → SpeedyBee FC
-   │
-   └── UBEC 5V → ESP32 systems
+1. Hàn TỤ 1000uF 35V vào ngay pad BAT+/BAT− của ESC
+   Hộp Deluxe có sẵn 2 tụ. Không lắp tụ → xung điện áp lúc đóng cắt
+   có thể giết FC. Chân dài là +, chân ngắn là −, lắp ngược là nổ tụ.
+
+2. FC KHÔNG hàn dây pin riêng
+   FC lấy nguồn qua đúng sợi cáp 8 chân từ ESC. Hộp Deluxe có 2 sợi
+   (25mm và 75mm) — chọn sợi vừa với khoảng cách giữa 2 tầng.
+
+3. Nguồn 5V của FC chỉ ~2,5A cho toàn bộ ngoại vi
+   GPS ăn phần này là đủ. Sang đợt 3, camera ESP32 phải cấp nguồn
+   bằng UBEC 5V 3A riêng lấy thẳng từ pin — không ăn ké 5V của FC,
+   vì camera kéo sụt áp sẽ làm FC reset giữa lúc bay.
 ```
 
-SpeedyBee F405 V4 chính thức nhận LiPo 3S–6S ở BAT/GND và có onboard 5V/9V BEC; tuy nhiên mình vẫn tách camera/ESP32 sang UBEC riêng để giảm khả năng nhiễu/reset từ tải camera.
+Đường nguồn tách riêng ở đợt 3:
+
+```text
+LiPo 4S ──┬── ESC OX32 ──→ motor + FC + GPS
+          │
+          └── UBEC 5V 3A ──→ ESP32-CAM + ESP32 bridge
+```
 
 ---
 
-# GIAI ĐOẠN 29 — QUY TẮC ESC CÓ BEC
+# GIAI ĐOẠN 29 — CÁP FC↔ESC (thay cho quy tắc BEC cũ)
 
-Nếu ESC của bạn có:
-
-```text
-signal
-5V red
-ground
-```
-
-không nối 4 đường 5V BEC song song vào FC nếu nhà sản xuất không cho phép.
-
-Với kiến trúc này:
+Giai đoạn này trong bản kê cũ nói về ESC **rời** có dây BEC 5V. Bản dựng hiện tại
+dùng ESC **4-in-1 trong stack**, nên toàn bộ vấn đề đó biến mất: chỉ có **một sợi
+cáp 8 chân** giữa hai tầng, cắm là xong, không cắt dây, không đấu song song gì cả.
 
 ```text
-ESC → FC
-chỉ cần:
-signal
-ground
+Sợi cáp 8 chân mang:  4 tín hiệu motor + nguồn cho FC + tín hiệu đo dòng + GND
+Cắm một chiều duy nhất — giắc có khớp chống ngược, đừng dùng lực
 ```
 
-FC đã có nguồn riêng từ LiPo.
+Việc thật sự cần làm ở bước này là **chống ngắn mạch giữa hai tầng**:
 
-Kiểm tra đúng loại ESC thực tế trước khi cắt dây.
+```text
+□ Bọc vỏ silicone (hộp Deluxe có 10 cái) vào FC và ESC
+□ Dùng ốc nylon + đệm silicone của hộp Deluxe để chồng tầng
+□ Không để đuôi chân linh kiện tầng dưới chạm mặt đồng tầng trên
+□ Sợi cáp 8 chân gập gọn, không để kẹt giữa hai bo khi siết ốc
+```
+
+Hai tầng chạm nhau là chập nguồn 4S — cháy cả stack 2 triệu.
 
 ---
 
@@ -1516,10 +1639,10 @@ smoke stopper
 
 # GIAI ĐOẠN 31 — LẮP FLIGHT CONTROLLER
 
-SpeedyBee đặt:
+Stack đặt:
 
 ```text
-gần center of frame
+gần center of frame, trên tấm trên
 ```
 
 Mũi tên FC:
@@ -1531,14 +1654,52 @@ hướng về phía trước UAV
 Nếu buộc phải xoay FC:
 
 ```text
-phải khai báo board orientation
+phải khai báo AHRS_ORIENTATION
 ```
 
 Không tự “nhớ offset”.
 
-FC phải được giảm rung bằng grommet/rubber phù hợp.
+## Vấn đề riêng của S500 + stack 30,5 — và cách giải đúng
 
-Không buộc cứng lên frame bằng kim loại trực tiếp.
+```text
+Khung S500   : lỗ bắt chuẩn CŨ 45 × 45 mm (thời Pixhawk hộp to)
+Stack F405 V5: lỗ bắt chuẩn MỚI 30,5 × 30,5 mm (thời bo đua)
+                        ↓
+              hai chuẩn không khớp nhau
+```
+
+Có đúng **một** cách xử lý đúng, và hai cách sai:
+
+| Cách | Kết quả |
+|---|---|
+| ✅ **Bát chống rung 30,5×30,5** | Mặt trên bắt stack chuẩn 30,5, mặt dưới bắt vào lỗ có sẵn của tấm trên. Vừa nối được hai chuẩn, vừa cách ly rung. |
+| ❌ Khoan thêm lỗ trên khung | Đế S500 có đồng đúc chìm — xem GIAI ĐOẠN 26. |
+| ❌ Bắt cứng stack vào khung | Truyền thẳng rung 4 motor vào cảm biến gia tốc. |
+
+Vì sao bắt cứng là sai ngay cả khi lỗ có khớp — số liệu từ tài liệu ArduPilot:
+
+```text
+rung < 30 m/s²   chấp nhận được
+rung > 30 m/s²   bắt đầu có thể gặp sự cố
+rung > 60 m/s²   gần như luôn hỏng phần giữ độ cao và giữ vị trí
+```
+
+Triệu chứng khi vượt ngưỡng: bật AltHold thì drone **tự trôi lên hoặc tụt xuống**
+dù không đụng cần ga; bật Loiter thì trôi ngang. Đúng hai chế độ mà cả đề tài
+phụ thuộc vào.
+
+Cố định mặt dưới của bát vào khung, theo thứ tự ưu tiên:
+
+```text
+1. Bắt ốc vào lỗ CÓ SẴN trên tấm trên          ← tốt nhất, không khoan gì
+2. Băng keo xốp hai mặt dày 1–2mm (3M VHB)     ← ArduPilot khuyến nghị,
+                                                  dán KÍN cả mặt, không dán 4 góc
+3. Dây rút qua lỗ có sẵn                        ← siết vừa đủ; siết quá tay
+                                                  ép chết cao su là mất tác dụng
+```
+
+**Không bắt ốc xuyên qua bát chống rung xuống thẳng khung** — làm vậy là nối cứng
+trở lại, 4 quả cao su mất sạch tác dụng.
 
 ---
 
@@ -1549,10 +1710,30 @@ Không dùng Betaflight cho project này.
 Target:
 
 ```text
-speedybeef4v4
+speedybeef4v5
 ```
 
-ArduPilot stable firmware cho board này hiện được phát hành riêng.
+Bản chính thức: Copter stable **4.7.1**, tải tại
+`https://firmware.ardupilot.org/Copter/stable/speedybeef4v5/`.
+
+**Lần nạp ĐẦU TIÊN khác mọi lần sau — đây là chỗ người mới hay tắc.**
+
+Bo xuất xưởng chạy Betaflight. Mission Planner **không** nhận được bo đang chạy
+Betaflight, nên lần đầu phải nạp qua chế độ DFU của chip:
+
+```text
+LẦN ĐẦU  (bo còn firmware Betaflight)
+  giữ nút BOOT trên FC → cắm USB → thả nút
+  máy hiện thiết bị "STM32 BOOTLOADER" / "DFU in FS Mode"
+  nạp file  arducopter_with_bl.hex   bằng công cụ DFU
+                    ↓
+NHỮNG LẦN SAU  (bo đã có ArduPilot)
+  Mission Planner → Setup → Install Firmware
+  hoặc nạp file  arducopter.apj
+```
+
+Chi tiết từng cú click, kể cả cách cài driver khi Windows không nhận DFU:
+[docs/huong-dan-bat-dau-tu-con-so-0.md](docs/huong-dan-bat-dau-tu-con-so-0.md).
 
 Sau flash:
 
@@ -1581,17 +1762,44 @@ params/
 
 # GIAI ĐOẠN 33 — FRAME TYPE
 
-Mission Planner:
+Mission Planner → `Setup` → `Mandatory Hardware` → `Frame Type`:
 
 ```text
-Frame Class
-→ Quad
-
-Frame Type
-→ X
+Frame Class → Quad
+Frame Type  → X          ← ĐẶT TẠM, phải kiểm chứng ở GIAI ĐOẠN 42/43
 ```
 
-Không gắn prop.
+**Cảnh báo riêng cho stack FPV: đừng tin `X` cho tới khi Motor Test xác nhận.**
+
+ArduPilot có hai kiểu đánh số motor khác nhau cho cùng hình chữ X:
+
+```text
+QUAD X  (chuẩn ArduPilot)      QUAD X (BETAFLIGHT)
+  motor 1 = trước-PHẢI           motor 1 = sau-PHẢI
+  motor 2 = sau-TRÁI             motor 2 = trước-PHẢI
+  motor 3 = trước-TRÁI           motor 3 = sau-TRÁI
+  motor 4 = sau-PHẢI             motor 4 = trước-TRÁI
+```
+
+Pad M1–M4 in trên ESC 4-in-1 là thứ tự của thế giới Betaflight. Nếu thứ tự thực tế
+không khớp `Frame Type` đang đặt thì **drone lật úp ngay giây đầu tiên nhấc lên** —
+đây là nguyên nhân số một làm gãy cánh ở lần bay đầu, không phải hạ cánh mạnh.
+
+Cách kiểm chứng (không tốn đồng nào, làm ở GIAI ĐOẠN 42):
+
+```text
+Mission Planner → Setup → Optional Hardware → Motor Test → 5-10% throttle
+
+Test A phải quay motor TRƯỚC-PHẢI
+Test B phải quay motor SAU-PHẢI          ← thứ tự đi THEO CHIỀU KIM ĐỒNG HỒ,
+Test C phải quay motor SAU-TRÁI             bắt đầu từ motor đầu tiên bên phải
+Test D phải quay motor TRƯỚC-TRÁI           của hướng mũi
+
+Đúng cả 4  → giữ Frame Type = X
+Sai thứ tự → đổi Frame Type sang "X (Betaflight)" rồi test lại
+```
+
+Không gắn prop. Không đoán. Không bỏ qua bước này.
 
 ---
 
@@ -1605,32 +1813,38 @@ FS-i6X
 iA6B
 ```
 
-Ưu tiên:
+Bắt buộc dùng:
 
 ```text
 iBUS
 ```
 
-ArduPilot hỗ trợ i-BUS và có thể nhận serial RC từ UART RX; với serial receiver trên UART, port được cấu hình RC input.
+**Không phải lựa chọn ưu tiên — là lựa chọn duy nhất.** Tài liệu ArduPilot cho board
+này ghi nguyên văn: *"PPM is not supported."* Cổng PPM của iA6B cắm vào sẽ không
+bao giờ lên. SBUS thì bo có hỗ trợ nhưng phải **hàn nối một jumper pad**, mà iA6B
+đã sẵn i-BUS nên không có lý do gì đụng vào.
 
-Logical wiring:
+Đấu dây — dùng sợi cáp receiver SH1.0 4 chân có sẵn trong hộp Deluxe:
 
 ```text
-iA6B
-iBUS signal
-       ↓
-UART RX trên FC
-
-5V
-       ↓
-5V
-
-GND
-       ↓
-GND
+iA6B cổng "i-BUS" (KHÔNG phải cổng PPM, KHÔNG phải servo 1..6)
+       │
+       ├── signal ──→  R6   (chân UART6_RX của FC)
+       ├── 5V     ──→  5V
+       └── GND    ──→  GND
 ```
 
-Không nối signal vào TX.
+Không nối signal vào T6. Sau khi cắm, đặt tham số:
+
+```text
+SERIAL6_PROTOCOL = 23   (RCIN)   ← V5 đã đặt sẵn mặc định, chỉ cần kiểm tra lại
+RSSI_TYPE        = 3            (nếu muốn đọc cường độ sóng từ i-BUS)
+```
+
+ArduPilot tự dò giao thức RC trên chân này, không phải khai báo "iBUS" ở đâu cả.
+Ghi nhớ cho tương lai: nếu sau này đổi sang bộ thu ELRS thì **vẫn cắm đúng chân
+R6**, chỉ đổi phần mềm — nhưng phải đổi cả tay phát, vì FS-i6X không ghép được
+với bộ thu ELRS (hai chuẩn sóng khác nhau: AFHDS-2A vs ELRS).
 
 ---
 
@@ -1704,49 +1918,99 @@ mà operator phải chủ động bật quyền web.
 
 # GIAI ĐOẠN 37 — GPS + COMPASS
 
-Logical wiring:
+Đây là **món khó đấu nhất của cả bản dựng**, vì hai đầu dùng hai họ giắc khác nhau
+và thứ tự chân ngược nhau. Phải cắt và bấm lại dây — không có cách tránh.
+
+## Bên trong module GPS luôn là HAI thiết bị
+
+Đây là gốc rễ của mọi nhầm lẫn về số chân:
+
+| Thiết bị | Nhiệm vụ | Đường truyền | Dây |
+|---|---|---|---|
+| Chip GPS u-blox M10 | drone đang ở toạ độ nào | UART | TX, RX |
+| La bàn IST8310 | mũi drone quay hướng nào | I2C | SDA, SCL |
+| Nguồn chung | nuôi cả hai | — | VCC, GND |
+
+Cộng lại đúng **6 dây**. Cáp 10 chân của bản V1 mang đúng 6 tín hiệu đó cộng 4 chân
+thừa (safety switch, LED, 3V3, buzzer) — **cắt bỏ 4 chân đó không mất gì**, vì
+F405 V5 không có cổng cho chúng.
+
+## Sơ đồ đấu — Holybro M10 v1 (10 chân) → SpeedyBee F405 V5
 
 ```text
-GPS TX
-→ FC RX
+HOLYBRO M10 v1              SPEEDYBEE F405 V5
+đầu JST-GH 1,25mm           cổng GPS JST-SH 1,0mm, 6 chân (mặt trước)
+thứ tự: VCC RX TX SCL SDA   thứ tự: GND 4V5 T4 R4 SDA SCL
+        ...NC×4... GND
 
-GPS RX
-→ FC TX
-
-GPS 5V
-→ FC 5V/4.5V phù hợp module
-
-GPS GND
-→ FC GND
+  chân 1  VCC  ───────────────→  4V5
+  chân 2  RX   ───────┐
+  chân 3  TX   ──┐    └───────→  T4      ← BẮT CHÉO
+  chân 4  SCL  ──│──┐  ┌──────→  R4      ← BẮT CHÉO
+  chân 5  SDA  ──│──│──│───┐
+  chân 6..9 NC ──│──│──│───│───  CẮT BỎ
+  chân cuối GND ─│──│──│───│──→  GND
+                 └──│──│───│──→  R4  (GPS TX → FC RX)
+                    └──│───│──→  SCL
+                       └───│──→  (đã nối T4 ở trên)
+                           └──→  SDA
 ```
 
-Compass:
+Viết lại cho gọn, nối **theo TÊN TÍN HIỆU, không theo màu dây**:
 
 ```text
-SDA
-→ SDA
-
-SCL
-→ SCL
+GPS VCC  → FC 4V5
+GPS GND  → FC GND
+GPS TX   → FC R4      ← chéo
+GPS RX   → FC T4      ← chéo
+GPS SCL  → FC SCL
+GPS SDA  → FC SDA
+4 chân NC → cắt bỏ
 ```
 
-SpeedyBee F405 V4 có I2C SDA/SCL riêng và nhiều UART cho GPS/receiver/peripherals.
+Cáp phía FC: dùng sợi **"Dây GPS SH1.0 6pin 120mm + đầu rời"** có sẵn trong hộp
+Deluxe. "Đầu rời" chính là vỏ giắc trống để bạn cắm lại thứ tự chân cho khớp.
 
-Đặt GPS:
+## Ba lỗi kinh điển ở bước này
 
 ```text
-cao hơn frame
-xa:
-battery wire
-ESC
-motor
+1. Nối TX→TX (quên bắt chéo)
+   Triệu chứng: GPS vẫn sáng đèn bình thường, Mission Planner báo "No GPS".
+   Không hỏng gì, chỉ là không bao giờ lên. Đây là chỗ kiểm tra ĐẦU TIÊN.
+
+2. Không đo điện áp chân nguồn
+   Holybro yêu cầu 4,7–5,2V; chân cổng GPS của bo ghi là "4V5". Trên giấy là
+   hơi thấp. Cắm pin rồi ĐO chân đó bằng đồng hồ:
+       ≥ 4,7V  → dùng bình thường
+       < 4,7V  → hàn riêng dây đỏ sang pad 5V, giữ nguyên 5 dây còn lại
+
+3. Đặt GPS thấp và gần dây nguồn
+   Dòng 58A của motor sinh từ trường lấn át từ trường Trái Đất → la bàn sai →
+   bật Loiter là drone bay vòng tròn mỗi lúc một rộng. Lỗi kinh điển của người mới,
+   và nó KHÔNG báo lỗi gì cả.
 ```
 
-Nếu có thể:
+## Vị trí đặt GPS
 
 ```text
-GPS mast in 3D
+dùng CỘT NÂNG đã mua (bắt buộc, không bỏ qua)
+cao hơn mặt khung ≥ 8–10 cm
+xa: dây nguồn pin, ESC, motor
+ĐÁNH DẤU mũi tên trên vỏ GPS hướng CÙNG chiều mũi FC
 ```
+
+Nếu buộc phải xoay module, khai báo `COMPASS_ORIENT`, đừng tự nhớ offset.
+
+## Tham số kiểm tra sau khi cắm
+
+```text
+SERIAL4_PROTOCOL = 5     GPS   ← V5 đặt sẵn mặc định
+GPS1_TYPE        = 1     AUTO
+COMPASS_USE      = 1
+```
+
+PASS khi Mission Planner hiện `GPS: 3D Fix`, `HDOP < 1.5`, số vệ tinh ≥ 9, **ngoài
+trời, sau 1–2 phút đầu**. Trong nhà không bao giờ có fix — đừng tưởng là hỏng.
 
 ---
 
@@ -1866,37 +2130,56 @@ ArduPilot cũng hướng dẫn đảo hai trong ba dây ESC–motor để đổi
 
 ---
 
-# GIAI ĐOẠN 44 — ESC CALIBRATION
+# GIAI ĐOẠN 44 — KHÔNG CALIBRATE ESC. ĐẶT DSHOT.
 
-Vì bộ ESC 30A rẻ thường sử dụng PWM kiểu truyền thống, nhiều loại cần calibration.
+**Giai đoạn này đã đổi hoàn toàn so với bản kế hoạch cũ.**
 
-Thứ tự:
-
-```text
-Radio calibration
-↓
-ESC calibration
-```
-
-ArduPilot cũng quy định radio calibration phải làm trước ESC calibration.
-
-Sau calibration:
+Bản cũ viết cho ESC 30A rẻ chạy PWM analog — loại đó phải "dạy" cho ESC biết đâu
+là ga thấp nhất và cao nhất, gọi là ESC calibration. ESC **OX32 trong stack là ESC
+32-bit chạy DShot**, tín hiệu số. Với DShot:
 
 ```text
-arm
-↓
-throttle thấp
+KHÔNG có dải ga để hiệu chỉnh  → KHÔNG có bước ESC calibration
+Làm theo quy trình cũ (kéo ga hết cỡ rồi cắm pin) là VÔ NGHĨA và NGUY HIỂM
 ```
 
-Cả 4 motor phải:
+Thay vào đó, đặt đúng một tham số:
 
 ```text
-start gần cùng thời điểm
+MOT_PWM_TYPE = 6        (DShot600)
 ```
 
-Nếu một motor start rất muộn:
+Rồi reboot bo bay. Kiểm tra bằng Motor Test (chưa lắp cánh): cả 4 motor phải
+khởi động **mượt và gần như cùng lúc** ở 5–10%.
 
-không gắn prop.
+## Nếu muốn dùng ESC telemetry (khuyến khích, làm sau)
+
+OX32 có xuất telemetry, và hwdef của V5 đã gán sẵn **SERIAL5 = ESC Telemetry,
+19200 baud**. Bật lên thì có RPM thật của từng motor → dùng cho harmonic notch
+lọc rung, giúp Loiter mượt hơn nhiều. Để sau khi bay ổn định.
+
+## RỦI RO THẬT PHẢI TEST Ở BƯỚC NÀY — desync
+
+ESC 55A này thiết kế cho drone đua: motor nhỏ, quay rất nhanh. Motor AIR2216II của
+bạn to và quay chậm (~7.900 vòng/phút ở ga đầy, so với 25.000+ của drone đua). Cặp
+này đôi khi bị **mất đồng bộ (desync)**: motor đang quay thì khựng lại. Trên không,
+desync một motor là rơi.
+
+```text
+QUY TRÌNH TEST DESYNC — làm trước khi ra ngoài trời
+
+1. Kẹp chặt drone xuống bàn (dây rút / kẹp chữ C). CHƯA LẮP CÁNH.
+2. Motor Test, đẩy ga TỪ TỪ: 10% → 20% → 30% → 50%
+3. NGHE. Tiếng phải là tiếng rít đều, lên đều theo ga.
+4. Nghe thấy "khục", giật, hoặc motor tự dừng rồi chạy lại
+   → ĐÂY LÀ DESYNC. Không bay. Xử lý trước:
+     - hạ MOT_PWM_TYPE xuống 4 (DShot150) hoặc 5 (DShot300) rồi test lại
+     - kiểm tra lại 12 mối hàn dây motor — mối hàn nguội cũng gây triệu chứng này
+     - nếu vẫn còn, phải chỉnh timing trong phần mềm cấu hình ESC
+5. Thử cả 4 motor riêng, rồi thử tăng ga đột ngột (mô phỏng gượng gió)
+```
+
+Nếu một motor start rất muộn hoặc khựng: **không gắn prop.**
 
 ---
 
@@ -1968,31 +2251,59 @@ Test trên bench trước.
 
 # GIAI ĐOẠN 48 — BATTERY FAILSAFE
 
-Một lưu ý:
+Battery failsafe chỉ đáng tin khi bo đọc điện áp đúng. Làm theo đúng thứ tự:
+**hiệu chỉnh trước, đặt ngưỡng sau.**
 
-battery failsafe chuẩn của ArduPilot cần battery/power monitor phù hợp.
-
-Nếu phần cứng của bạn đọc voltage chính xác:
-
-có thể bắt đầu tham khảo cho LiPo 3S:
+## Bước 1 — tham số mặc định của V5 (kiểm tra, đừng đoán)
 
 ```text
-Low ≈ 10.5 V
+BATT_MONITOR   = 4       Analog Voltage and Current
+BATT_VOLT_PIN  = 11
+BATT_CURR_PIN  = 15
+BATT_VOLT_MULT = 11.2
+BATT_AMP_PERVLT = 1      ← GIÁ TRỊ NÀY GẦN NHƯ CHẮC CHẮN SAI, phải hiệu chỉnh
 ```
 
-đây cũng là ví dụ mà ArduPilot đưa trong trang battery failsafe.
-
-Nhưng phải kiểm tra:
+## Bước 2 — hiệu chỉnh điện áp bằng đồng hồ vạn năng
 
 ```text
-điện áp Mission Planner
-vs
-multimeter
+cắm pin → đọc điện áp trên Mission Planner
+        → đo điện áp thật ở đầu XT60 bằng đồng hồ
+        → lệch > 0,1 V thì sửa:
+
+BATT_VOLT_MULT mới = BATT_VOLT_MULT cũ × (điện áp đo được / điện áp MP hiện)
 ```
 
-trước.
+Lặp lại tới khi hai số khớp nhau trong khoảng 0,05 V.
 
-Không copy threshold blindly nếu voltage reading sai.
+## Bước 3 — ngưỡng cho pin 4S 5300mAh (KHÔNG phải 3S)
+
+Bản kế hoạch cũ ghi `Low ≈ 10.5 V`, đó là ngưỡng cho pin **3S** của khung F450.
+Dự án này dùng **4S** — dùng số cũ thì pin cạn kiệt tới mức hỏng mà failsafe
+chưa hề kích hoạt.
+
+```text
+Số cell:          4
+Nghỉ đầy:         16,8 V   (4,20 V/cell)
+Nghỉ an toàn hết: 14,8 V   (3,70 V/cell) — điểm nên hạ cánh
+Dưới tải:         sụt thêm 0,3–0,6 V so với lúc nghỉ
+
+BATT_LOW_VOLT      = 14.4      (3,60 V/cell dưới tải) → cảnh báo + RTL
+BATT_CRT_VOLT      = 13.6      (3,40 V/cell dưới tải) → LAND ngay
+BATT_FS_LOW_ACT    = 2         RTL
+BATT_FS_CRT_ACT    = 1         LAND
+BATT_LOW_TIMER     = 10        giây, tránh báo giả khi tăng ga đột ngột
+```
+
+Cộng thêm ngưỡng theo dung lượng sau khi đã hiệu chỉnh xong `BATT_AMP_PERVLT`:
+
+```text
+BATT_CAPACITY   = 5300
+BATT_FS_LOW_MAH = 1060      (dùng tối đa 80% → chừa 20% cho tuổi thọ pin)
+```
+
+**Không copy ngưỡng khi số đọc còn sai.** Sai số đọc + ngưỡng đúng = drone rơi vì
+tưởng còn pin, hoặc RTL giữa chừng vì tưởng hết pin.
 
 ---
 
@@ -3199,9 +3510,24 @@ final project
 
 # GIAI ĐOẠN 90 — THỨ TỰ MUA LINH KIỆN TỐI ƯU
 
-Đừng mua toàn bộ ngay ngày đầu.
+Nguyên tắc gốc: **chỉ bỏ tiền cho chặng sau khi chặng trước đã chứng minh project
+còn khả thi.** Bản kế hoạch gốc chia 4 batch theo nguyên tắc đó.
 
-## Batch A
+**Thực tế đã đi khác kế hoạch:** batch C (toàn bộ phần cứng bay) đã mua trước, hết
+9.661.000 ₫, trong khi batch A (phần mềm) chưa làm. Không sửa được quá khứ, nên
+phần dưới là thứ tự **tính từ hôm nay**.
+
+## Batch 0 — NGAY HÔM NAY, ~280k
+
+```text
+bát chống rung 30,5×30,5mm
+dây silicone 16AWG × 4,5m (3 màu)
+gen co nhiệt nhiều cỡ + dây rút 2.5×100
+```
+
+Ba nhóm này chặn **toàn bộ** khâu lắp ráp. Đặt trước, vì hàng cần vài ngày về.
+
+## Batch A — 0 đồng, làm trong lúc chờ hàng
 
 ```text
 Không mua gì
@@ -3218,64 +3544,49 @@ Waypoint
 Auto
 ```
 
-## Batch B
+Đây là phần **đáng làm trước nhất** và cũng là phần bị bỏ qua. Nếu web GCS không
+điều khiển nổi drone ảo thì nó cũng sẽ không điều khiển nổi drone thật — chỉ khác
+là lúc đó sai lầm có giá 9,6 triệu.
 
-Mua:
+## Batch B — hàng batch 0 về thì lắp
 
 ```text
-ESP32-CAM
+Không mua gì (đã có đủ)
 ```
 
 Hoàn thành:
 
 ```text
-camera
-YOLO
-dataset
-augmentation
+lắp khung + motor + stack
+nạp firmware speedybeef4v5
+hiệu chỉnh, motor test, desync test
+RC flight → AltHold → Loiter → RTL
+Auto mission bằng Mission Planner
 ```
 
-## Batch C
-
-Mua:
+## Batch C — camera, ~380k, chỉ mua khi Loiter đã ổn định
 
 ```text
-F450
-Motor
-ESC
-FC
-RC
-GPS
-Battery
-Charger
+ESP32-CAM + mạch nạp
+ESP32 DevKit (cầu MAVLink Wi-Fi)
+UBEC 5V 3A
 ```
 
 Hoàn thành:
 
 ```text
-RC flight
-Loiter
-RTL
-Auto
+camera, YOLO, dataset, augmentation
+web telemetry với drone thật
+integration
 ```
 
-## Batch D
-
-Mua/thêm:
+## Batch D — hao mòn, mua khi cần
 
 ```text
-ESP32 bridge
-UBEC
-mount
-wiring
-spare props
+cánh 1045 thay thế       (thứ hỏng nhiều nhất)
+pin 4S thứ hai           (mua đúng cùng loại Ovonic để 2 viên giống hệt)
+1 motor AIR2216II dự phòng (nhớ chọn đúng chiều ren)
 ```
-
-Hoàn thành integration.
-
-Cách này cực kỳ quan trọng về tài chính:
-
-> Bạn chỉ bỏ tiền cho stage tiếp theo khi stage trước đã chứng minh project vẫn khả thi.
 
 ---
 

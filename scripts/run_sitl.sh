@@ -8,7 +8,7 @@ ARDUPILOT_DIR="${ARDUPILOT_DIR:-./ardupilot}"
 
 if [[ ! -d "${ARDUPILOT_DIR}/ArduCopter" ]]; then
   echo "Không tìm thấy ${ARDUPILOT_DIR}/ArduCopter" >&2
-  echo "Clone ArduPilot rồi trỏ ARDUPILOT_DIR tới đó — xem docs/dev-env.md" >&2
+  echo "Clone ArduPilot rồi trỏ ARDUPILOT_DIR tới đó — xem docs/huong-dan-bat-dau-tu-con-so-0.md PHAN 4" >&2
   exit 1
 fi
 
