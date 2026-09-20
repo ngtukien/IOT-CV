@@ -1428,7 +1428,7 @@ tin nhãn hộp. Nếu shop gửi 4 cái cùng loại ren thì phải đổi nga
 
 ## ESC — OX32 55A trong stack
 
-Không cháy, không phồng tụ, không biến dạng. Kiểm tra sợi cáp 8 chân nối FC↔ESC
+Không cháy, không phồng tụ, không biến dạng. Kiểm tra sợi cáp 10 chân nối FC↔ESC
 có đủ trong hộp Deluxe (hộp có 2 sợi: 25mm và 75mm).
 
 ## FC — SpeedyBee F405 V5
@@ -1547,7 +1547,7 @@ board rời của khung S500.**
         │  (tầng dưới stack)  │   ← hàn tụ 1000uF 35V kèm theo hộp vào cùng pad
         └─────────────────────┘
           │    │    │    │   │
-          M1   M2   M3   M4  └── cáp 8 chân ─→ FC (tín hiệu + nguồn + đo dòng)
+          M1   M2   M3   M4  └── cáp 10 chân ─→ FC (tín hiệu + nguồn + đo dòng)
           │    │    │    │
         Motor Motor Motor Motor
 ```
@@ -1560,7 +1560,7 @@ Ba điều bắt buộc ở bước này:
    có thể giết FC. Chân dài là +, chân ngắn là −, lắp ngược là nổ tụ.
 
 2. FC KHÔNG hàn dây pin riêng
-   FC lấy nguồn qua đúng sợi cáp 8 chân từ ESC. Hộp Deluxe có 2 sợi
+   FC lấy nguồn qua đúng sợi cáp 10 chân từ ESC. Hộp Deluxe có 2 sợi
    (25mm và 75mm) — chọn sợi vừa với khoảng cách giữa 2 tầng.
 
 3. Nguồn 5V của FC chỉ ~2,5A cho toàn bộ ngoại vi
@@ -1583,10 +1583,10 @@ LiPo 4S ──┬── ESC OX32 ──→ motor + FC + GPS
 
 Giai đoạn này trong bản kê cũ nói về ESC **rời** có dây BEC 5V. Bản dựng hiện tại
 dùng ESC **4-in-1 trong stack**, nên toàn bộ vấn đề đó biến mất: chỉ có **một sợi
-cáp 8 chân** giữa hai tầng, cắm là xong, không cắt dây, không đấu song song gì cả.
+cáp 10 chân** giữa hai tầng, cắm là xong, không cắt dây, không đấu song song gì cả.
 
 ```text
-Sợi cáp 8 chân mang:  4 tín hiệu motor + nguồn cho FC + tín hiệu đo dòng + GND
+Sợi cáp 10 chân mang:  4 tín hiệu motor + nguồn cho FC + tín hiệu đo dòng + GND
 Cắm một chiều duy nhất — giắc có khớp chống ngược, đừng dùng lực
 ```
 
@@ -1596,7 +1596,7 @@ Việc thật sự cần làm ở bước này là **chống ngắn mạch giữ
 □ Bọc vỏ silicone (hộp Deluxe có 10 cái) vào FC và ESC
 □ Dùng ốc nylon + đệm silicone của hộp Deluxe để chồng tầng
 □ Không để đuôi chân linh kiện tầng dưới chạm mặt đồng tầng trên
-□ Sợi cáp 8 chân gập gọn, không để kẹt giữa hai bo khi siết ốc
+□ Sợi cáp 10 chân gập gọn, không để kẹt giữa hai bo khi siết ốc
 ```
 
 Hai tầng chạm nhau là chập nguồn 4S — cháy cả stack 2 triệu.
@@ -1662,11 +1662,21 @@ Không tự “nhớ offset”.
 ## Vấn đề riêng của S500 + stack 30,5 — và cách giải đúng
 
 ```text
-Khung S500   : lỗ bắt chuẩn CŨ 45 × 45 mm (thời Pixhawk hộp to)
-Stack F405 V5: lỗ bắt chuẩn MỚI 30,5 × 30,5 mm (thời bo đua)
-                        ↓
-              hai chuẩn không khớp nhau
+Khung S500   : KHONG co lo 30,5 x 30,5
+               (thiet ke thoi bo bay la hop lon kieu Pixhawk)
+Stack F405 V5: lo bat chuan 30,5 x 30,5 (thoi bo dua)
+                        |
+              hai chuan khong khop nhau
 ```
+
+**Mức độ chắc chắn của khẳng định này** (kiểm chứng 20/09/2026):
+
+| Khẳng định | Bằng chứng |
+|---|---|
+| Đế dưới S500 là PDB tích hợp | Trang sản phẩm Holybro: *"The bottom plate also has a power distribution board (PDB) build in"*, Cont 60A / Burst 100A. **Đã xác minh.** |
+| Khung không có lỗ 30,5×30,5 | Không tài liệu chính hãng nào nêu; tồn tại cả một lớp adapter "S500 → 30,5" trên thị trường. **Đã xác minh gián tiếp.** |
+| Không nên bắt cứng bo bay vào khung | Bản dựng tham chiếu của chính Holybro (PX4 build guide cho S500 V2) dùng **băng keo hai mặt** dán Pixhawk lên tấm giữa, rồi mới bắt tấm đó vào khung bằng ốc M2.5×6. **Đã xác minh.** |
+| Khung dùng chuẩn lỗ 45×45 | **CHƯA xác minh.** Con số này lấy từ `docs/linh-kien-s500.html`; không tìm được bản vẽ Holybro xác nhận. Không quan trọng với quyết định — điều cần biết là "không phải 30,5". |
 
 Có đúng **một** cách xử lý đúng, và hai cách sai:
 
@@ -1692,8 +1702,11 @@ Cố định mặt dưới của bát vào khung, theo thứ tự ưu tiên:
 
 ```text
 1. Bắt ốc vào lỗ CÓ SẴN trên tấm trên          ← tốt nhất, không khoan gì
-2. Băng keo xốp hai mặt dày 1–2mm (3M VHB)     ← ArduPilot khuyến nghị,
-                                                  dán KÍN cả mặt, không dán 4 góc
+2. Bang keo xop hai mat day 1-2mm (3M VHB)     <- ArduPilot khuyen nghi, VA day
+                                                  cung la cach bang dung trong
+                                                  ban dung tham chieu S500 cua
+                                                  Holybro. Dan KIN ca mat,
+                                                  khong dan 4 goc.
 3. Dây rút qua lỗ có sẵn                        ← siết vừa đủ; siết quá tay
                                                   ép chết cao su là mất tác dụng
 ```
@@ -1757,6 +1770,50 @@ File:
 params/
 00-after-flash.param
 ```
+
+## ArduPilot CÓ SẴN file tham số tinh chỉnh cho đúng khung S500 — dùng, nhưng dùng một phần
+
+ArduPilot xuất bản một trang khung tham chiếu riêng cho Holybro S500
+(`ardupilot.org/copter/docs/reference-frames-holybro-s500.html`) kèm file
+`Holybro-S500.param`, nạp được thẳng từ Mission Planner: `Config/Tuning` →
+`Full Parameter Tree` → chọn `Holybro-S500` ở ô drop-down.
+
+Khung tham chiếu của họ: **S500 V2 + motor 2216-880kv + cánh 1045 + pin 3S/4S
+3300–5300mAh**. Gần như trùng khít với bản dựng của bạn — khác mỗi FC và ESC.
+
+**Lấy phần này** (giá trị PID và lọc rung đã tinh chỉnh thật cho đúng khung + motor
++ cánh này; tự dò lại từ đầu tốn hàng chục chuyến bay):
+
+```text
+ATC_ACC_P_MAX 700 · ATC_ACC_R_MAX 700 · ATC_ACC_Y_MAX 120
+ATC_ANG_PIT_P 11 · ATC_ANG_RLL_P 11 · ATC_ANG_YAW_P 7.2
+ATC_RAT_PIT_P/I 0.110 · ATC_RAT_PIT_D 0.003
+ATC_RAT_RLL_P/I 0.110 · ATC_RAT_RLL_D 0.003
+ATC_RAT_YAW_P 0.31 · ATC_RAT_YAW_I 0.031 · ATC_RAT_YAW_FLTE 1
+INS_GYRO_FILTER 40
+MOT_SPIN_ARM 0.07 · MOT_SPIN_MIN 0.09 · MOT_THST_HOVER 0.25
+MOT_BAT_VOLT_MAX 16.8 · MOT_BAT_VOLT_MIN 13.2      ← đúng cho 4S
+EK3_DRAG_BCOEF_X 80 · EK3_DRAG_BCOEF_Y 54 · EK3_DRAG_MCOEF 0.11
+```
+
+**TUYỆT ĐỐI KHÔNG lấy phần này** — đây là chân ADC của **Pix32v5**, không phải của
+F405 V5. Nạp cả file là bộ đo pin đọc ra số vô nghĩa, và battery failsafe sẽ hoặc
+không bao giờ kích hoạt, hoặc kích hoạt liên tục:
+
+```text
+                   file Holybro-S500     ĐÚNG cho F405 V5
+BATT_VOLT_PIN      0                     11
+BATT_CURR_PIN      1                     15
+BATT_VOLT_MULT     18.182                11.2
+BATT_AMP_PERVLT    39.877                phải tự hiệu chỉnh (GIAI ĐOẠN 48)
+```
+
+`FRAME_TYPE,1` trong file cũng vẫn phải kiểm chứng bằng Motor Test như GIAI ĐOẠN 33.
+`BATT_LOW_VOLT,14` của họ thì lấy nguyên — GIAI ĐOẠN 48 dùng đúng con số này.
+
+**Cách làm an toàn:** nạp cả file trước, rồi **sửa lại 4 tham số BATT_\* ở trên**,
+rồi `Write Params`, rồi lưu thành `params/01-base.param`. Đừng nạp file rồi quên
+bước sửa.
 
 ---
 
@@ -2288,12 +2345,18 @@ Nghỉ đầy:         16,8 V   (4,20 V/cell)
 Nghỉ an toàn hết: 14,8 V   (3,70 V/cell) — điểm nên hạ cánh
 Dưới tải:         sụt thêm 0,3–0,6 V so với lúc nghỉ
 
-BATT_LOW_VOLT      = 14.4      (3,60 V/cell dưới tải) → cảnh báo + RTL
-BATT_CRT_VOLT      = 13.6      (3,40 V/cell dưới tải) → LAND ngay
+BATT_LOW_VOLT      = 14.0      (3,50 V/cell dưới tải) → cảnh báo + RTL
+BATT_CRT_VOLT      = 13.2      (3,30 V/cell dưới tải) → LAND ngay
 BATT_FS_LOW_ACT    = 2         RTL
 BATT_FS_CRT_ACT    = 1         LAND
 BATT_LOW_TIMER     = 10        giây, tránh báo giả khi tăng ga đột ngột
 ```
+
+`BATT_LOW_VOLT = 14.0` là đúng con số trong `Holybro-S500.param` chính hãng của
+ArduPilot, nên dùng nó thay vì tự nghĩ ra ngưỡng khác. Muốn nương pin hơn nữa thì
+nâng lên 14.4 / 13.6 (3,60 / 3,40 V/cell) — đổi lại mỗi chuyến bay ngắn hơn khoảng
+một phút. Với giới hạn `MAX_DISTANCE_HOME = 50 m` của dự án thì RTL tốn rất ít năng
+lượng, nên 14.0 đã dư biên.
 
 Cộng thêm ngưỡng theo dung lượng sau khi đã hiệu chỉnh xong `BATT_AMP_PERVLT`:
 

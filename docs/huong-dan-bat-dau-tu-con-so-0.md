@@ -99,8 +99,8 @@ cài phần mềm sau.
 
 **Vì sao bắt buộc — đọc kỹ chỗ này:**
 
-Khung S500 có lỗ bắt bo bay theo chuẩn **cũ 45×45mm**. Stack SpeedyBee theo chuẩn
-**mới 30,5×30,5mm**. Hai chuẩn không khớp. Có 3 đường đi, 2 đường sai:
+Khung S500 **không có lỗ 30,5×30,5mm**, còn stack SpeedyBee thì bắt theo đúng chuẩn
+đó. Hai bên không khớp. Có 3 đường đi, 2 đường sai:
 
 ```text
 SAI 1 -- Tu khoan lo moi tren khung
@@ -117,6 +117,12 @@ DUNG -- Bat chong rung
   Mat tren bat stack chuan 30,5. Mat duoi bat vao lo CO SAN cua tam tren
   khung, hoac dan bang keo xop 3M. Giai quyet ca hai van de cung luc.
 ```
+
+> **Đã kiểm chứng 20/09/2026.** Trang sản phẩm Holybro xác nhận đế dưới S500 có PDB
+> tích hợp (60A liên tục / 100A đỉnh) — nên cảnh báo cấm khoan là có cơ sở. Và bản
+> dựng tham chiếu S500 V2 của chính Holybro (PX4 build guide) **dán băng keo hai
+> mặt** để gắn bo bay chứ không bắt ốc cứng. Nói cách khác: cách làm ở trên trùng
+> với khuyến nghị của nhà sản xuất, không phải mẹo của người dùng.
 
 ### 1.2. Dây silicone 16AWG — BẮT BUỘC
 
