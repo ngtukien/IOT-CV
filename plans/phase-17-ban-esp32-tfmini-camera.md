@@ -304,7 +304,7 @@ hiệu báo trước. **Đo lại từng dây bằng đồng hồ trước khi c
 
 ```powershell
 Get-CimInstance Win32_SerialPort | Format-Table Name, Description
-py -3.11 scripts\bench_tfmini.py COM5     # doi COM5 thanh so that
+py -3.13 scripts\bench_tfmini.py COM5     # doi COM5 thanh so that
 ```
 
 **Kết quả mong đợi:** dòng chữ chạy liên tục (~100 dòng/giây), cột `ok` tăng đều, cột `bad` gần

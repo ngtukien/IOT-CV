@@ -21,7 +21,7 @@ Phải đọc trước:
 Phải có sẵn (đã xác nhận trên máy này ngày 21/09/2026):
 
 - Windows 11, quyền cài phần mềm.
-- Python 3.13 và Python 3.11, Node 24, pnpm 11, Docker Desktop, `uv` 0.12.
+- Python 3.13, Node 24, pnpm 11, Docker Desktop, `uv` 0.12.
 - WSL2 với Ubuntu 24.04 đã đăng ký (đang trống, chưa cài gì).
 - Mạng ổn định, ~3 GB tải về cho riêng phase này.
 
@@ -52,7 +52,7 @@ git --version
 
 Kết quả mong đợi:
 
-- `py --list` liệt kê cả `-V:3.13` lẫn `-V:3.11`.
+- `py --list` liệt kê `-V:3.13`.
 - `node --version` in `v24.x.x`; `pnpm --version` in `11.x.x`.
 - `uv --version` in `uv 0.12.x`.
 - `docker info --format ...` in ra số phiên bản server (nếu in lỗi nghĩa là Docker Desktop chưa khởi động, không phải chưa cài).
@@ -60,7 +60,9 @@ Kết quả mong đợi:
 
 Nếu lỗi:
 
-1. **`py --list` không có `3.11`** → `winget install Python.Python.3.11`. Backend bắt buộc 3.11 vì `pymavlink`/`MAVProxy` có phần biên dịch C, wheel dựng sẵn thường ra chậm với bản Python mới nhất.
+1. **`py --list` không có `3.13`** → `winget install Python.Python.3.13`.
+
+> ⚠️ **Không dùng bản Python 3.11 của Microsoft Store trên máy này** (đường dẫn cài kiểu `WindowsApps\PythonSoftwareFoundation.Python.3.11_...`). Bản đó hay hỏng khi tạo venv và khi cài gói cần biên dịch. Nếu sau này một phase nào đó cần một phiên bản Python khác 3.13, dùng `uv python install <phiên bản>` để `uv` tự tải một bản độc lập, sạch — không cài qua Microsoft Store.
 2. **`docker info` báo `error during connect`** → mở Docker Desktop từ Start Menu, đợi biểu tượng cá voi hết quay, chạy lại.
 3. **`wsl --list --verbose` cột VERSION là `1`** → `wsl --set-version Ubuntu 2`. WSL1 không chạy được ArduPilot SITL.
 4. **`pnpm` không nhận diện** → `npm install -g pnpm`, rồi mở lại PowerShell (biến PATH chỉ nạp lúc mở cửa sổ).
@@ -166,17 +168,17 @@ Nếu lỗi:
 2. **`code` không nhận diện trong PowerShell** → lúc cài VS Code có một ô tick "Add to PATH"; nếu bỏ sót, gỡ và cài lại, hoặc thêm thủ công.
 3. **PlatformIO cài mãi không xong** → nó đang tải Python riêng và toolchain; để yên 5–10 phút. Nếu thất bại, mở `View → Output → PlatformIO` đọc lỗi thật.
 
-### 00.6 esptool và pymavlink trên Python 3.11
+### 00.6 esptool và pymavlink trên Python 3.13
 
 `esptool` nạp firmware vào ESP32 bằng dòng lệnh (Phase 12, 17). `pymavlink` là thư viện backend dùng để nói chuyện MAVLink (Phase 05 trở đi).
 
-**Dùng `py -3.11`, không dùng `python` trần.** Máy có cả 3.13 và 3.11; gõ `python` sẽ trúng 3.13 và backend cần 3.11.
+**Dùng `py -3.13`.** Nếu máy có nhiều bản Python cài song song, gõ `py -3.13` để chắc chắn trúng đúng bản, thay vì `python` trần (có thể trúng bản khác, ví dụ bản Microsoft Store hoặc bản trong WSL).
 
 ```powershell
-py -3.11 -m pip install --upgrade pip
-py -3.11 -m pip install --upgrade esptool pymavlink
+py -3.13 -m pip install --upgrade pip
+py -3.13 -m pip install --upgrade esptool pymavlink
 esptool version
-py -3.11 -m pip show pymavlink
+py -3.13 -m pip show pymavlink
 ```
 
 ⚠️ **esptool v5 đã đổi cú pháp lệnh.** Bây giờ gọi là `esptool` (không còn `esptool.py`) và subcommand dùng gạch nối:
@@ -194,8 +196,8 @@ Kết quả mong đợi: `esptool version` in `esptool v5.x.x`; `pip show pymavl
 
 Nếu lỗi:
 
-1. **`esptool` không nhận diện** → thư mục `Scripts` của Python 3.11 chưa vào PATH. Chạy thay bằng `py -3.11 -m esptool version`.
-2. **`pip install pymavlink` fail khi biên dịch** → đang dùng nhầm Python 3.13. Kiểm tra bằng `py -3.11 -c "import sys; print(sys.version)"`.
+1. **`esptool` không nhận diện** → thư mục `Scripts` của Python 3.13 chưa vào PATH. Chạy thay bằng `py -3.13 -m esptool version`.
+2. **`pip install pymavlink` fail khi biên dịch** → đang dùng nhầm bản Python khác (ví dụ bản Microsoft Store hoặc bản trong WSL). Kiểm tra bằng `py -3.13 -c "import sys; print(sys.version)"`.
 3. **`pip` báo lỗi quyền** → đừng chạy PowerShell as administrator; thêm `--user` vào lệnh `pip install`.
 
 ### 00.7 Khởi động WSL2 Ubuntu lần đầu
@@ -230,7 +232,25 @@ Nếu lỗi:
 2. **`wsl --update` báo lỗi mạng** → chạy PowerShell as administrator rồi thử lại.
 3. **`df -h /` báo ổ chỉ còn vài GB** → ổ ảo WSL đang nằm trên ổ C. Chuyển sang ổ khác bằng `wsl --export` / `wsl --import` trước khi sang Phase 02, nếu không build sẽ chết giữa chừng.
 
-### 00.8 Ghi lại vào PROGRESS
+### 00.8 Kiểm tra bộ điều khiển giao diện đồ họa
+
+Từ Phase 14 trở đi bạn sẽ phải bấm qua nhiều wizard chỉ có giao diện: Mission Planner
+(hiệu chỉnh radio, la bàn, gia tốc kế, Motor Test), STM32CubeProgrammer (nạp DFU), trình
+nạp web của DroneBridge. Đây là chỗ người mới kẹt lâu nhất vì không biết bấm vào đâu.
+
+`scripts/gui/gui.ps1` cho phép Claude nhìn màn hình, đọc tên nút bằng UIAutomation và bấm
+hộ. Đọc `scripts/gui/README.md` trước khi dùng lần đầu, đặc biệt phần bốn rào an toàn.
+
+```powershell
+pwsh -File scripts/gui/gui.ps1 -Action monitors
+pwsh -File scripts/gui/gui.ps1 -Action windows
+pwsh -File scripts/gui/gui.ps1 -Action shot -Monitor 0 -Out tmp/thu.png
+```
+
+**AN TOÀN:** không dùng công cụ này cho ARM, Motor Test, hay bất cứ thao tác nào làm motor
+quay. Những nút đó người vận hành tự bấm, tay luôn cầm RC. Xem `SAFETY.md` mục 1 và 2.
+
+### 00.9 Ghi lại vào PROGRESS
 
 Mở `plans/PROGRESS.md`, mục **Phase 00**:
 
@@ -242,15 +262,16 @@ Commit với prefix `chore(plans):`.
 
 ## Cổng pass
 
-- [ ] `py --list` hiện cả `3.13` và `3.11`.
+- [ ] `py --list` hiện `3.13`.
 - [ ] `node --version` in v24.x, `pnpm --version` in 11.x, `uv --version` in 0.12.x.
+- [ ] `pwsh -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được.
 - [ ] `docker info --format "{{.ServerVersion}}"` in ra số phiên bản (Docker Desktop đang chạy).
 - [ ] `wsl --list --verbose` hiện `Ubuntu` với VERSION = `2`; vào được bằng `wsl -d Ubuntu`; `df -h /` trong WSL còn > 15 GB.
 - [ ] Mission Planner mở được, hiện màn hình `FLIGHT DATA` với nút `CONNECT`.
 - [ ] MAVProxy đã cài (có shortcut trong Start Menu hoặc `mavproxy.exe --version` chạy được).
 - [ ] STM32CubeProgrammer mở được, thấy ô chọn kiểu kết nối.
 - [ ] `code --version` in 3 dòng; PlatformIO IDE hiện trong danh sách extension đã cài của VS Code.
-- [ ] `esptool version` in `v5.x`; `py -3.11 -m pip show pymavlink` in `Version: 2.4.x`.
+- [ ] `esptool version` in `v5.x`; `py -3.13 -m pip show pymavlink` in `Version: 2.4.x`.
 - [ ] `plans/PROGRESS.md` mục Phase 00 đã tick, ghi số phiên bản thực tế, và đã commit.
 
 ## Rủi ro
@@ -258,7 +279,7 @@ Commit với prefix `chore(plans):`.
 | Rủi ro | Khả năng (1-5) | Ảnh hưởng (1-5) | Điểm | Xử lý |
 |---|---|---|---|---|
 | Ổ ảo WSL nằm trên ổ C không đủ chỗ → Phase 02 build chết giữa chừng sau 40 phút | 2 | 5 | **10** | Kiểm tra `df -h /` ngay ở 00.7, **trước khi** sang Phase 02; chuyển ổ WSL nếu cần |
-| Cài `pymavlink` nhầm lên Python 3.13, tới Phase 05 mới phát hiện | 3 | 3 | 9 | Luôn gọi `py -3.11 -m pip`; cổng pass kiểm tra bằng `pip show` của đúng 3.11 |
+| Dùng nhầm bản Python 3.11 của Microsoft Store (hoặc bản trong WSL) khi cài `pymavlink`/`esptool` trên Windows, tới Phase 05 mới phát hiện | 3 | 3 | 9 | Luôn gọi `py -3.13 -m pip`; cổng pass kiểm tra bằng `pip show` của đúng 3.13 |
 | Tài khoản ST chậm kích hoạt, chặn Phase 14 vào đúng hôm hàng về | 3 | 3 | 9 | Đăng ký ngay ở phase này, sớm hơn nhu cầu thực 13 phase |
 | Tải Mission Planner từ nguồn `winget` lạ / trang mirror | 2 | 5 | **10** | Chỉ dùng `.msi` từ `firmware.ardupilot.org`; đã ghi rõ ở 00.2 |
 | SmartScreen / Defender chặn installer → người mới tưởng file độc, bỏ cuộc | 4 | 2 | 8 | Đã ghi trước ở từng bước: `More info` → `Run anyway` cho file từ `firmware.ardupilot.org` |
@@ -286,7 +307,9 @@ Những khái niệm `docs/so-tay/00-cai-cong-cu-pc.md` cần giải thích cho 
 - **PowerShell là gì, chạy lệnh ở đâu** — cách mở, cách dán lệnh, vì sao phải mở lại cửa sổ sau khi cài thứ gì đó (biến PATH chỉ nạp lúc mở).
 - **Phân biệt "chạy ở PowerShell" và "chạy ở bash trong WSL"** — đây là chỗ người mới sai nhiều nhất trong cả dự án. Mỗi khối lệnh trong mọi file phase đều ghi rõ, phải tập thói quen nhìn dòng đó trước khi dán.
 - **GCS là gì** — trạm mặt đất; vì sao dự án có tới ba thứ (Mission Planner, MAVProxy, website tự làm) và mỗi thứ mạnh ở đâu.
-- **Vì sao phải dùng Python 3.11 chứ không phải 3.13 mới nhất** — thư viện có phần biên dịch C; "mới nhất" không phải lúc nào cũng là "chạy được".
+- **Vì sao phải ghim (pin) một phiên bản Python cho dự án, và ghim bằng hai lớp** — file `.python-version` (uv đọc, commit vào git) cộng với `requires-python` trong `pyproject.toml` (chặn cài nhầm gói lên bản Python sai). Không ghim thì máy mỗi người chạy một bản khác nhau, lỗi "chạy được ở máy tôi" xuất hiện.
+- **Vì sao Python 3.13 dùng được cho dự án này** — thư viện MAVLink (`pymavlink`, `MAVProxy`), GUI (`wxPython`), thị giác máy tính (`opencv-python`) và YOLO (`ultralytics`) đều có bản build sẵn (wheel) cho 3.13, đã kiểm chứng trực tiếp trên PyPI ngày 21/09/2026: `pymavlink` 2.4.49 (wheel `cp313`), `MAVProxy` 1.8.74 (pure-python), `wxPython` 4.3.1 (wheel `cp313`), `opencv-python` 5.0.0.93 (wheel `abi3`, chạy được từ 3.7 trở lên), `ultralytics` 8.4.157 (pure-python).
+- **Vì sao tránh bản Python của Microsoft Store** — bản đó (đường dẫn `WindowsApps\PythonSoftwareFoundation...`) hay hỏng khi tạo virtual environment và khi cài gói có phần biên dịch C; dùng bản cài từ `winget install Python.Python.3.13` hoặc bản `uv python install` tự quản lý.
 - **DFU là gì (giới thiệu sớm)** — chế độ nạp firmware cấp thấp của chip STM32; vì sao lần nạp đầu bắt buộc qua nó; vì sao STM32CubeProgrammer là công cụ đúng (nó mang driver).
 - **WSL là gì** — một máy Linux chạy bên trong Windows; vì sao dự án cần nó (ArduPilot chỉ build ngon trên Linux).
 - **winget là gì** — cửa hàng ứng dụng dòng lệnh của Windows; vì sao có thứ cài được bằng nó và có thứ không.

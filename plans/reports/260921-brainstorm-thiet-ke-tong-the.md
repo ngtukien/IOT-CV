@@ -109,7 +109,7 @@ IOT-CV/
 | Rủi ro | Xử lý |
 |---|---|
 | WSL2 build ArduPilot tốn 6-8 GB, 1 giờ; ổ C còn 29 GB | Ổ WSL đang ở `/dev/sdd` 920 GB trống; bắt đầu build sớm nhất (Phase 0) |
-| pymavlink/MAVProxy wheel trễ với Python 3.13 | Dùng Python 3.11 cho backend (`uv python pin 3.11`) |
+| Dùng nhầm Python của Microsoft Store hoặc của WSL cho backend trên Windows | `uv python pin 3.13` + `.python-version` commit vào git; wheel 3.13 của pymavlink/MAVProxy/wxPython đã kiểm chứng 21/09/2026 |
 | `BATT_VOLT_MULT` mâu thuẫn 11.0 vs 11.2 giữa README và hwdef | Đặt theo hwdef rồi hiệu chỉnh bằng đồng hồ vạn năng ở Phase 7 |
 | Wi-Fi 2.4 GHz rớt lặt vặt → GCS failsafe kích RTL giữa chừng | `FS_GCS_ENABLE=0` các chuyến đầu; RC là dây cứu sinh |
 | ESP32 camera chỉ phục vụ 1 client | Backend là client duy nhất, fan-out cho browser |

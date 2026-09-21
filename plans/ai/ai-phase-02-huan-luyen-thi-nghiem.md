@@ -278,7 +278,7 @@ DETECTION_IMGSZ=640
 
 **Nếu lỗi:**
 
-- `pip install tensorrt` không có wheel khớp CUDA 13 trên Python 3.11 (bản pip hỗ trợ 3.8–3.13, nên bản thân 3.11 không phải nghi phạm — nhưng khớp CUDA 13 thì **chưa xác minh** ở thời điểm viết kế hoạch). Dự phòng: dùng `.pt` với `half=True` và ghi rõ trong báo cáo rằng nhánh TensorRT chưa chạy được, kèm lý do.
+- `pip install tensorrt` không có wheel khớp CUDA 13 trên Python 3.13 (bản pip hỗ trợ 3.8–3.13, và 3.13 là **cận trên** của khoảng đó — nên bản thân phiên bản Python là một nghi phạm hợp lý, không chỉ chuyện khớp CUDA 13; cả hai đều **chưa xác minh** ở thời điểm viết kế hoạch). Dự phòng: dùng `.pt` với `half=True` và ghi rõ trong báo cáo rằng nhánh TensorRT chưa chạy được, kèm lý do — không đổi phiên bản Python của cả dự án chỉ vì một thư viện xuất tối ưu.
 - `onnxruntime-gpu` đòi CUDA 12: dùng ORT trên CPU chỉ để kiểm tính đúng, còn đo tốc độ thì dựa vào `.pt`/`.engine`.
 - Xuất engine mất 10–20 phút: bình thường, TensorRT đang dò thuật toán tối ưu.
 - mAP của engine tụt hẳn: thử xuất lại với `half=False` để tách nguyên nhân FP16.
@@ -471,7 +471,7 @@ Giả thuyết của **TN D là đóng góp trí tuệ nguyên bản nhất tron
 | Chênh lệch giữa các bộ khôi phục nhỏ hơn nhiễu → không kết luận được gì | 3 | 4 | **12** | Đối chứng `bicubic` bắt buộc; đánh giá trên nhiều ảnh; báo cáo khoảng tin cậy bootstrap; phân tầng theo cỡ để tìm hiệu ứng ở đúng chỗ |
 | Chờ dữ liệu bay (TN D, TN A bản thật) làm kẹt tiến độ báo cáo | 4 | 3 | **12** | Phạm vi AI Phase 2 khoá ở VisDrone + tổng hợp; bảng AI Phase 3 để trống **có nhãn lý do**; giao thức thu dữ liệu bàn giao sẵn |
 | Thời gian GPU vượt dự kiến (4 run × 13 giờ) | 3 | 3 | **9** | Số đo thật từ A1.10 quyết định có chạy 2 seed không; `patience=30`; chạy qua đêm, tuần tự |
-| `pip install tensorrt` không có wheel khớp CUDA 13 trên Python 3.11 | 3 | 3 | **9** | Dự phòng `.pt half=True`; ghi rõ "chưa xác minh" và lý do trong báo cáo |
+| `pip install tensorrt` không có wheel khớp CUDA 13 trên Python 3.13 (cận trên khoảng hỗ trợ) | 4 | 3 | **12** | Dự phòng `.pt half=True`; ghi rõ "chưa xác minh" và lý do trong báo cáo; không đổi phiên bản Python của dự án chỉ vì một thư viện xuất tối ưu |
 | `.engine` chết sau khi cập nhật driver NVIDIA | 3 | 2 | **6** | Build lại trên chính máy; detector quay về `.pt` kèm cảnh báo; không commit `.engine` |
 | Hết đĩa khi sinh tập VisDrone suy giảm (~2 GB) | 2 | 3 | **6** | Sinh train trước, val sau; `_raw/` xoá được; không DVC hoá tập suy giảm |
 | Giấy phép NAFNet/SCI chưa xác minh | 3 | 2 | **6** | Mở LICENSE trong repo **trước khi** đưa vào bảng; nếu không rõ thì loại khỏi bảng chính và ghi lý do |

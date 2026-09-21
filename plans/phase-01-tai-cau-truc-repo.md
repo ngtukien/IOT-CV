@@ -6,7 +6,7 @@
 
 ## Mục tiêu
 
-Sắp lại repo đúng cấu trúc đã duyệt và dựng đủ ba đường ray mà mọi phase sau chạy trên đó: backend quản lý bằng `uv` trên Python 3.11, frontend là Vite + React + TypeScript build ra `frontend/dist`, MQTT broker chạy trong Docker. Kết thúc phase, CI trên GitHub xanh cả ba job (`ruff`, `pytest`, `pnpm build`), và có khung `docs/so-tay/` + `plans/PROGRESS.md` để theo dõi 25 phase còn lại.
+Sắp lại repo đúng cấu trúc đã duyệt và dựng đủ ba đường ray mà mọi phase sau chạy trên đó: backend quản lý bằng `uv` trên Python 3.13, frontend là Vite + React + TypeScript build ra `frontend/dist`, MQTT broker chạy trong Docker. Kết thúc phase, CI trên GitHub xanh cả ba job (`ruff`, `pytest`, `pnpm build`), và có khung `docs/so-tay/` + `plans/PROGRESS.md` để theo dõi 25 phase còn lại.
 
 Phase này **không viết logic nghiệp vụ nào**. Nó chỉ dọn nhà và dựng khung.
 
@@ -32,7 +32,7 @@ Tạo mới:
 - `deploy/mosquitto.conf`, `docker-compose.yml`
 - `frontend/` cây Vite mới (`package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig*.json`, `index.html`, `src/`)
 - `.python-version`, `uv.lock`
-- `ml/pyproject.toml` — khung dự án `uv` riêng cho ML (Python 3.11, **không có** `torch` — AI Phase 1 tự cài torch bằng `--index-url cu130`, xem 01.6)
+- `ml/pyproject.toml` — khung dự án `uv` riêng cho ML (Python 3.13, **không có** `torch` — AI Phase 1 tự cài torch bằng `--index-url cu130`, xem 01.6)
 
 Di chuyển bằng `git mv` (**không** xoá rồi tạo lại):
 
@@ -243,14 +243,16 @@ Nếu lỗi:
 2. **`tar` báo `Cannot open`** → đứng sai thư mục; `Get-Location` phải là `D:\Coding\IOT-CV`.
 3. **Giải nén ra thư mục lồng `copter-speedybeef4v5-d450a747/`** → thiếu `--strip-components=1`. Xoá thư mục thừa và chạy lại.
 
-### 01.6 Backend: chuyển sang `uv` + Python 3.11
+### 01.6 Backend: chuyển sang `uv` + Python 3.13
 
 Hiện phụ thuộc khai báo ở ba file `requirements*.txt`, còn `pyproject.toml` chỉ có cấu hình `ruff`/`pytest`. `uv` cần khối `[project]`. Gộp về một chỗ là việc dọn nợ bắt buộc — giữ hai nguồn khai báo sớm muộn cũng lệch nhau.
 
 ```powershell
-uv python pin 3.11
+uv python pin 3.13
 Get-Content .python-version
 ```
+
+> **Ghim (pin) phiên bản Python bằng hai lớp, mỗi lớp một việc.** `uv python pin 3.13` ghi ra file `.python-version` — file này commit vào git, và `uv` tự đọc nó mỗi lần `uv sync`/`uv run` để biết chạy bằng interpreter nào, người khác clone repo không phải tự nhớ chọn đúng bản. Lớp thứ hai là `requires-python` trong `pyproject.toml` (thêm ngay dưới đây) — đây là **giới hạn cứng**: nếu ai đó (hoặc CI) lỡ chạy `uv sync` bằng một Python nằm ngoài khoảng này, `uv` báo lỗi và dừng lại thay vì âm thầm cài gói lên sai bản. Hai lớp bổ sung nhau: `.python-version` chọn đúng bản; `requires-python` chặn khi chọn sai.
 
 Sửa `pyproject.toml`, thêm khối `[project]` **lên đầu file**, giữ nguyên `[tool.ruff]` và `[tool.pytest.ini_options]` đang có:
 
@@ -259,7 +261,7 @@ Sửa `pyproject.toml`, thêm khối `[project]` **lên đầu file**, giữ ngu
 name = "iot-cv"
 version = "0.1.0"
 description = "UAV IoT + Computer Vision - web GCS va pipeline AI"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "pymavlink>=2.4.49",
     "fastapi>=0.141",
@@ -293,16 +295,18 @@ uv run pytest
 Remove-Item requirements.txt, requirements-dev.txt, requirements-ml.txt
 ```
 
+> **Không copy venv có sẵn từ dự án khác.** Trên Windows, copy nguyên thư mục `.venv/` từ một dự án khác vào đây hỏng ngầm: các file `.exe` trong `.venv\Scripts\` (như `pip.exe`) nhúng cứng đường dẫn tuyệt đối tới `python.exe` của venv gốc, nên sau khi copy, `pip.exe` vẫn âm thầm chạy interpreter cũ — không báo lỗi gì cả. Và việc này cũng không tiết kiệm được gì: cache của `uv` (đã có sẵn trên máy này) tạo venv mới bằng hardlink chỉ trong vài giây, không tải lại gói nào đã có sẵn trong cache. Đường đúng luôn là `uv sync`.
+
 Sửa `Makefile` cho khớp: `setup` → `uv sync --extra dev`; `setup-ml` → `cd ml && uv sync` (chỉ cài phụ thuộc Python thuần của ML; `torch` **không** nằm trong đó, phải cài riêng bằng `--index-url cu130` — xem AI Phase 1 §A1.1, Makefile không tự làm việc này); `lint` → `uv run ruff check .`; `fmt` → `uv run ruff format .`; `test` → `uv run pytest`; `run` → `uv run uvicorn backend.app:app --reload --host 127.0.0.1 --port 8000`. Bỏ luôn khối `if [ -d backend/tests ]` trong mục `test` — thư mục đó đã tồn tại, điều kiện ấy chỉ che lỗi. Để nguyên mục `sitl:` (Phase 02 sở hữu).
 
-**Khung `ml/pyproject.toml`.** Một interpreter Python **3.11** chạy cả backend lẫn ML (không dùng 3.12 riêng cho ML — xem AI Phase 1 §A1.1), nhưng `ml/` vẫn là một **dự án `uv` riêng** với `pyproject.toml` của chính nó, để tách phụ thuộc nặng (torch, ultralytics, opencv) khỏi backend. Tạo `ml/pyproject.toml`:
+**Khung `ml/pyproject.toml`.** Một interpreter Python **3.13** chạy cả backend lẫn ML (không dùng phiên bản khác riêng cho ML — xem AI Phase 1 §A1.1), nhưng `ml/` vẫn là một **dự án `uv` riêng** với `pyproject.toml` của chính nó, để tách phụ thuộc nặng (torch, ultralytics, opencv) khỏi backend. Tạo `ml/pyproject.toml`:
 
 ```toml
 [project]
 name = "iot-cv-ml"
 version = "0.1.0"
 description = "Pipeline AI: dataset, suy giam anh, huan luyen, danh gia"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "ultralytics>=8.4.157",
     # PIN <5: opencv-python da nhay major 4.x -> 5.0.0.93, chua kiem tra API.
@@ -336,7 +340,7 @@ Kết quả mong đợi:
 
 Nếu lỗi:
 
-1. **`No interpreter found for Python 3.11`** → `uv python install 3.11` rồi chạy lại.
+1. **`No interpreter found for Python 3.13`** → `uv python install 3.13` rồi chạy lại.
 2. **`pytest` báo `ModuleNotFoundError: backend`** → bạn chạy `pytest` trần. Phải là `uv run pytest`.
 3. **`ruff` báo lỗi trong `ardupilot/`** → không xảy ra nếu chưa clone ArduPilot vào trong repo; `extend-exclude` trong `pyproject.toml` đã loại thư mục đó rồi.
 4. **`uv sync` báo không tìm thấy `[build-system]`** → thiếu `[tool.uv] package = false`.
@@ -495,14 +499,14 @@ Nếu lỗi:
 
 ### 01.9 Cập nhật CI
 
-`.github/workflows/ci.yml` hiện có 2 job: `lint` (cài ruff bằng `pip`), `test` (cài `requirements-dev.txt`, ma trận 3.11/3.12). Sau 01.6 và 01.7 thì cả hai đều sai nguồn phụ thuộc, và thiếu hẳn frontend.
+`.github/workflows/ci.yml` hiện có 2 job: `lint` (cài ruff bằng `pip`), `test` (cài `requirements-dev.txt`, ma trận 3.11/3.12). Sau 01.6 và 01.7 thì cả hai đều sai nguồn phụ thuộc, sai cả phiên bản Python, và thiếu hẳn frontend.
 
 Sửa thành 3 job. Bốn ràng buộc bắt buộc:
 
 - **Mỗi job phải có `timeout-minutes`** (lint 5, test 10, frontend 10). Mặc định của GitHub là 6 giờ.
 - **Không thêm `paths:` filter** vào workflow này. Nếu nó là required check, GitHub báo check bị bỏ qua vì `paths` là `Expected — Waiting` vĩnh viễn → không merge được nữa.
 - Giữ `concurrency` và `permissions: contents: read` đang có.
-- Chỉ chạy Python 3.11 (bỏ 3.12 khỏi ma trận) vì `requires-python` đã khoá `<3.12`.
+- Chỉ chạy Python 3.13 (bỏ ma trận 3.11/3.12 cũ) vì `requires-python` đã khoá `>=3.13,<3.14`.
 
 ```yaml
 jobs:
@@ -557,7 +561,7 @@ Nếu lỗi:
 
 1. **`pnpm install --frozen-lockfile` fail** → `frontend/pnpm-lock.yaml` chưa commit. `git add frontend/pnpm-lock.yaml` rồi đẩy lại.
 2. **`pnpm lint` báo không có script** → thêm `"lint": "eslint ."` vào `frontend/package.json` (template react-ts của Vite đã sinh sẵn file cấu hình eslint).
-3. **`uv sync` fail trên runner vì `.python-version`** → `setup-uv` tự tải đúng bản Python được ghim; nếu vẫn lỗi, thêm `- run: uv python install 3.11` trước bước `uv sync`.
+3. **`uv sync` fail trên runner vì `.python-version`** → `setup-uv` tự tải đúng bản Python được ghim; nếu vẫn lỗi, thêm `- run: uv python install 3.13` trước bước `uv sync`.
 
 ### 01.10 Bật `plans/PROGRESS.md` thành sổ theo dõi
 
@@ -582,7 +586,7 @@ Cuối phase này, tick đủ cụm Phase 01 và commit.
 - [ ] `git log --follow --oneline firmware/ardupilot/params/README.md` hiện lịch sử có từ trước khi đổi chỗ (chứng minh đã `git mv`).
 - [ ] `(Get-ChildItem docs\so-tay\*.md).Count` in `29`.
 - [ ] `README.md` mới ≤ 60 dòng; `docs/archive/plan-nhap-92-giai-doan.md` và `docs/archive/so-tay-lap-f450.html` tồn tại.
-- [ ] Ba file `requirements*.txt` đã xoá; `pyproject.toml` (gốc) có khối `[project]` **không có** `[project.optional-dependencies] ml`; `ml/pyproject.toml` tồn tại, là dự án `uv` riêng, **không có** `torch`; `.python-version` chứa `3.11`.
+- [ ] Ba file `requirements*.txt` đã xoá; `pyproject.toml` (gốc) có khối `[project]` **không có** `[project.optional-dependencies] ml`; `ml/pyproject.toml` tồn tại, là dự án `uv` riêng, **không có** `torch`; `.python-version` chứa `3.13`.
 - [ ] `docker compose ps` hiện `iotcv-mosquitto` đang `running`.
 - [ ] CI trên GitHub xanh cả 3 job (`lint`, `test`, `frontend`).
 - [ ] `plans/PROGRESS.md` mục Phase 01 đã tick, ghi số phiên bản npm thực tế, và đã commit.
@@ -625,7 +629,7 @@ Những khái niệm `docs/so-tay/01-tai-cau-truc-repo.md` cần giải thích c
 - **`.gitignore` và luật khớp cuối cùng** — vì sao `*.log` lại nuốt mất `build.log`; dấu `!` làm gì; đọc `git check-ignore -v` thế nào; vì sao một file bị ignore lại không có thông báo lỗi.
 - **Vì sao không commit file firmware nhị phân** — repo phình to, và chúng tái tạo được từ `custombuild.yaml`; ngược lại vì sao `build.log` thì phải giữ.
 - **Trình quản lý gói là gì** — `uv` cho Python, `pnpm` cho JavaScript; lockfile là gì và vì sao nó quan trọng; vì sao gộp ba `requirements*.txt` về hai `pyproject.toml` (gốc cho backend, `ml/pyproject.toml` cho AI) thay vì một file `.txt`.
-- **Vì sao backend dùng Python 3.11 chứ không phải 3.13 mới nhất** — thư viện có phần biên dịch C; "mới nhất" ≠ "chạy được".
+- **Vì sao phải ghim một phiên bản Python cho dự án, và ghim bằng hai lớp** — `.python-version` (uv đọc, commit vào git) chọn đúng bản; `requires-python` trong `pyproject.toml` chặn khi ai đó chạy nhầm bản khác. Backend dùng được Python 3.13 mới nhất vì mọi thư viện cần (`pymavlink`, `MAVProxy`, `wxPython`, `opencv-python`, `ultralytics`) đều đã có wheel/bản pure-python cho 3.13, kiểm chứng trên PyPI ngày 21/09/2026 — xem bảng ở `plans/reports/260921-brainstorm-thiet-ke-tong-the.md`.
 - **Build frontend là gì** — vì sao React phải "build" mới chạy được, `frontend/dist` là gì, vì sao FastAPI phục vụ thư mục đó chứ không phục vụ mã nguồn.
 - **Proxy trong `vite.config.ts`** — vì sao lúc phát triển có hai cổng (5173 và 8000) mà trình duyệt vẫn gọi được cả hai.
 - **Docker và container là gì (mức rất nông)** — vì sao mosquitto chạy trong container còn backend thì không; named volume so với anonymous volume và vì sao dữ liệu cần cái thứ nhất.
