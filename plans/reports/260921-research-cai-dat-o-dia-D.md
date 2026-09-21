@@ -1296,3 +1296,68 @@ thư mục thì không phải tải lại gì cả.
 | STM32CubeProgrammer: trang chọn thư mục, tên khoá XML, dung lượng | `st.com` chặn truy cập tự động | Cài giao diện; nếu không có trang chọn thư mục thì chấp nhận ~250 MB trên C: |
 | Extension VS Code có đọc `PLATFORMIO_CORE_DIR` | Không có câu khẳng định trong tài liệu hay issue | Kiểm bằng `pio system info`; nếu sai, mở VS Code bằng `code .` từ shell đã có biến |
 | Quy trình `compact vdisk` cho WSL | Trang `wsl/disk-space` của MS **không** mô tả nén, chỉ mô tả mở rộng | Sao lưu vhdx trước; ưu tiên `wsl --update` rồi `wsl --manage --set-sparse`; hiện chưa cần nén |
+
+---
+
+# BỔ SUNG 21/09/2026 — tách D:\DevCache khỏi D:\IOT_Tools
+
+## Vì sao tách
+
+Thư mục `D:\IOT_Tools` duy nhất nêu ở toàn bộ báo cáo trên đã bị tách làm hai, vì nó gây
+hiểu lầm: nó vừa chứa cache/tool **dùng chung cho TOÀN MÁY** (`uv`, `pip`, `npm`, `pnpm`,
+`uv tool`, `uv python`, PlatformIO core) — thứ mọi dự án trên máy đọc/ghi vào — vừa chứa
+app **chỉ riêng dự án drone** (Mission Planner, MAVProxy, STM32CubeProgrammer), trong khi
+cái tên `IOT_Tools` lại ngụ ý toàn bộ thư mục chỉ thuộc về dự án này. Hậu quả thực tế: nếu
+dự án drone kết thúc và ai đó xoá `D:\IOT_Tools` theo đúng nghĩa cái tên, sẽ xoá luôn cache
+mà các dự án khác trên máy đang dùng.
+
+Tách thành hai gốc:
+
+- **`D:\DevCache`** — dùng chung TOÀN MÁY, mọi dự án. Không bao giờ được xoá theo vòng đời
+  của riêng dự án drone.
+- **`D:\IOT_Tools`** — chỉ còn app có installer riêng của dự án drone. Xoá trọn thư mục này
+  khi dự án kết thúc không ảnh hưởng dự án nào khác.
+
+## Cây thư mục mới, đã đo trên máy
+
+```
+D:\DevCache\                      dùng chung TOÀN MÁY, mọi dự án
+  cache\uv            3.895 MB
+  cache\npm           2.692 MB
+  cache\pip               5 MB
+  cache\pnpm-store        0 MB
+  tools\uv-tools         26 MB   (esptool)
+  tools\uv-python         0 MB
+  tools\platformio        0 MB
+D:\IOT_Tools\                     chỉ của dự án drone
+  apps\ArduinoIDE       527 MB
+```
+
+Sáu biến môi trường phạm vi User (`UV_CACHE_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`,
+`UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PLATFORMIO_CORE_DIR`) nay trỏ vào `D:\DevCache\...`.
+`scripts/setup-d-drive.ps1` đã cập nhật theo cấu trúc này — tham số `-Root` cũ đổi thành hai
+tham số `-CacheRoot` (mặc định `D:\DevCache`) và `-AppRoot` (mặc định `D:\IOT_Tools`).
+
+## Bốn điều học được cách khó (phải ghi lại)
+
+1. **`winget` bỏ qua `--location` cho Arduino IDE.**
+   `winget install ArduinoSA.IDE.stable --location "D:\..."` vẫn cài vào
+   `%LOCALAPPDATA%\Programs\arduino-ide` (544 MB, 6379 file) bất kể có truyền `--location`
+   hay không. Cách sửa đã dùng: `Move-Item` thư mục đó sang `D:\IOT_Tools\apps\ArduinoIDE`,
+   rồi `New-Item -ItemType Junction` tại đúng chỗ cũ để Arduino IDE và bộ cập nhật của nó
+   vẫn tự tìm thấy mình. Junction không cần quyền admin. Đây là công thức dự phòng dùng
+   chung cho bất kỳ installer nào phớt lờ đường dẫn tuỳ chỉnh.
+
+2. **Dời thư mục `uv tool` làm hỏng shim của nó.** Sau khi dời, `esptool.exe` báo lỗi
+   `uv trampoline failed to canonicalize script path` vì shim trong `~/.local/bin` nướng
+   cứng đường dẫn tuyệt đối. Cách sửa: `uv tool install <tên> --reinstall` sau khi dời.
+
+3. **`cua-driver` bị mồ côi, vẫn còn ở C:.** Nó được cài từ trước khi `UV_TOOL_DIR` từng
+   được đặt, nên nằm ở `C:\Users\Nghaiz\AppData\Roaming\uv\tools\cua-driver` (76 MB) và
+   `uv tool list` không còn thấy nó nữa. Nó vẫn chạy được. Cách sửa chỉ là một lệnh, nhưng
+   CHỈ chạy khi MCP server đó KHÔNG đang chạy: `uv tool install cua-driver --reinstall`.
+   Đây là bước rõ ràng người dùng tự chạy sau khi khởi động lại phiên làm việc.
+
+4. **Vẫn còn sót trên C:, cần thoát hẳn VS Code mới dọn được:** 633 MB pnpm store cũ
+   (`pnpm store prune`), 80 MB `~/.platformio` (đổi tên, không bao giờ copy), và phần cache
+   `uv` còn sót (34 file đang bị khoá).

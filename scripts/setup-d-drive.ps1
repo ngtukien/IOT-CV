@@ -1,8 +1,15 @@
 <#
 .SYNOPSIS
-    Dồn toàn bộ cache và công cụ của dự án IOT-CV sang ổ D:, giải phóng ổ C:.
+    Dồn cache dùng chung toàn máy sang D:\DevCache và app riêng của dự án IOT-CV
+    sang D:\IOT_Tools, giải phóng ổ C:.
 
 .DESCRIPTION
+    Hai gốc tách biệt vì lý do khác nhau: -CacheRoot (mặc định D:\DevCache) chứa
+    cache/tool của TOÀN MÁY (uv, pip, npm, pnpm, uv tool, uv python, platformio) —
+    dùng chung cho mọi dự án, không bao giờ được xoá khi riêng dự án drone kết
+    thúc. -AppRoot (mặc định D:\IOT_Tools) chỉ chứa app CÓ INSTALLER RIÊNG của dự
+    án này (Arduino IDE, Mission Planner, MAVProxy, STM32CubeProgrammer).
+
     Idempotent: chạy lại nhiều lần không hỏng gì. Mặc định là DRY-RUN.
     Muốn thi hành thật thì thêm -Apply.
 
@@ -13,7 +20,8 @@
 #>
 [CmdletBinding()]
 param(
-    [string] $Root = 'D:\IOT_Tools',
+    [string] $CacheRoot = 'D:\DevCache',
+    [string] $AppRoot = 'D:\IOT_Tools',
     [switch] $Apply,
     [switch] $MoveExisting,
     [switch] $ToolBinOnD
@@ -147,9 +155,11 @@ if (-not $Apply) {
     Write-Host ' CHE DO THU (dry-run). Them -Apply de thi hanh that.' -ForegroundColor Magenta
 }
 
-$rootDrive = (Split-Path -Qualifier $Root)
-if (-not (Test-Path -LiteralPath "$rootDrive\")) {
-    throw "Không thấy ổ $rootDrive. Sửa tham số -Root."
+foreach ($r in $CacheRoot, $AppRoot) {
+    $checkDrive = (Split-Path -Qualifier $r)
+    if (-not (Test-Path -LiteralPath "$checkDrive\")) {
+        throw "Không thấy ổ $checkDrive. Sửa tham số -CacheRoot / -AppRoot."
+    }
 }
 
 Write-Step 'Dung lượng TRƯỚC khi chạy'
@@ -160,16 +170,17 @@ $before | Format-Table -AutoSize | Out-String | Write-Host
 # 1. Tạo cây thư mục
 # ----------------------------------------------------------------------------
 
-Write-Step "1. Tạo cây thư mục dưới $Root"
+Write-Step "1. Tạo cây thư mục dưới $CacheRoot (dùng chung toàn máy) và $AppRoot (riêng dự án)"
 
-$dirCache = Join-Path $Root 'cache'
-$dirTools = Join-Path $Root 'tools'
-$dirApps  = Join-Path $Root 'apps'
-$dirBin   = Join-Path $Root 'bin'
+$dirCache = Join-Path $CacheRoot 'cache'
+$dirTools = Join-Path $CacheRoot 'tools'
+$dirBin   = Join-Path $CacheRoot 'bin'
+$dirApps  = Join-Path $AppRoot 'apps'
 
-Ensure-Dir $Root
+Ensure-Dir $CacheRoot
 Ensure-Dir $dirCache
 Ensure-Dir $dirTools
+Ensure-Dir $AppRoot
 Ensure-Dir $dirApps
 if ($ToolBinOnD) { Ensure-Dir $dirBin }
 
@@ -270,10 +281,65 @@ if ($oldPnpmMB) {
 }
 
 # ----------------------------------------------------------------------------
-# 5. PlatformIO - trường hợp đặc biệt
+# 5. uv tool - vá shim hỏng sau khi dời UV_TOOL_DIR + báo cáo tool mồ côi
 # ----------------------------------------------------------------------------
 
-Write-Step '5. PlatformIO core dir'
+Write-Step '5. uv tool: vá shim + báo cáo tool mồ côi'
+
+# Shim của "uv tool install" (trong UV_TOOL_BIN_DIR) nướng cứng đường dẫn tuyệt
+# đối tới venv của tool trong UV_TOOL_DIR cũ. Dời UV_TOOL_DIR mà không reinstall
+# thì gặp lỗi "uv trampoline failed to canonicalize script path" (đã gặp thật
+# với esptool khi dời D:\IOT_Tools\tools\uv-tools -> D:\DevCache\tools\uv-tools).
+$oldUvToolDir = [Environment]::GetEnvironmentVariable('UV_TOOL_DIR', 'User')
+$haveUv = [bool](Get-Command uv -ErrorAction SilentlyContinue)
+if ($oldUvToolDir -and ($oldUvToolDir -ne $pUvTools) -and (Test-Path -LiteralPath $oldUvToolDir) -and $haveUv) {
+    $toolDirs = Get-ChildItem -LiteralPath $oldUvToolDir -Directory -ErrorAction SilentlyContinue
+    if ($toolDirs) {
+        foreach ($t in $toolDirs) {
+            if ($Apply) {
+                Write-Act "đang vá shim cho tool '$($t.Name)' (uv tool install $($t.Name) --reinstall)..." 'DO'
+                uv tool install $t.Name --reinstall 2>&1 | Out-Null
+                Write-Act "'$($t.Name)' đã reinstall xong, shim đã trỏ đúng chỗ mới" 'OK'
+            }
+            else {
+                Write-Act "sẽ chạy: uv tool install $($t.Name) --reinstall  (shim của '$($t.Name)' sẽ hỏng sau khi UV_TOOL_DIR đổi)" 'DRY'
+            }
+        }
+    }
+    else {
+        Write-Act "$oldUvToolDir không có tool nào, bỏ qua" 'SKIP'
+    }
+}
+else {
+    Write-Act 'UV_TOOL_DIR chưa đổi hoặc chưa có uv, không cần vá shim' 'SKIP'
+}
+
+# Tool mồ côi: cài từ TRƯỚC khi UV_TOOL_DIR từng được đặt, nên vẫn nằm ở vị trí
+# mặc định %APPDATA%\uv\tools. "uv tool list" không còn thấy nó (đang đọc
+# UV_TOOL_DIR mới) dù tool vẫn chạy được bình thường. Chỉ báo cáo, không tự sửa
+# (script không biết lúc chạy MCP server nào đang giữ tool đó).
+$defaultUvToolDir = Join-Path $env:APPDATA 'uv\tools'
+if ((Test-Path -LiteralPath $defaultUvToolDir) -and ($defaultUvToolDir -ne $pUvTools)) {
+    $orphans = Get-ChildItem -LiteralPath $defaultUvToolDir -Directory -ErrorAction SilentlyContinue
+    foreach ($o in $orphans) {
+        Write-Act ("tool mồ côi: '{0}' vẫn nằm ở {1} - lệnh 'uv tool list' không thấy. Sau khi đóng phần mềm đang dùng nó, chạy: uv tool install {0} --reinstall" -f $o.Name, $defaultUvToolDir) 'WARN'
+    }
+}
+
+# cua-driver: trường hợp đã biết cụ thể - cài trước khi UV_TOOL_DIR từng được
+# đặt (76 MB, còn ở C:\Users\<user>\AppData\Roaming\uv\tools\cua-driver). Tool
+# vẫn chạy tốt, chỉ cần dọn khi rảnh. CHỈ chạy lệnh fix lúc MCP server cua-driver
+# KHÔNG đang chạy (nó khoá file venv, reinstall giữa chừng sẽ hỏng).
+$cuaDriverOldDir = Join-Path $defaultUvToolDir 'cua-driver'
+if (Test-Path -LiteralPath $cuaDriverOldDir) {
+    Write-Act "cua-driver mồ côi tại $cuaDriverOldDir. Khi MCP server cua-driver KHÔNG chạy, sửa bằng: uv tool install cua-driver --reinstall" 'WARN'
+}
+
+# ----------------------------------------------------------------------------
+# 6. PlatformIO - trường hợp đặc biệt
+# ----------------------------------------------------------------------------
+
+Write-Step '6. PlatformIO core dir'
 
 $oldPio = Join-Path $env:USERPROFILE '.platformio'
 $oldPioMB = Get-DirSizeMB -Path $oldPio
@@ -302,7 +368,7 @@ else {
 }
 
 # ----------------------------------------------------------------------------
-# 6. Kết quả
+# 7. Kết quả
 # ----------------------------------------------------------------------------
 
 Write-Step 'Dung lượng SAU khi chạy'
