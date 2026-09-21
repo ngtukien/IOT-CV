@@ -453,41 +453,45 @@ class SitlInstance:
             0,
         )
 
-    def start_auto_mission(self, *, timeout: float = 60.0) -> None:
-        """Khởi động một mission AUTO TỪ MẶT ĐẤT, đúng cách người thật làm.
+    def start_auto_mission(self, *, timeout: float = 90.0) -> None:
+        """Khởi động một mission AUTO TỪ MẶT ĐẤT.
 
         ╔══════════════════════════════════════════════════════════════════╗
-        ║  Vì sao không dùng MAV_CMD_MISSION_START (id 300)                ║
+        ║  Ba cách SAI, đo thật 22/09/2026 trên ArduCopter 4.7.1           ║
         ║                                                                  ║
-        ║  Đo thật 22/09/2026, ArduCopter 4.7.1: gửi lệnh 300 khi đã armed ║
-        ║  và ở AUTO trả về `COMMAND_ACK result=2` = MAV_RESULT_DENIED.    ║
-        ║  Mission vẫn hiện `Mission: 1 Takeoff` (do vào AUTO), nhưng máy  ║
-        ║  bay KHÔNG nhấc lên, và sau ~15 s nhận `Disarming motors` —      ║
-        ║  đồng hồ tự-disarm (`DISARM_DELAY`) thắng vì nó nằm dưới đất     ║
-        ║  với ga bằng 0.                                                  ║
+        ║  1. `MAV_CMD_MISSION_START` (id 300) khi đã armed + ở AUTO trả    ║
+        ║     `COMMAND_ACK result=2` = MAV_RESULT_DENIED. Mission vẫn hiện ║
+        ║     `Mission: 1 Takeoff` (do vào AUTO), nhưng máy bay KHÔNG nhấc ║
+        ║     lên, rồi `Disarming motors` sau ~10 s: `DISARM_DELAY = 10.0` ║
+        ║     thắng, vì nó nằm dưới đất với ga bằng 0.                     ║
         ║                                                                  ║
-        ║  AUTO từ mặt đất chờ PHI CÔNG NÂNG GA. Nên phải giả lập đúng     ║
-        ║  động tác đó bằng RC override, và phải làm NGAY sau khi arm —    ║
-        ║  chậm hơn đồng hồ tự-disarm là hỏng.                             ║
+        ║  2. Giả lập nâng ga bằng RC override sau khi arm — chạy đua với  ║
+        ║     đồng hồ tự-disarm, và mong manh.                             ║
+        ║                                                                  ║
+        ║  3. Arm THẲNG trong AUTO — bị từ chối `MAV_RESULT_FAILED`.       ║
+        ║     ArduCopter mặc định KHÔNG cho arm ở AUTO.                    ║
+        ║                                                                  ║
+        ║  Cách ĐÚNG là một tham số, không phải mẹo: `AUTO_OPTIONS`        ║
+        ║  (mặc định 0, đã kiểm là có tồn tại trên firmware này)           ║
+        ║      bit 0 = cho phép ARM trong AUTO                             ║
+        ║      bit 1 = cho phép CẤT CÁNH mà không cần nâng ga              ║
+        ║  Đặt 3 là bật cả hai.                                            ║
         ║                                                                  ║
         ║  Triệu chứng khi làm sai: mission nạp đúng, đọc lại đúng, vào    ║
         ║  AUTO đúng, mà `MISSION_ITEM_REACHED` không bao giờ tới và độ    ║
         ║  cao đỉnh là 0,0 m.                                              ║
         ╚══════════════════════════════════════════════════════════════════╝
+
+        Chỉ hợp lệ trên SITL và trên bàn thử. Với drone THẬT, `AUTO_OPTIONS`
+        bit 1 nghĩa là máy bay có thể tự nhấc lên mà không ai chạm cần ga —
+        xem `SAFETY.md` trước khi đặt nó lên phần cứng thật.
         """
-        # Ga thấp trước khi arm — arm với ga cao là bị từ chối.
-        self._rc_override(throttle=1000)
-        time.sleep(0.5)
+        self.set_param("AUTO_OPTIONS", 3)
         self.set_mode("AUTO")
         self.arm()
-        # Nâng ga NGAY. Đây là "lệnh bắt đầu" mà AUTO đang chờ.
-        self._rc_override(throttle=1500)
 
-        # Giữ ga và đợi máy bay rời đất. RC override hết hiệu lực nếu không
-        # được làm mới, nên phải gửi lại đều.
         het = time.monotonic() + timeout
         while time.monotonic() < het:
-            self._rc_override(throttle=1500)
             if self.get_position(timeout=3.0)["alt_rel_m"] > 1.0:
                 return
             time.sleep(0.3)
