@@ -50,6 +50,23 @@ def _env_float(key: str, default: float) -> float:
         return default
 
 
+def _env_bool(key: str, default: bool) -> bool:
+    """Đọc cờ bật/tắt. Không phân biệt hoa thường; giá trị lạ thì lấy mặc định.
+
+    Cố ý KHÔNG coi mọi chuỗi khác rỗng là True: `VISION_ENABLED=off` phải tắt
+    được vision, chứ không phải bật nó lên vì chuỗi "off" khác rỗng.
+    """
+    raw = os.environ.get(key)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in ("1", "true", "yes", "on"):
+        return True
+    if value in ("0", "false", "no", "off"):
+        return False
+    return default
+
+
 # ---------------------------------------------------------------------------
 # MAVLink (GIAI ĐOẠN 5)
 # ---------------------------------------------------------------------------
@@ -61,6 +78,13 @@ MAVLINK_BAUD = _env_int("MAVLINK_BAUD", 115200)
 HEARTBEAT_TIMEOUT_S = _env_float("HEARTBEAT_TIMEOUT_S", 10.0)
 # Không nhận heartbeat trong khoảng này thì coi như mất link.
 LINK_TIMEOUT_S = _env_float("LINK_TIMEOUT_S", 3.0)
+
+# "Số nhà" của backend trên mạng MAVLink (Phase 05, việc 5.1.1).
+# Mặc định của pymavlink là 255 — đúng quy ước GCS, nhưng Mission Planner CŨNG
+# dùng 255. Chạy song song hai GCS mà trùng số thì COMMAND_ACK của flight
+# controller không phân biệt được ai hỏi. Nhường 255 cho Mission Planner.
+MAVLINK_SOURCE_SYSTEM = _env_int("MAVLINK_SOURCE_SYSTEM", 254)
+MAVLINK_SOURCE_COMPONENT = _env_int("MAVLINK_SOURCE_COMPONENT", 190)  # MISSIONPLANNER
 
 # ---------------------------------------------------------------------------
 # Web backend (GIAI ĐOẠN 7)
@@ -83,6 +107,15 @@ MAX_WAYPOINTS = _env_int("MAX_WAYPOINTS", 10)
 # Manual control qua web (GIAI ĐOẠN 10, 11, 64)
 MAX_VELOCITY = _env_float("MAX_VELOCITY", 1.0)
 MANUAL_COMMAND_TIMEOUT_MS = _env_int("MANUAL_COMMAND_TIMEOUT_MS", 300)
+# Vòng dead-man của Phase 06 quét mỗi chừng này ms. Phải NHỎ HƠN HẲN
+# MANUAL_COMMAND_TIMEOUT_MS, nếu không timeout 300 ms sẽ thành 300+tick ms.
+DEADMAN_TICK_MS = _env_int("DEADMAN_TICK_MS", 50)
+
+# Tránh vật cản (Phase 07). Khai báo ngay từ Phase 05 vì hợp đồng WebSocket
+# nói UI đọc MỌI ngưỡng từ `limits` — Phase 08 dựng UI trước khi Phase 07 xong.
+AVOID_MARGIN_M = _env_float("AVOID_MARGIN_M", 2.0)
+AVOID_DIST_MAX_M = _env_float("AVOID_DIST_MAX_M", 5.0)
+RANGEFINDER_MAX_M = _env_float("RANGEFINDER_MAX_M", 6.0)
 
 # ---------------------------------------------------------------------------
 # Vision (GIAI ĐOẠN 19, 74, 75)
@@ -92,6 +125,10 @@ YOLO_WEIGHTS = _env_str("YOLO_WEIGHTS", "ml/weights/yolo11n.pt")
 DETECTION_CONFIDENCE = _env_float("DETECTION_CONFIDENCE", 0.6)
 DETECTION_MIN_FRAMES = _env_int("DETECTION_MIN_FRAMES", 3)
 DETECTION_COOLDOWN_S = _env_float("DETECTION_COOLDOWN_S", 4.0)
+# Ba khoá dưới là "việc trả về" cho AI Phase 1 §A1.9 và Phase 07 §7.6/§7.8.
+YOLO_DEVICE = _env_str("YOLO_DEVICE", "0")  # "0" = GPU 0, "cpu" để ép CPU
+DETECTION_IMGSZ = _env_int("DETECTION_IMGSZ", 640)
+VISION_ENABLED = _env_bool("VISION_ENABLED", True)  # tắt hẳn vision khi test bay
 
 # ---------------------------------------------------------------------------
 # MQTT (GIAI ĐOẠN 76)
@@ -102,7 +139,11 @@ MQTT_CLIENT_ID = _env_str("MQTT_CLIENT_ID", "uav-gcs")
 
 
 def safety_limits() -> dict[str, float | int]:
-    """Giới hạn phần mềm, để frontend hiển thị và để mission validation dùng."""
+    """Giới hạn phần mềm, để frontend hiển thị và để mission validation dùng.
+
+    Đây là `limits` trong hợp đồng WebSocket. UI đọc MỌI ngưỡng từ đây —
+    Phase 08/09/10 không được hardcode con số nào.
+    """
     return {
         "max_alt": MAX_ALT,
         "min_alt": MIN_ALT,
@@ -110,4 +151,8 @@ def safety_limits() -> dict[str, float | int]:
         "max_waypoints": MAX_WAYPOINTS,
         "max_velocity": MAX_VELOCITY,
         "manual_command_timeout_ms": MANUAL_COMMAND_TIMEOUT_MS,
+        "deadman_tick_ms": DEADMAN_TICK_MS,
+        "avoid_margin_m": AVOID_MARGIN_M,
+        "avoid_dist_max_m": AVOID_DIST_MAX_M,
+        "rangefinder_max_m": RANGEFINDER_MAX_M,
     }
