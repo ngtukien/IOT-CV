@@ -266,28 +266,19 @@ Nếu lỗi:
 
 Bạn sẽ chạy SITL hàng trăm lần trong các phase tới. Đừng gõ lại đường dẫn dài mỗi lần.
 
-Sửa `scripts/run_sitl.sh` (file đã có sẵn trong repo) thành đại ý:
+**Đã làm xong 21/09/2026 — đọc file thật, đừng đọc bản chép ở đây.** Trước đây mục này nhúng nguyên một bản nháp của script; bản nháp đó đã lệch khỏi file thật sau hai vòng sửa, và một bản sao lệch còn tệ hơn không có bản sao nào. Nguồn sự thật là chính file:
 
-```bash
-#!/usr/bin/env bash
-# Chay ArduCopter SITL. CHAY TRONG WSL, khong phai PowerShell.
-#   ARDUPILOT_DIR : cho clone ArduPilot (mac dinh ~/ardupilot)
-#   WSL_MIRRORED  : 1 neu .wslconfig dat networkingMode=mirrored (mac dinh 1)
-#   SITL_EXTRA    : co them, vd "-A --serial5=sim:ld06" cho Phase 04
-set -euo pipefail
+> **`scripts/run_sitl.sh`** — đọc phần comment đầu file, nó tự mô tả ba biến môi trường.
 
-ARDUPILOT_DIR="${ARDUPILOT_DIR:-$HOME/ardupilot}"
-WSL_MIRRORED="${WSL_MIRRORED:-1}"
-SITL_EXTRA="${SITL_EXTRA:-}"
+Ba biến, và điều đáng nhớ về mỗi cái:
 
-NET_FLAG=""
-if [ "$WSL_MIRRORED" = "1" ]; then
-  NET_FLAG="--no-wsl2-network"
-fi
+| Biến | Mặc định | Cần nhớ |
+|---|---|---|
+| `ARDUPILOT_DIR` | `$HOME/ardupilot` | chỗ clone **trong WSL**, không phải trong repo |
+| `WSL_MIRRORED` | bật | nhận `1/true/yes/on` và `0/false/no/off`; **giá trị lạ thì script thoát mã 2** chứ không đoán. Bản nháp cũ chỉ so với đúng chuỗi `"1"` nên gõ `true` sẽ âm thầm rơi về NAT — mất `--no-wsl2-network` và Mission Planner không thấy gì |
+| `SITL_EXTRA` | rỗng | cờ thêm cho Phase 04. **Mỗi giá trị không được chứa dấu cách** (biến bị tách từ, nháy vô tác dụng); nhiều cảm biến thì lặp lại `-A` |
 
-cd "$ARDUPILOT_DIR/ArduCopter"
-exec ../Tools/autotest/sim_vehicle.py --map --console $NET_FLAG $SITL_EXTRA
-```
+Script còn in ba dòng `[run_sitl]` ra stderr trước khi chạy — đường dẫn ArduPilot, đang ở nhánh mirrored hay NAT, và argv cuối cùng. Khi Mission Planner im lặng, đọc ba dòng đó trước tiên.
 
 Và sửa **chỉ mục `sitl:`** trong `Makefile` cho khớp (`ARDUPILOT_DIR ?= $(HOME)/ardupilot` thay vì `./ardupilot`). Đừng đụng mục nào khác — Phase 01 sở hữu phần còn lại của `Makefile`.
 
