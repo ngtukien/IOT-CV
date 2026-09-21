@@ -1,0 +1,11 @@
+Cho copy file log .BIN cua SITL ve xem (Phase 03, viec 03.5).
+
+Chi thu muc nay duoc giu trong git. Ban than file .BIN bi .gitignore chan
+(luat *.BIN va *.bin toan repo) — do la CO Y: log bay nang va khong phai ma
+nguon. DUNG dung `git add -f` de ep no vao.
+
+Lay log tu WSL:
+    ls -lt ~/ardupilot/ArduCopter/logs/ | head
+    cp ~/ardupilot/ArduCopter/logs/<ten>.BIN /mnt/d/Coding/IOT-CV/logs/sitl/
+
+Mo log: https://plotbeta.ardupilot.org/ (keo tha file vao trang, khong can cai gi)

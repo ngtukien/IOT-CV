@@ -144,18 +144,55 @@ Mất 4 vòng CI mới xanh, và đường đi đáng ghi vì hai chỗ dễ đo
 
 Plan: plans/phase-02-wsl2-sitl.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 21/09/2026 · Ngày xong: 21/09/2026
 
-- [ ] `.wslconfig` có `networkingMode=mirrored` (hoặc ghi rõ đã chọn đường NAT).
-- [ ] `du -sh ~/ardupilot` ~6–8 GB; nhánh `Copter-4.7.1`.
-- [ ] `mavproxy.py --version` trong WSL chạy.
-- [ ] `./scripts/run_sitl.sh` mở đủ **ba** cửa sổ (MAVProxy, Console, Map).
-- [ ] `mode guided` → `arm throttle` → `takeoff 40` → `mode rtl` chạy trọn, kết thúc `DISARMED`.
-- [ ] Mission Planner nối vào SITL: HUD sống, ghi `ArduCopter V4.7.1`, Alt đổi theo lệnh MAVProxy.
-- [ ] `scripts/run_sitl.sh` đã sửa và commit; mục `sitl:` trong `Makefile` trỏ đúng.
-- [ ] Đã ghi **thời gian build thực tế + dung lượng thực tế** vào Ghi chú.
+- [x] `.wslconfig` có `networkingMode=mirrored` (hoặc ghi rõ đã chọn đường NAT).
+- [x] `du -sh ~/ardupilot` **2,0 GB** (cổng cũ ghi 6–8 GB là **sai**, xem Ghi chú); HEAD tại tag `Copter-4.7.1`.
+- [x] `mavproxy.py --version` trong WSL chạy.
+- [x] `./scripts/run_sitl.sh` mở đủ **ba** cửa sổ (MAVProxy, Console, Map).
+- [x] `mode guided` → `arm throttle` → `takeoff 40` → `mode rtl` chạy trọn, kết thúc DISARM.
+- [x] Mission Planner nối vào SITL: HUD sống, ghi `ArduCopter V4.7.1`, Alt đổi theo lệnh MAVProxy.
+- [x] `scripts/run_sitl.sh` đã sửa và commit; mục `sitl:` trong `Makefile` trỏ đúng.
+- [x] Đã ghi **thời gian build thực tế + dung lượng thực tế** vào Ghi chú.
 
-Ghi chú: 
+Ghi chú:
+
+**Số đo thật trên máy này (21/09/2026), thay cho ước lượng ở đầu plan.**
+
+| Hạng mục | Đo được | Plan ước lượng |
+|---|---|---|
+| Clone (thẳng tại tag, kèm submodule) | **241 s** · 1,9 GB | 10–20 phút · 2,5–3,5 GB |
+| `install-prereqs-ubuntu.sh -y` | **~12 phút** · **3,08 GB** | 20–40 phút · 2,5–3,5 GB |
+| Build SITL (`waf`, 32 core) | **158 s** · **+110 MB** | 10–25 phút · 1–1,5 GB |
+| **Tổng thời gian máy** | **≈ 18,6 phút** | 40–85 phút |
+| **Tổng đĩa** | **≈ 5,2 GB** | 6–8 GB |
+| `du -sh ~/ardupilot` cuối | **2,0 GB** | — |
+
+Máy: Ubuntu 24.04.4, 32 core, 19 GB RAM, ổ WSL `/dev/sdd` còn 915 GB.
+
+**Cổng pass số 2 của plan sai, đã sửa trong plan.** Nó đòi `du -sh ~/ardupilot` ra 6–8 GB, nhưng 6–8 GB là *tổng chi phí đĩa*, mà toolchain ARM đi vào `/opt` và venv đi vào `~/venv-ardupilot` — không cái nào nằm trong `~/ardupilot`. Chỉ `build/sitl` rơi vào đó, và nó chỉ 110 MB. Cổng cũ **đỏ kể cả khi cài hoàn toàn đúng**: cùng loại "báo đỏ giả" với năm cái đã sửa ở Phase 00. Nay tách làm hai số đo riêng.
+
+**Đã chọn đường mirrored** (không phải NAT), nên `WSL_MIRRORED=1` và `run_sitl.sh` luôn thêm `--no-wsl2-network`. Kiểm chứng không bằng mắt mà bằng giao tập IP: trong WSL thấy `192.168.1.10` và `26.18.240.157` — đúng IP của Windows, không phải `172.x` của NAT.
+
+**Bốn chuyện đã sập, ghi lại để Phase sau khỏi mất giờ.**
+
+1. **`install-prereqs` tạo venv bằng `python3` đứng đầu PATH — trên máy này là `miniforge3`/Python 3.13.12, không phải Python 3.12.3 của Ubuntu.** Gói `python3-pexpect` cài qua apt nằm trong `dist-packages` của 3.12 nên venv 3.13 không thấy, và `./waf copter` chết ở bước embed với đúng một dòng `you need to install pexpect`. Sửa: `~/venv-ardupilot/bin/pip install pexpect`. Các gói khác (`wx`, `matplotlib`, `numpy`, `cv2`, `lxml`) vẫn import được vì miniforge có sẵn — chỉ thiếu đúng một gói, đừng suy rộng ra.
+2. **`localhost:5760` KHÔNG nối được, `127.0.0.1:5760` thì được.** Trên Windows `localhost` phân giải ra `::1` (IPv6) trước, mà SITL chỉ bind IPv4. Trong Mission Planner phải gõ `127.0.0.1`. Gõ nhầm thì triệu chứng giống hệt bị firewall chặn.
+3. **`sudo` trong WSL hỏi mật khẩu, timestamp mặc định 15 phút mà script chạy ~12–40 phút** → nó hỏi lại giữa chừng và **đứng chờ im lặng**. Chạy `sudo -v` rồi một vòng `while true; do sudo -n true; sleep 60; done &` giữ phiên, kill sau khi xong.
+4. **Gọi lệnh bash phức tạp qua `wsl.exe -- bash -lc '...'` từ Git Bash bị nuốt ký tự** (`$4`, `$?`, `[`, `$p` của sed). Ghi lệnh ra file script rồi `bash /tmp/x.sh` thì hết. Thêm `MSYS_NO_PATHCONV=1` để Git Bash không đổi `/tmp/x.sh` thành đường dẫn Windows.
+
+**Việc 02.4 của plan gần như thừa, đã sửa trong plan.** `PYTHON_PKGS` dòng 197 của `install-prereqs-ubuntu.sh` đã gồm `MAVProxy` + `pymavlink`; `SITL_PKGS` đã gồm `python3-wxgtk4.0`, `matplotlib`, `opencv`, `yaml` và bộ SDL cho pygame. Chạy thêm `pip install mavproxy --user` như plan cũ ghi sẽ đặt **bản thứ hai ngoài venv** rồi hai bản tranh PATH. Đo được: `mavproxy.py --version` = **1.8.74**, `pymavlink` 2.4.49.
+
+**Bằng chứng cho từng cổng, không phải nhìn bằng mắt.**
+
+- Ba cửa sổ: `cua-driver list_windows` thấy `Map (Ubuntu)` 852×749, `Console (Ubuntu)` 800×300, `ArduCopter (Ubuntu)` 880×581 — cả ba `is_on_screen: true`.
+- Chuyến bay 40 m: dấu nhắc MAVProxy đi `STABILIZE>` → `GUIDED>` → `RTL>`; STATUSTEXT có `Arming motors` rồi `Disarming`; `relative_alt` lớn nhất trong `GLOBAL_POSITION_INT` = **40 000 mm đúng bằng 40,0 m**, nhỏ nhất −14 mm (chạm đất); HEARTBEAT cuối `base_mode: 81` — **thiếu bit 128 `SAFETY_ARMED`** — `system_status: 3` (STANDBY), `custom_mode: 6` (RTL). Ba nguồn độc lập cùng nói đã disarm.
+- Mission Planner: tiêu đề cửa sổ ghi `ArduCopter V4.7.1 (dbe79216)` — `dbe79216` đúng tiền tố SHA của tag `Copter-4.7.1`, chuỗi này chỉ có được qua trao đổi MAVLink thật. Link hiện `UDP14550-1-QUADROTOR`, nút là `DISCONNECT`. Gõ `takeoff 20` trong MAVProxy: `Altitude (m)` trên Mission Planner đi từ `0.00` → **`20.00`**, chữ giữa HUD từ `DISARMED` → `Guided`, pin từ `0.0 A` → `28.1 A`.
+- **Không cần đụng firewall.** Mission Planner tự nối UDP `14550` ngay lần chạy đầu, Windows Defender không hỏi gì. Rủi ro số 1 của plan (điểm 12) **không xảy ra** trên máy này — nhưng vẫn giữ cảnh báo trong plan vì nó phụ thuộc cấu hình từng máy.
+
+**ArduCopter 4.7.1 phát STATUSTEXT là `Arming motors` / `Disarming`, không phải `ARMED` / `DISARMED`.** Cổng pass cũ bắt đúng chữ `DISARMED` nên grep theo nó sẽ trượt; đã sửa trong plan.
+
+**Việc chưa làm, cố ý:** `docs/so-tay/02-wsl2-sitl.md` vẫn là placeholder. Plan ghi ở mục "File và thư mục sở hữu" là *"để agent viết sổ tay điền sau"*, và nó không nằm trong danh sách cổng pass.
 
 ## Phase 03 — Học ArduPilot trên drone ảo
 
@@ -171,7 +208,29 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] Viết được câu trả lời tự luận "GUIDED khác AUTO ở chỗ nào" **trước khi** đọc đáp án.
 - [ ] `logs/sitl/.gitkeep` đã commit; không file `.BIN` nào lọt vào git.
 
-Ghi chú: 
+Ghi chú:
+
+**21/09/2026 — phạm vi Phase 03 đã đổi, chủ dự án quyết.** Plan gốc bắt tự bay hết
+~6 giờ. Nay cắt đôi: phần cơ học lặp lại do script chạy, người học giữ đúng ba việc
+mà Phase 19–20 sẽ cần tới khi cầm drone thật.
+
+- **Người học tự làm (~1,5 h):** gây và sửa 3 lỗi pre-arm; một lần bay tay
+  GUIDED → LOITER → ALT_HOLD → RTL; tự viết câu trả lời GUIDED-khác-AUTO **trước**
+  khi đọc đáp án. Hướng dẫn từng bước: `docs/huong-dan/phase-03-viec-cua-ban.html`.
+- **Script tự động (~4,5 h) — CÒN NỢ, CHƯA XONG:** `scripts/sitl/` gồm chuỗi 7 mode,
+  thí nghiệm `RTL_ALT` 1500 so với 5000, mission 5 waypoint chạy AUTO, mission có
+  waypoint `Alt` = 3 m, và dump log `.BIN` ra CSV. Phiên sau phải làm nốt phần này.
+
+**Sửa `.gitignore` (bắt buộc, không phải tuỳ chọn):** cổng pass đòi commit
+`logs/sitl/.gitkeep` nhưng luật `logs/*` ở dòng 58 chặn luôn cả thư mục con, nên gate
+đó vốn KHÔNG thể đạt. Đã thêm ba dòng `!logs/sitl/` + `logs/sitl/*` + `!logs/sitl/.gitkeep`.
+Đã kiểm chứng hai chiều: `.gitkeep` commit được, file `.BIN` vẫn bị `*.bin` chặn.
+
+**Lệch với plan, cố ý:** plan dòng 35 ghi "Không đụng `scripts/`" vì plan gốc giả định
+phase này không code gì. Phạm vi đổi thì lệnh cấm đó hết đúng; script đặt ở
+`scripts/sitl/`, không sửa `scripts/run_sitl.sh`.
+
+**Chưa tick ô nào.** Mọi cổng pass đều cần bằng chứng thật, chưa có thì để trống.
 
 ## Phase 04 — Param + tránh vật cản ảo
 
