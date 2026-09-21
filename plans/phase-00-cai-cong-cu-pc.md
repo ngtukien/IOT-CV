@@ -45,7 +45,7 @@ Chi tiết đầy đủ, bằng chứng, và rủi ro từng mục: `plans/repor
 
 **Đã làm xong (kiểm chứng trên máy này):** script đã chạy `-Apply` — sáu biến môi trường phạm vi User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều đã trỏ vào `D:\DevCache\...`; cây thư mục `D:\DevCache\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio}}` và `D:\IOT_Tools\apps` đều đã tồn tại.
 
-**Còn lại phải làm — tự chạy sau khi đã thoát hẳn VS Code:**
+**Các bước còn lại — chạy sau khi đã thoát hẳn VS Code** (trên máy phát triển hiện tại đã chạy xong hết, xem mục kết quả bên dưới):
 
 ```powershell
 # 1. Sao lưu PATH trước khi đụng thêm vào biến môi trường (phòng xa, xem rủi ro #1 dưới)
@@ -74,20 +74,25 @@ uv cache dir; uv tool dir; uv python dir; npm config get cache
 
 Cả bốn dòng phải in đường dẫn bắt đầu bằng `D:\DevCache\`.
 
-**Sau khi mở PowerShell mới — sửa nốt `cua-driver` mồ côi.** `cua-driver` được cài từ trước khi `UV_TOOL_DIR` từng được đặt, nên vẫn còn nằm ở vị trí mặc định `C:\Users\Nghaiz\AppData\Roaming\uv\tools\cua-driver` (76 MB) — `uv tool list` không còn thấy nó, dù nó vẫn chạy bình thường. Chỉ chạy lệnh sau khi **MCP server `cua-driver` KHÔNG đang chạy** (nó khoá file venv, reinstall giữa chừng sẽ hỏng):
+**Sau khi mở PowerShell mới — sửa nốt tool `uv` bị mồ côi.** Bất kỳ tool nào cài từ **trước khi** `UV_TOOL_DIR` được đặt sẽ vẫn nằm ở vị trí mặc định `%APPDATA%\uv\tools\<tên>` — `uv tool list` không còn thấy nó, dù nó vẫn chạy bình thường. Script tự phát hiện và in tên ở bước 5. Chỉ chạy lệnh sửa khi phần mềm đang giữ tool đó **KHÔNG chạy** (nó khoá file venv, reinstall giữa chừng sẽ hỏng) — với `cua-driver` nghĩa là phải đóng hẳn Claude Code:
 
 ```powershell
 uv tool install cua-driver --reinstall --force
 ```
 
-**Kết quả thật khi chạy ngày 21/09/2026.** Ổ C: **28,4 GB → 35,41 GB trống**, thu hồi được 7 GB. Đã chuyển: uv cache 3,86 GB, npm cache 2,69 GB, pip cache 5 MB, Arduino IDE 527 MB, và xoá kho pnpm mồ côi 633 MB trên C:. Bốn điều học được, đã ghi vào script:
+Sau đó **kiểm chứng rồi mới xoá bản cũ**, đừng tin là xong: `uv tool list` phải thấy tên tool, và chạy thử lệnh của nó một lần. Cách chắc nhất là đổi tên thư mục cũ sang `.BAK`, chạy thử, rồi mới xoá — đổi tên thì hoàn tác được, xoá thì không.
+
+**Kết quả thật khi chạy ngày 21/09/2026.** Ổ C: **28,4 GB → 35,55 GB trống**, thu hồi hơn 7 GB. Đã chuyển: uv cache 3,86 GB, npm cache 2,69 GB, pip cache 5 MB, Arduino IDE 527 MB; đã xoá kho pnpm mồ côi 633 MB, `cua-driver` mồ côi 76 MB và 50,54 MB cache uv trùng lặp. Cache uv/pip/npm trên C **sạch hoàn toàn**. Năm điều học được, đã ghi vào script:
 
 1. **`pnpm config set store-dir` không ghi được** và cũng **không nên ghi**. Lỗi "global bin directory is not in PATH" chặn nó, nhưng quan trọng hơn: để trống là hành vi đúng, pnpm cố ý tạo một kho cho **mỗi ổ đĩa** vì hardlink chỉ chạy trong cùng ổ. Kho thật là `D:\.pnpm-store`, đã nằm trên D. Script nay chỉ báo cáo, không ép.
 2. **Kho pnpm cũ trên C: là mồ côi**, `pnpm store prune` không thấy nó vì prune chỉ dọn kho đang dùng. Phải xoá tay. An toàn: `node_modules` đã cài vẫn chạy nhờ hardlink giữ dữ liệu sống.
 3. **Bảng dung lượng trước/sau của script từng luôn in 0.00 GB.** `Get-PSDrive` nhớ đệm từ lúc phiên PowerShell khởi động nên đọc lại vẫn ra số cũ. Một con số vô nghĩa còn tệ hơn không có số, vì nó làm người đọc tưởng script không làm gì. Đã đổi sang `[System.IO.DriveInfo]`.
 4. **`uv tool install --reinstall` thiếu `--force` sẽ lỗi** `Executable already exists`, vì shim cũ trong `~/.local/bin` vẫn còn.
+5. **Đừng kết luận `robocopy` thành công theo mã thoát.** Mã của nó là **cờ bit**, không phải thang điểm: `rc=0` nghĩa là *"không chép gì"*, `rc=2` nghĩa là *"đích có file thừa"*. Cả hai đều nhỏ hơn 8, nên điều kiện `$rc -lt 8` in ra `[OK] đã chuyển xong` trong khi cả 34 file vẫn nằm nguyên trên C. Kết luận theo **kết quả** — nguồn có rỗng đi không — rồi khi còn sót thì phân biệt hai chuyện khác hẳn nhau: file đã có bản y hệt trên đích (đối chiếu SHA256, xoá bản thừa) và file đang bị khoá (đóng phần mềm rồi chạy lại). Nhớ đặt lại `$LASTEXITCODE = 0` sau khi gọi `robocopy`, nếu không **chính script** sẽ thoát với mã của nó và người gọi `script && lệnh_tiếp` sẽ đứt oan.
 
-**Còn nợ trên C:** `~/.platformio.old` 80 MB (xoá sau khi PlatformIO dựng lại trên D và chạy thử được một project), cache uv 51 MB (34 file bị khoá), `cua-driver` 76 MB (chờ đóng Claude Code).
+**Vì sao ba trong năm điều trên đều là chuyện "báo xanh giả".** Bảng dung lượng in 0.00 GB, `robocopy` báo thành công khi không chép gì, và cảnh báo `cua-driver` in hai lần trong đó một lần thiếu cờ — cả ba đều **chạy trót lọt** và **in ra màu xanh**. Không cái nào ném lỗi. Trước khi tin một dấu hiệu xanh, hỏi: *nếu thứ nó canh đang hỏng ngay lúc này, nó có đỏ lên không?* Không trả lời được thì đó là đồ trang trí.
+
+**Còn nợ trên C:** duy nhất `~/.platformio.old` 80 MB — xoá sau khi PlatformIO dựng lại trên D và bạn chạy thử được một project.
 
 ### 00.1 Kiểm kê thứ đã có sẵn
 
