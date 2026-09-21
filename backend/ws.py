@@ -418,16 +418,23 @@ class WebSocketHub:
         self.bus.unsubscribe(self._on_event_from_thread)
         for task in self._tasks:
             task.cancel()
-        for task in self._tasks:
-            # Không chỉ nuốt CancelledError: một task đã chết vì lỗi khác sẽ
-            # ném lại ở đây, tức là ném ra khỏi lifespan `finally` và làm hỏng
-            # cả trình tự tắt. Ghi lại rồi tắt cho trọn.
-            try:  # noqa: SIM105 — cần log, không chỉ suppress
-                await task
-            except asyncio.CancelledError:
-                pass
-            except Exception:  # noqa: BLE001
-                log.exception("Task nền '%s' đã chết từ trước khi tắt", task.get_name())
+
+        # `gather(return_exceptions=True)` chứ không phải vòng `try/await/except`.
+        # Hai lý do, lý do thứ hai mới là lý do thật:
+        #
+        # 1. Một task đã chết vì lỗi KHÁC sẽ ném lại lúc `await`, tức là ném ra
+        #    khỏi lifespan `finally` và làm hỏng cả trình tự tắt. Ở đây nó về
+        #    dưới dạng GIÁ TRỊ để ta ghi log rồi đi tiếp.
+        #
+        # 2. `except asyncio.CancelledError: pass` KHÔNG phân biệt được hai ca
+        #    trông giống hệt nhau: (a) con bị huỷ vì `task.cancel()` ở trên —
+        #    nuốt là đúng; (b) CHÍNH `stop_background()` bị huỷ từ bên ngoài
+        #    (shutdown quá hạn) — nuốt là phớt lờ lệnh huỷ dành cho mình.
+        #    `gather` trả ca (a) thành kết quả và vẫn ném ca (b) ra ngoài.
+        ket_qua = await asyncio.gather(*self._tasks, return_exceptions=True)
+        for task, kq in zip(self._tasks, ket_qua, strict=False):
+            if isinstance(kq, BaseException) and not isinstance(kq, asyncio.CancelledError):
+                log.error("Task nền '%s' đã chết từ trước khi tắt: %r", task.get_name(), kq)
         self._tasks = []
         # Bỏ mọi thứ gắn với loop vừa đóng, để lần start_background sau dựng
         # lại sạch trên loop mới.
