@@ -77,3 +77,8 @@ esp32/**/build/
 *.swp
 .DS_Store
 Thumbs.db
+.claude
+.codex
+.agents
+.playwright-mcp
+tmp

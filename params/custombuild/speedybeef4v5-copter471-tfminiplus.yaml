@@ -1,0 +1,102 @@
+# Obstacle avoidance huong TRUOC - Benewake TFmini Plus
+# Board: SpeedyBee F405 V5 | Copter 4.7.1 stable | custom.ardupilot.org
+# Cach dung: mo https://custom.ardupilot.org va keo tha file nay vao o "Drag & drop"
+#
+# ArduPilot co 410 feature chon duoc. Ban stock cho board nay bat 110
+# (da bi cat san vi F405 chi co 1MB flash). File nay tat them 62,
+# bat them 6 => 54 feature.
+#
+# BAT THEM so voi ban stock:
+#   + AC_AVOID_ALTHOLD       Enable angle based avoidance in AltHold
+#   + AC_OAPATHPLANNER       Enable Object Avoidance Path Planner
+#   + CRASHCATCHER           Enable CrashCatcher
+#   + EKF3_WINDEST           Enable Wind estimation for EKF3
+#   + PROXIMITY              Enable Proximity
+#   + PROXIMITY_RANGEFINDER  Use RangeFinders as proximity sensors
+#
+# TAT (doi chieu docs/linh-kien-s500.html):
+#   OSD / MSP / VTX / Camera : khong co kinh FPV, khong VTX; ESP32-CAM di Wi-Fi rieng
+#   CRSF GHST SBUS SRXL PPM  : dung FlySky FS-i6X + iA6B qua iBUS (chi giu RC_IBUS)
+#   FrSky/CRSF/Spektrum telem: telemetry qua MAVLink (ESP32 dot 3), khong ve tay phat
+#   NMEA GPS                 : Holybro M10 la u-blox (chi giu UBLOX)
+#   8 driver la ban          : GIU IST8310 + IST8308 (checklist ghi M10 dung 1 trong 2)
+#                              + QMC5883L (bao hiem neu lo hang khac, ton ~1KB)
+#   HEXA / OCTA / TRI        : khung S500 la quadcopter
+#   Parachute Rally LandingGear Airspeed : khong co thiet bi
+#   TF02 / TF03              : chi giu dong TFmini + TFmini Plus
+#
+# KHONG bat, da can nhac:
+#   i-BUS telemetry : iA6B co cong sensor, NHUNG het UART (SERIAL1 la module BT noi bo,
+#                     SERIAL5 chi co chan RX ma iBUS telem can ca TX)
+#   GyroFFT         : F405 yeu; da co RPM notch tu ESC telemetry nen khong can
+#   SCRIPTING (Lua) : ban stock da tat, 1MB khong kham noi
+#   Camera          : bat lai neu sau nay muon FC trigger ESP32-CAM (+ Camera_Relay)
+
+config_version: "0.0.1"
+vehicle:
+  id: copter
+  name: Copter
+version:
+  id: ardupilot-dbe792162d06cab66c3475fd5556bf7a120f119e-c9945561
+  name: "4.7.1"
+  type: stable
+  remote_name: ardupilot
+board:
+  id: speedybeef4v5
+  name: speedybeef4v5
+use_default_features: false
+selected_features:
+  - AC_AVOID
+  - AC_AVOID_ALTHOLD
+  - AC_OAPATHPLANNER
+  - AP_MAVLINK_FTP_ENABLED
+  - BARO_TEMPCAL
+  - BOOTLOADER_FLASHING
+  - BatchSampler
+  - COMPASS_CAL
+  - COPTER_AHRS_AUTO_TRIM
+  - CRASHCATCHER
+  - CUSTOM_ROTATIONS
+  - CompassLearn
+  - EKF3
+  - EKF3_WINDEST
+  - FENCE
+  - FILESYSTEM_MISSION
+  - FILESYSTEM_PARAM
+  - FILESYSTEM_ROMFS
+  - FILESYSTEM_SYS
+  - FixedYawCal
+  - HarmonicNotches
+  - IST8308
+  - IST8310
+  - LED_CONTROL
+  - Logging
+  - MAVLINK_MSG_MISSION_REQUEST
+  - MAVLINK_MSG_RC_CHANNELS_RAW
+  - MAV_DEVICE_OP
+  - MAV_MSG_SERIAL_CONTROL
+  - MAV_SERVO_RELAY
+  - MODE_BRAKE
+  - PLAY_TUNE
+  - PROXIMITY
+  - PROXIMITY_RANGEFINDER
+  - QMC5883L
+  - QUAD
+  - RANGEFINDER
+  - RANGEFINDER_SENDING
+  - RC_IBUS
+  - RC_Protocol
+  - RC_TRANSMITTER_TUNING
+  - RELAY
+  - REQUEST_AUTOPILOT_CAPA
+  - RFND_BENEWAKE_TFMINI
+  - RFND_BENEWAKE_TFMINIPLUS
+  - RPM
+  - RPM_ESC_TELEM
+  - RPM_HARMONIC_NOTCH
+  - RSSI
+  - RateLoopThread
+  - SERVORELAY_EVENTS
+  - SPL06
+  - TONEALARM
+  - UBLOX

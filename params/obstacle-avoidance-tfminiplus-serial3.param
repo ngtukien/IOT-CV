@@ -1,0 +1,86 @@
+# Obstacle avoidance huong TRUOC - Benewake TFmini Plus tren SERIAL3 (UART3)
+# Board: SpeedyBee F405 V5 | Copter 4.7.1 CUSTOM BUILD
+#
+# BAT BUOC nap truoc: firmware tu custom.ardupilot.org dung file
+#   params/custombuild/speedybeef4v5-copter471-tfminiplus.yaml
+# Ban stock KHONG co nhom PRX_* -> load file nay se bao loi "parameter not found".
+#
+# Cach load: Mission Planner -> Config/Tuning -> Full Parameter List
+#            -> Load from file -> chon file nay -> Write Params -> reboot FC
+#
+# Dau day (mau day theo datasheet Benewake, bang 5.1):
+#   Do    PIN-1  +5V   -> pad 5V cua stack (KHONG dung chung UBEC voi ESP32-CAM)
+#   Trang PIN-2  RXD   -> de trong (driver ArduPilot khong gui lenh ra cam bien)
+#   Xanh  PIN-3  TXD   -> chan RX cua SERIAL3 (UART3 = PC11)
+#   Den   PIN-4  GND   -> GND chung
+#
+# PHAN BO NGUON 5V (quan trong - dung gop chung):
+#   BEC 5V cua stack (2.5A):  GPS M10 ~40mA + receiver iA6B ~50mA
+#                             + TFmini Plus 110mA (dinh 140mA) = ~200mA. Thua rat nhieu.
+#   UBEC 5V 3A rieng:         ESP32-CAM + ESP32 DevKit.
+#   Ly do tach: ESP32-CAM bat Wi-Fi gay burst dong va sut ap. Datasheet TFmini Plus
+#   ghi ro san pham KHONG co bao ve qua ap/nguoc cuc, chi chiu dao dong +-0.5V.
+#   Cho ESP32-CAM: han tu 470-1000uF sat chan nguon de chong brownout.
+#
+# Vi sao chon SERIAL3: trong ban firmware nay OSD va MSP da bi tat (khong dung
+#   kinh FPV), nen UART3 hoan toan trong. SERIAL2 giu lai cho ESP32 telemetry
+#   (cong UART duy nhat co DMA), SERIAL4 = GPS M10, SERIAL5 = ESC telemetry,
+#   SERIAL6 = receiver iA6B.
+# Neu sau nay can UART3 cho viec khac: doi sang SERIAL5 bang cach thay 2 dong
+#   SERIAL3_* thanh SERIAL5_PROTOCOL,9 va SERIAL5_BAUD,115 - danh doi la mat
+#   ESC telemetry. UART5 chi co chan RX (PD2) nhung van chay duoc, vi driver
+#   Benewake chi doc chu khong gui lenh ra cam bien.
+#
+# KIEM TRA HANG CU truoc khi lap (can 1 mach USB-TTL + phan mem gui HEX):
+#   Cap nguon 5V -> nhin thang vao ong kinh PHAT phai thay DEN DO. Khong co = hong.
+#   Lenh HEX (checksum da kiem tra lai, nguon: SJ-PM-TFmini Plus A04 Product Manual muc 6.4):
+#     5A 04 01 5F      doc firmware version -> tra ve 5A 07 01 V1 V2 V3 SU
+#     5A 04 10 6E      khoi phuc cai dat goc  (115200 / UART / standard 9 byte / 100Hz)
+#     5A 04 11 6F      LUU cai dat  <-- bat buoc gui sau moi lenh thay doi
+#     5A 05 05 01 65   ep ve Standard 9 bytes (cm)   <-- format ArduPilot can
+#     5A 05 05 02 66   Pixhawk mode (chuoi ky tu)    <-- ArduPilot >= 3.6.2 KHONG doc duoc
+#     5A 05 0A 00 69   chuyen ve UART      5A 05 0A 01 6A  chuyen sang I2C
+#   Neu cam vao FC ma khong co so lieu: gui 5A 04 10 6E roi 5A 04 11 6F, cap nguon lai.
+#
+# Day GH1.25-4P dai 30cm. Datasheet khuyen day noi dai KHONG qua 1m.
+#
+# DOT 3 (ESP32) - chua lap, ghi san de khong quen:
+#   ESP32 DevKit lam cau MAVLink -> cam vao SERIAL2 (UART2, cong duy nhat co DMA),
+#     khi lap thi dat: SERIAL2_PROTOCOL,2  va  SERIAL2_BAUD,57  (hoac 115)
+#   ESP32-CAM KHONG noi vao FC - no tu stream Wi-Fi ve laptop, nen firmware da tat
+#     nhom Camera cua ArduPilot (AP_Camera chi de FC bam co chup qua relay/servo).
+#     Vi tri UAV luc phat hien duoc ghep o backend theo timestamp MAVLink.
+#   Neu sau nay muon FC tu trigger ESP32-CAM va dong dau toa do chinh xac
+#     (CAMERA_FEEDBACK) thi tick lai 'Camera' + 'Camera_Relay' roi build lai.
+
+# --- cong serial cho cam bien ---
+SERIAL3_PROTOCOL,9
+SERIAL3_BAUD,115
+
+# --- rangefinder: TFmini Plus qua UART ---
+RNGFND1_TYPE,20
+RNGFND1_ORIENT,0
+RNGFND1_MIN,0.1
+RNGFND1_MAX,6
+
+# --- dua rangefinder vao he proximity ---
+PRX1_TYPE,4
+
+# --- avoidance khi bay tay (Loiter / PosHold / AltHold) ---
+FENCE_ENABLE,1
+AVOID_ENABLE,3
+AVOID_BEHAVE,1
+AVOID_MARGIN,2
+AVOID_BACKUP_SPD,0.75
+AVOID_BACKUP_DZ,0.10
+AVOID_ACCEL_MAX,3
+AVOID_DIST_MAX,5
+AVOID_ANG_MAX,10
+
+# --- avoidance khi bay AUTO (mission waypoint) ---
+# AC_Avoid o tren CHI chay o Loiter/PosHold/AltHold. Trong AUTO/GUIDED/RTL phai
+# co Object Avoidance Path Planner (da bat trong firmware).
+# De 0 LUC DAU: BendyRuler can biet duong vong, ma ta chi co 1 tia 3.6 do nhin
+# thang truoc - no se lech sang huong CHUA CO DU LIEU. Bay AUTO o bai trong da.
+# Khi da quen, ra bai rong dat vat can gia roi doi OA_TYPE,1 (BendyRuler) de thu.
+OA_TYPE,0
