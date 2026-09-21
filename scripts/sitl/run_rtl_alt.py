@@ -57,6 +57,7 @@ KHOANG_BAY_RA_M = 60.0
 
 # Hai mốc cần so, tính bằng MÉT. Plan ghi 1500/5000 centimet — cùng con số này.
 RTL_ALT_THU_M = [15.0, 50.0]
+DA_ARM = 0b1000_0000  # MAV_MODE_FLAG_SAFETY_ARMED
 
 
 def chon_ten_tham_so(sitl: SitlInstance) -> tuple[str, float]:
@@ -89,11 +90,17 @@ def bay_mot_luot(
     sitl.wait_ready()
     sitl.set_mode("GUIDED")
     sitl.arm()
+    # ĐỌC LẠI home SAU KHI ARM. ArduPilot đặt lại home ở MỖI lần arm, nên lượt
+    # thứ hai có home tại chỗ lượt đầu vừa hạ, không phải điểm xuất phát ban
+    # đầu. Dùng `lat0/lon0` cho cả hai lượt là đo lượt hai bằng thước của lượt
+    # một — đúng cái bẫy đã sập ở `run_mode_chain.py` và được ghi lại ở đó.
+    home = sitl.get_position()
+    lat_home, lon_home = home["lat"], home["lon"]
     sitl.takeoff(DO_CAO_CAT_CANH_M)
     alt_truoc_rtl = sitl.get_position()["alt_rel_m"]
 
     # Bay ra xa để RTL có quãng đường mà leo.
-    bac, dong = harness.offset_latlon(lat0, lon0, KHOANG_BAY_RA_M, 0.0)
+    bac, dong = harness.offset_latlon(lat_home, lon_home, KHOANG_BAY_RA_M, 0.0)
     sitl.master.mav.set_position_target_global_int_send(
         0,
         sitl.master.target_system,
@@ -116,7 +123,7 @@ def bay_mot_luot(
     xa = 0.0
     while time.monotonic() - t0 < 120:
         p = sitl.get_position()
-        xa = harness.haversine_m(lat0, lon0, p["lat"], p["lon"])
+        xa = harness.haversine_m(lat_home, lon_home, p["lat"], p["lon"])
         if xa >= KHOANG_BAY_RA_M * 0.8:
             break
 
@@ -126,7 +133,7 @@ def bay_mot_luot(
     t0 = time.monotonic()
     while time.monotonic() - t0 < 300:
         hb = sitl.master.messages.get("HEARTBEAT")
-        armed = bool(hb.base_mode & 128) if hb else True
+        armed = bool(hb.base_mode & DA_ARM) if hb else True
         if not armed:
             break
         alt_dinh = max(alt_dinh, sitl.get_position()["alt_rel_m"])
@@ -139,7 +146,7 @@ def bay_mot_luot(
         "alt_truoc_rtl_m": alt_truoc_rtl,
         "alt_dinh_m": alt_dinh,
         "xa_nhat_m": xa,
-        "lech_ve_m": harness.haversine_m(lat0, lon0, p["lat"], p["lon"]),
+        "lech_ve_m": harness.haversine_m(lat_home, lon_home, p["lat"], p["lon"]),
     }
 
 
@@ -203,8 +210,18 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Bắt MỌI Exception, không riêng SitlError. README hứa "mã thoát khác 0 khi
+    # hỏng, cắm được vào CI" — mà một AttributeError/OSError lọt ra ngoài thì
+    # thoát bằng traceback trần, KHÔNG có dòng `KET QUA:` nào. Job CI quét
+    # `KET QUA: FAIL` khi đó không thấy gì cả: không PASS, không FAIL.
     try:
         raise SystemExit(main())
     except SitlError as exc:
         print(f"KET QUA: FAIL — {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+
+        traceback.print_exc()
+        print(f"KET QUA: FAIL — lỗi ngoài dự kiến: {exc!r}", file=sys.stderr)
         raise SystemExit(1) from exc

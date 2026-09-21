@@ -218,10 +218,18 @@ ArduPilot 4.7 chuyển sang hậu tố đơn vị SI tường minh (`_M` = mét,
 nó chỉ im lặng không bao giờ gửi xác nhận, và script ngồi chờ tới hết giờ.
 
 **2. `RTL_ALT_M` là độ cao TỐI THIỂU, không phải độ cao bắt buộc.** Đo được:
-cất cánh 20 m rồi gọi RTL — với `RTL_ALT_M = 15` máy bay giữ nguyên 20 m mà về
-(đỉnh 20,0 m, **không** hạ xuống 15 m); với `RTL_ALT_M = 50` nó leo lên 50 m rồi
-mới về (đỉnh 50,0 m). Chênh nhau 30,0 m. Ý nghĩa thực tế: đặt `RTL_ALT_M` thấp
-không làm máy bay bay thấp — nó chỉ *cho phép* bay thấp nếu đang thấp sẵn.
+cất cánh 20 m rồi gọi RTL — với `RTL_ALT_M = 15` đỉnh đạt **20,0 m**, tức là máy
+bay **không leo** thêm; với `RTL_ALT_M = 50` đỉnh đạt **50,0 m**, tức nó phải leo
+trước khi về. Chênh nhau 30,0 m.
+
+> Phép đo này là một giá trị **lớn nhất**, nên nó chỉ chứng minh được *"không
+> leo"*. Nó **không** chứng minh được máy bay giữ nguyên 20 m suốt đường về —
+> một cú tụt xuống 15 m giữa chừng rồi lên lại cũng cho cùng con số đỉnh 20,0 m.
+> Muốn nói được điều đó thì phải đo giá trị **nhỏ nhất** trong đoạn bay về.
+
+Ý nghĩa thực tế: đặt `RTL_ALT_M` thấp không *bắt* máy bay bay thấp — nó chỉ bỏ
+ràng buộc phải leo. Lưu ý thêm: kết luận này đo ở cách home 60 m; bay về từ gần
+home thì `RTL_CONE_SLOPE` xen vào và hình dạng đường về khác hẳn.
 
 **3. RTL KHÔNG chuyển mode sang `LAND`.** Nhiều tài liệu (kể cả plan gốc của dự
 án này) viết: sau `mode rtl`, theo dõi mode tự chuyển sang `LAND` rồi

@@ -246,7 +246,16 @@ class SitlInstance:
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
-        self._connect()
+        # Python KHÔNG gọi `__exit__` khi `__enter__` ném, mà `_connect()` là
+        # câu lệnh cuối của `start()` và nó ném sau 90 s chờ. Không có khối này
+        # thì một lần connect hỏng để lại SITL SỐNG, và runner kế tiếp bị
+        # `refuse_if_conflict()` từ chối — hiện ra thành một lỗi thứ hai trông
+        # như không liên quan.
+        try:
+            self._connect()
+        except BaseException:
+            self.stop()
+            raise
 
     def _connect(self) -> None:
         deadline = time.monotonic() + self.connect_timeout_s
@@ -299,18 +308,39 @@ class SitlInstance:
             except subprocess.TimeoutExpired:
                 with contextlib.suppress(ProcessLookupError):
                     os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+                # Gặt xác, nếu không thì để lại zombie.
+                with contextlib.suppress(subprocess.TimeoutExpired):
+                    self.proc.wait(timeout=3)
         # Lưới an toàn thứ hai: sim_vehicle.py chạy arducopter qua một trình bọc
         # xterm (-hold -iconic) mà thực nghiệm 21/09/2026 cho thấy KHÔNG cùng
         # process group với sim_vehicle.py -- SIGTERM vào riêng sim_vehicle.py
         # để lại xterm + arducopter sống. Diệt thẳng theo tên tiến trình; an
         # toàn vì refuse_if_conflict() đã đảm bảo không có phiên nào khác chạy
         # trước khi ta start().
-        for _ in range(5):
-            r1 = subprocess.run(["pkill", "-9", "-f", "bin/arducopter"], check=False)
-            r2 = subprocess.run(["pkill", "-9", "-f", "xterm.*-name ArduCopter"], check=False)
-            if r1.returncode != 0 and r2.returncode != 0:
-                break
-            time.sleep(0.3)
+        # Khớp theo `--use-dir=<thư mục CỦA PHIÊN NÀY>` chứ không theo
+        # "bin/arducopter" trần. Mẫu trần giết mọi tiến trình có chuỗi đó trong
+        # dòng lệnh — kể cả SITL người dùng vừa mở tay ở cửa sổ khác, hay một
+        # `less`/editor đang mở đúng đường dẫn đó. `refuse_if_conflict()` chỉ
+        # bảo đảm điều đó lúc start(), còn đây là vài phút sau.
+        mau = f"--use-dir={self.use_dir}"
+        # SIGTERM TRƯỚC, rồi mới SIGKILL: ArduCopter cần cơ hội flush và đóng
+        # log DataFlash. Giết thẳng bằng -9 là cắt cụt đuôi file .BIN mà
+        # run_log_dump.py sinh ra để đọc.
+        for tin_hieu in ("-TERM", "-KILL"):
+            subprocess.run(["pkill", tin_hieu, "-f", mau], check=False)
+            subprocess.run(["pkill", tin_hieu, "-f", f"xterm.*{self.use_dir}"], check=False)
+            for _ in range(10):
+                if (
+                    subprocess.run(
+                        ["pgrep", "-f", mau], capture_output=True, check=False
+                    ).returncode
+                    != 0
+                ):
+                    break
+                time.sleep(0.3)
+            else:
+                continue
+            break
         if self._log_file is not None:
             self._log_file.close()
         leftover = _running_sitl_pids()
@@ -455,20 +485,6 @@ class SitlInstance:
         raise SitlError(
             f"arm() gửi ACCEPTED nhưng chưa thấy ARMED sau {timeout}s. "
             f"STATUSTEXT gần nhất: {self.statustext_log[-5:]}"
-        )
-
-    def _rc_override(self, *, roll=1500, pitch=1500, throttle=1500, yaw=1500) -> None:
-        self.master.mav.rc_channels_override_send(
-            self.master.target_system,
-            self.master.target_component,
-            roll,
-            pitch,
-            throttle,
-            yaw,
-            0,
-            0,
-            0,
-            0,
         )
 
     def start_auto_mission(self, *, timeout: float = 90.0) -> None:
@@ -744,8 +760,12 @@ def upload_mission(sitl: SitlInstance, items: list[dict], *, timeout: float = 30
                 )
             return
         seq = msg.seq
-        if seq in sent or seq >= len(items):
+        if seq >= len(items):
             continue
+        # KHÔNG bỏ qua khi `seq in sent`: FC hỏi lại một item đã gửi nghĩa là
+        # gói đó mất, và đó là hành vi truyền lại bình thường của MAVLink. Bỏ
+        # qua thì upload treo tới hết timeout. Vô hình trên TCP loopback, nhưng
+        # Phase 07 dùng file này làm tham chiếu cho đường truyền thật.
         item = items[seq]
         master.mav.mission_item_int_send(
             master.target_system,
@@ -804,6 +824,14 @@ def download_mission(sitl: SitlInstance, *, timeout: float = 30.0) -> list[dict]
         item_msg = master.recv_match(type="MISSION_ITEM_INT", blocking=True, timeout=remaining)
         if item_msg is None:
             raise SitlError(f"download_mission: không nhận được MISSION_ITEM_INT cho seq={seq}.")
+        # So khớp theo VỊ TRÍ trong danh sách là cách người gọi dùng kết quả
+        # này, nên một gói trả về lệch thứ tự sẽ làm lệch MỌI so sánh phía sau
+        # và hiện ra thành một loạt "sai trường" thay vì một lỗi giao thức.
+        if item_msg.seq != seq:
+            raise SitlError(
+                f"download_mission: xin seq={seq} nhưng FC trả seq={item_msg.seq} "
+                "— gói lệch thứ tự, không so khớp tiếp được."
+            )
         items.append(
             {
                 "seq": item_msg.seq,

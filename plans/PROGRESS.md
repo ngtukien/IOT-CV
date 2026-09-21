@@ -255,7 +255,7 @@ mục 10, kèm bằng chứng):
 | Plan §03.2, §03.5: `RTL_ALT`, đơn vị cm, đặt 1500/5000 | `RTL_ALT` **không còn tồn tại**. Liệt kê cả 1370 tham số: nhóm RTL* chỉ còn `RTL_ALT_M` (đơn vị **mét**), `RTL_ALT_FINAL_M`, `RTL_CLIMB_MIN_M`, `RTL_SPEED_MS`. ArduPilot 4.7 chuyển sang hậu tố đơn vị SI. Đặt tên cũ thì FC **không báo lỗi**, chỉ không bao giờ xác nhận |
 | Plan §03.3 dòng 141: sau `mode rtl`, mode tự chuyển sang `LAND` rồi `DISARMED` | Mode **vẫn là `RTL`** suốt lúc hạ cho tới khi disarm. RTL tự hạ trong chính nó. Chờ `LAND` là chờ mãi — đã treo trọn 180 s đúng chỗ này |
 | Quy ước mission | **Item 0 là ô HOME**, không phải lệnh. Đặt `NAV_TAKEOFF` ở index 0 thì vào AUTO từ dưới đất bị từ chối: `Auto: Missing Takeoff Cmd`. Mission "5 waypoint" nạp xuống **6 item**. Khó tìm vì lỗi **chỉ** xảy ra khi vào AUTO từ mặt đất |
-| Khởi động mission AUTO | `MAV_CMD_MISSION_START` trả `MAV_RESULT_DENIED`; arm thẳng trong AUTO bị `MAV_RESULT_FAILED`; máy bay tự disarm sau `DISARM_DELAY = 10` s. Cách đúng là tham số **`AUTO_OPTIONS = 3`** (bit 0 cho arm trong AUTO, bit 1 cho cất cánh không cần nâng ga) |
+| Khởi động mission AUTO | `MAV_CMD_MISSION_START` trả `MAV_RESULT_DENIED`; arm thẳng trong AUTO bị `MAV_RESULT_FAILED`; máy bay tự disarm sau `DISARM_DELAY = 10` s. Cách đúng là tham số **`AUTO_OPTIONS = 3`** (bit 0 cho arm trong AUTO, bit 1 cho cất cánh không cần nâng ga). ⚠️ **Chỉ dùng trên SITL.** Trên phần cứng thật, bit 1 nghĩa là máy bay tự nhấc lên mà không ai chạm cần ga — đọc `SAFETY.md` trước |
 
 **Kết quả 5 runner, chạy thật trên SITL ArduCopter 4.7.1:**
 

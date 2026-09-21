@@ -33,6 +33,11 @@ from harness import SitlError, SitlInstance, print_ket_qua  # noqa: E402
 USE_DIR = "mission-auto"
 DO_CAO_M = 25.0
 CANH_M = 60.0  # cạnh tam giác waypoint
+DA_ARM = 0b1000_0000  # MAV_MODE_FLAG_SAFETY_ARMED
+
+# Lệnh mission không mang lat/lon/alt, nên `frame` của chúng vô nghĩa và FC
+# chuẩn hoá về GLOBAL(0) bất kể ta gửi gì. Xem chú thích trong `so_khop`.
+LENH_KHONG_CO_TOA_DO = frozenset({20})  # MAV_CMD_NAV_RETURN_TO_LAUNCH
 
 
 def dung_mission(lat0: float, lon0: float) -> list[dict]:
@@ -98,7 +103,12 @@ def dung_mission(lat0: float, lon0: float) -> list[dict]:
 
 
 def so_khop(da_gui: list[dict], doc_lai: list[dict]) -> list[str]:
-    """So từng item gửi đi với item đọc về. Trả danh sách chỗ lệch."""
+    """So item gửi đi với item đọc về. Trả danh sách chỗ lệch.
+
+    So bốn trường mà `download_mission` mang về: `command`, `frame`, `x`, `y`,
+    `z`. KHÔNG so `param1..4` — giao thức đọc ngược hiện chưa mang chúng về,
+    nên đừng hứa điều mình không kiểm được.
+    """
     lech: list[str] = []
     if len(da_gui) != len(doc_lai):
         lech.append(f"số item: gửi {len(da_gui)} đọc về {len(doc_lai)}")
@@ -110,6 +120,20 @@ def so_khop(da_gui: list[dict], doc_lai: list[dict]) -> list[str]:
             continue
         if g["command"] != d.get("command"):
             lech.append(f"item {i}: command {g['command']} != {d.get('command')}")
+        # `frame` LÀ trường phải so. Mission gửi đi GLOBAL_RELATIVE_ALT mà đọc
+        # về GLOBAL thì `z` vẫn khớp về SỐ, còn máy bay thì bay ở một độ cao
+        # hoàn toàn khác — đó chính là lỗi nạp mission kinh điển, và bỏ nó ra
+        # khỏi phép so là làm phép so mù đúng chỗ nguy hiểm nhất.
+        #
+        # Trừ các lệnh KHÔNG MANG TOẠ ĐỘ. Thêm phép so này vào là bắt được ngay
+        # (22/09/2026): gửi `NAV_RETURN_TO_LAUNCH` với frame 3
+        # (GLOBAL_RELATIVE_ALT), FC trả về frame 0 (GLOBAL). Không phải nạp
+        # sai — với lệnh không có lat/lon/alt thì frame vô nghĩa và ArduPilot
+        # chuẩn hoá nó về 0. GHI CHO PHASE 07: backend đọc ngược mission phải
+        # biết chuyện này, nếu không nó sẽ báo "mission lệch" trên một mission
+        # hoàn toàn đúng.
+        if g["command"] not in LENH_KHONG_CO_TOA_DO and g["frame"] != d.get("frame"):
+            lech.append(f"item {i}: frame {g['frame']} != {d.get('frame')}")
         # Toạ độ so theo số nguyên 1e7; sai 1 đơn vị là ~1 cm, không đáng kể,
         # nhưng lệch hơn 10 đơn vị (~10 cm) thì là nạp sai chứ không phải làm tròn.
         for truc in ("x", "y"):
@@ -133,7 +157,12 @@ def main() -> int:
         doc_lai = harness.download_mission(sitl)
         lech = so_khop(items, doc_lai)
         ket_qua.append(("Nạp mission", f"{len(items)} item ({len(items) - 1} lệnh + 1 ô home)"))
-        ket_qua.append(("Đọc lại từ FC khớp từng trường", "khớp" if not lech else f"LỆCH: {lech}"))
+        ket_qua.append(
+            (
+                "Đọc lại từ FC khớp command/frame/x/y/z",
+                "khớp" if not lech else f"LỆCH: {lech}",
+            )
+        )
 
         sitl.start_auto_mission()
 
@@ -149,7 +178,7 @@ def main() -> int:
             with contextlib.suppress(SitlError):
                 alt_dinh = max(alt_dinh, sitl.get_position()["alt_rel_m"])
             hb = sitl.master.messages.get("HEARTBEAT")
-            if hb is not None and not (hb.base_mode & 128) and da_toi:
+            if hb is not None and not (hb.base_mode & DA_ARM) and da_toi:
                 break
 
         ket_qua.append(("Waypoint đã tới (seq)", str(da_toi) if da_toi else "KHÔNG CÓ"))
@@ -173,13 +202,28 @@ def main() -> int:
     if ve_lech > 10.0:
         print(f"RTL cuối mission về lệch {ve_lech:.1f} m", file=sys.stderr)
         return 1
+    # `harness.start_auto_mission` gọi thẳng "độ cao đỉnh là 0,0 m" là TRIỆU
+    # CHỨNG của mission không chạy. Đã biết vậy thì phải chặn, không chỉ in ra.
+    if alt_dinh < DO_CAO_M * 0.9:
+        print(f"Độ cao đỉnh chỉ {alt_dinh:.1f} m, chờ đợi ≈ {DO_CAO_M} m", file=sys.stderr)
+        return 1
     print("KET QUA: PASS")
     return 0
 
 
 if __name__ == "__main__":
+    # Bắt MỌI Exception, không riêng SitlError. README hứa "mã thoát khác 0 khi
+    # hỏng, cắm được vào CI" — mà một AttributeError/OSError lọt ra ngoài thì
+    # thoát bằng traceback trần, KHÔNG có dòng `KET QUA:` nào. Job CI quét
+    # `KET QUA: FAIL` khi đó không thấy gì cả: không PASS, không FAIL.
     try:
         raise SystemExit(main())
     except SitlError as exc:
         print(f"KET QUA: FAIL — {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+
+        traceback.print_exc()
+        print(f"KET QUA: FAIL — lỗi ngoài dự kiến: {exc!r}", file=sys.stderr)
         raise SystemExit(1) from exc

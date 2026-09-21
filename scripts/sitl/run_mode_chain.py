@@ -44,6 +44,8 @@ USE_DIR = "mode-chain"
 
 # Mode bay thử khi ĐANG TRÊN KHÔNG, theo thứ tự. STABILIZE và LAND không nằm ở
 # đây: xem hai điểm về thứ tự trong docstring.
+DA_ARM = 0b1000_0000  # MAV_MODE_FLAG_SAFETY_ARMED
+
 CHUOI_TREN_KHONG = ["ALT_HOLD", "LOITER", "GUIDED"]
 
 
@@ -56,14 +58,27 @@ def mission_toi_thieu(lat_deg: float, lon_deg: float) -> list[dict]:
     from pymavlink import mavutil
 
     bac, dong = harness.offset_latlon(lat_deg, lon_deg, 30.0, 0.0)
+    # Item 0 là ô HOME kể cả ở đây. Runner này vào AUTO khi ĐÃ Ở TRÊN KHÔNG nên
+    # ArduPilot bỏ qua kiểm tra "Missing Takeoff Cmd" và mission sai vẫn chạy —
+    # đúng lý do khiến bẫy này khó tìm. Không vì thế mà ship một mission mà
+    # chính repo này ghi là hỏng.
     return [
+        {
+            "command": mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+            "frame": mavutil.mavlink.MAV_FRAME_GLOBAL,
+            "x": int(lat_deg * 1e7),
+            "y": int(lon_deg * 1e7),
+            "z": 0.0,
+            "current": 1,
+            "autocontinue": 1,
+        },
         {
             "command": mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
             "frame": mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
             "x": int(lat_deg * 1e7),
             "y": int(lon_deg * 1e7),
             "z": DO_CAO_M,
-            "current": 1,
+            "current": 0,
             "autocontinue": 1,
         },
         {
@@ -121,8 +136,14 @@ def main() -> int:
         ket_qua.append(("Mission tối thiểu nạp + đọc lại", f"{len(doc_lai)} item"))
         sitl.set_mode("AUTO")
         da_qua.append("AUTO")
-        ket_qua.append(("AUTO", "đạt"))
-        time.sleep(5)  # cho nó thật sự chạy waypoint, không chỉ vào mode rồi ra
+        # ĐỢI một MISSION_ITEM_REACHED thật. `harness.start_auto_mission` mô tả
+        # đúng cái bẫy ở đây: "mission nạp đúng, đọc lại đúng, vào AUTO đúng, mà
+        # MISSION_ITEM_REACHED không bao giờ tới". Bản trước chỉ `sleep(5)` rồi
+        # ghi "đạt" — không phân biệt được hai trạng thái đó.
+        toi_wp = sitl.recv_match("MISSION_ITEM_REACHED", timeout=60.0)
+        ket_qua.append(
+            ("AUTO chạy waypoint thật", f"tới seq={toi_wp.seq}" if toi_wp else "KHÔNG TỚI ĐƯỢC")
+        )
 
         # --- 5. LAND, kết thúc chuyến 1 -------------------------------------
         sitl.set_mode("LAND")
@@ -180,13 +201,24 @@ def main() -> int:
         sitl.set_mode("RTL")
         da_qua.append("RTL")
         t0 = time.monotonic()
-        sitl.wait_disarmed(timeout=240.0)
-        ket_qua.append(
-            (
-                "RTL tự hạ + DISARM (mode vẫn RTL, KHÔNG đổi sang LAND)",
-                f"sau {time.monotonic() - t0:.0f}s",
-            )
-        )
+        # ĐO mode suốt lúc RTL hạ, không in một chuỗi cứng. Bản trước ghi thẳng
+        # "(mode vẫn RTL, KHÔNG đổi sang LAND)" vào bảng kết quả dưới dạng chuỗi
+        # văn bản — trong khi không dòng nào trong runner đọc mode sau khi gọi
+        # RTL. Ba tài liệu dẫn file này làm bằng chứng cho khẳng định đó, nên nó
+        # phải là SỐ ĐO chứ không phải câu chữ.
+        mode_khi_rtl: list[str] = []
+        while True:
+            ten_mode = sitl.get_mode_name()
+            if ten_mode not in mode_khi_rtl:
+                mode_khi_rtl.append(ten_mode)
+            hb = sitl.master.messages.get("HEARTBEAT")
+            if hb is not None and not (hb.base_mode & DA_ARM):
+                break
+            if time.monotonic() - t0 > 240:
+                raise SitlError(f"RTL không disarm sau 240s, mode thấy: {mode_khi_rtl}")
+            sitl.recv_match("HEARTBEAT", timeout=1.0)
+        ket_qua.append(("Mode THẤY ĐƯỢC suốt lúc RTL hạ", " → ".join(mode_khi_rtl)))
+        ket_qua.append(("RTL tự hạ + DISARM", f"sau {time.monotonic() - t0:.0f}s"))
 
         vi_tri_cuoi = sitl.get_position()
         lech = harness.haversine_m(lat_h2, lon_h2, vi_tri_cuoi["lat"], vi_tri_cuoi["lon"])
@@ -199,17 +231,47 @@ def main() -> int:
     if thieu:
         print(f"THIẾU mode: {sorted(thieu)}", file=sys.stderr)
         return 1
+
+    # TIỀN ĐỀ trước, kết luận sau. Nếu máy bay không thật sự rời home thì "RTL
+    # về đúng chỗ" là hiển nhiên và cổng dưới đây không chứng minh gì — một con
+    # drone đứng im cũng qua. Bản trước chỉ IN `xa_nhat` ra bảng rồi không so
+    # với gì cả.
+    if xa_nhat < 30.0:
+        print(
+            f"Chỉ ra xa {xa_nhat:.1f} m (cần ≥ 30 m) — lệnh bay ra không có tác dụng, "
+            "nên phép đo RTL phía sau vô nghĩa. Đây KHÔNG phải lỗi của RTL.",
+            file=sys.stderr,
+        )
+        return 1
     # RTL mà về lệch quá 10 m so với điểm cất cánh là RTL không làm đúng việc.
     if lech > 10.0:
         print(f"RTL về lệch {lech:.1f} m, quá 10 m", file=sys.stderr)
+        return 1
+    # C3: khẳng định mà ba tài liệu dẫn file này làm bằng chứng.
+    if "LAND" in mode_khi_rtl:
+        print(
+            f"RTL ĐÃ chuyển sang LAND ({mode_khi_rtl}) — trái với điều plan và sổ tay "
+            "đang ghi. Sửa tài liệu, đừng sửa test.",
+            file=sys.stderr,
+        )
         return 1
     print("KET QUA: PASS")
     return 0
 
 
 if __name__ == "__main__":
+    # Bắt MỌI Exception, không riêng SitlError. README hứa "mã thoát khác 0 khi
+    # hỏng, cắm được vào CI" — mà một AttributeError/OSError lọt ra ngoài thì
+    # thoát bằng traceback trần, KHÔNG có dòng `KET QUA:` nào. Job CI quét
+    # `KET QUA: FAIL` khi đó không thấy gì cả: không PASS, không FAIL.
     try:
         raise SystemExit(main())
     except SitlError as exc:
         print(f"KET QUA: FAIL — {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+
+        traceback.print_exc()
+        print(f"KET QUA: FAIL — lỗi ngoài dự kiến: {exc!r}", file=sys.stderr)
         raise SystemExit(1) from exc

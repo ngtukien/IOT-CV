@@ -35,6 +35,10 @@ from harness import LOGS_DIR, SitlError, print_ket_qua  # noqa: E402
 
 # Thư mục các runner khác ghi log. `--use-dir` của sim_vehicle.py đặt log dưới
 # <use-dir>/logs/, nên quét cả hai mức.
+# Độ cao tối thiểu để coi một log là log CHUYẾN BAY. Dưới ngưỡng này thì máy
+# bay chưa rời đất và cái "đồ thị độ cao" rút ra được là một đường thẳng ở 0.
+ALT_TOI_THIEU_M = 5.0
+
 # Quét thư mục làm việc của các runner. `RUN_DIR_BASE` nằm dưới $HOME, không
 # phải /tmp — xem chú thích ở `harness.RUN_DIR_BASE`.
 THU_MUC_QUET = [
@@ -121,7 +125,16 @@ def main() -> int:
     ghi_csv(f_alt, do_cao)
     ghi_csv(f_mode, doi_mode)
 
-    chuoi_mode = " → ".join(m["mode_ten"] for m in doi_mode)
+    # Gộp các bản ghi MODE liền nhau trùng giá trị. ArduPilot ghi MODE hai lần
+    # lúc mở log, nên chuỗi thô hiện ra "AUTO → AUTO" — trông như một lần
+    # chuyển tiếp trong khi không có lần nào. Giữ cả hai con số để người đọc
+    # phân biệt được "bay một mode suốt" với "log chỉ có bản ghi khởi động".
+    chuoi_gon: list[str] = []
+    for m in doi_mode:
+        if not chuoi_gon or chuoi_gon[-1] != m["mode_ten"]:
+            chuoi_gon.append(m["mode_ten"])
+    chuoi_mode = " → ".join(chuoi_gon)
+    so_chuyen_tiep = max(0, len(chuoi_gon) - 1)
     alt_max = max((r["alt_m"] for r in do_cao), default=0.0)
     keo_dai = do_cao[-1]["time_s"] if do_cao else 0.0
 
@@ -136,7 +149,8 @@ Sinh bởi `scripts/sitl/run_log_dump.py`. Đây là dữ liệu bay, không com
 | Thời lượng | {keo_dai:.1f} s |
 | Số mẫu độ cao (CTUN) | {len(do_cao)} |
 | Độ cao lớn nhất | {alt_max:.1f} m |
-| Số lần đổi mode | {len(doi_mode)} |
+| Bản ghi MODE | {len(doi_mode)} |
+| Số lần ĐỔI mode thật | {so_chuyen_tiep} |
 | Chuỗi mode | {chuoi_mode} |
 
 ## Mở bằng gì
@@ -156,8 +170,21 @@ Sinh bởi `scripts/sitl/run_log_dump.py`. Đây là dữ liệu bay, không com
             ("Thời lượng", f"{keo_dai:.1f} s"),
             ("Mẫu độ cao (CTUN)", str(len(do_cao))),
             ("Độ cao lớn nhất", f"{alt_max:.1f} m"),
-            ("Số lần đổi mode", str(len(doi_mode))),
+            ("Bản ghi MODE", str(len(doi_mode))),
+            ("Số lần ĐỔI mode thật", str(so_chuyen_tiep)),
             ("Chuỗi mode", chuoi_mode or "(không có)"),
+            *(
+                [
+                    (
+                        "Lưu ý",
+                        "Log này bay MỘT mode suốt (mission AUTO thường vậy) nên không "
+                        "có lần đổi mode nào để vẽ. Muốn xem chuỗi đổi mode thì chỉ đích "
+                        "danh log của run_mode_chain.py.",
+                    )
+                ]
+                if so_chuyen_tiep == 0
+                else []
+            ),
             ("CSV độ cao", str(f_alt)),
             ("CSV đổi mode", str(f_mode)),
             ("Tóm tắt", str(f_tom)),
@@ -165,22 +192,41 @@ Sinh bởi `scripts/sitl/run_log_dump.py`. Đây là dữ liệu bay, không com
         title="Dump log .BIN ra CSV (Phase 03, việc 03.6)",
     )
 
-    # Một log chuyến bay mà không có mẫu độ cao hoặc không có lần đổi mode nào
-    # thì hoặc log rỗng, hoặc ta đọc sai loại bản ghi — cả hai đều không dùng
-    # được cho việc "chỉ ra đồ thị độ cao VÀ các lần đổi mode".
     if not do_cao:
         print("Không rút được mẫu CTUN nào", file=sys.stderr)
         return 1
     if not doi_mode:
-        print("Không rút được lần đổi mode nào", file=sys.stderr)
+        print("Không rút được bản ghi MODE nào", file=sys.stderr)
+        return 1
+    # Cổng phải chứng minh ĐÂY LÀ LOG MỘT CHUYẾN BAY, không phải log máy bay
+    # nằm dưới đất. Bản trước chỉ đòi "≥1 mẫu CTUN và ≥1 bản ghi MODE", nên nó
+    # PASS trên hai log 24,9 s có độ cao lớn nhất -0,006 m — đúng loại báo xanh
+    # không chứng minh được thứ nó sinh ra để chứng minh.
+    if alt_max < ALT_TOI_THIEU_M:
+        print(
+            f"Độ cao lớn nhất chỉ {alt_max:.2f} m (cần ≥ {ALT_TOI_THIEU_M} m) — "
+            "đây là log máy bay chưa rời mặt đất, không dùng cho đồ thị độ cao được. "
+            "Chạy một runner bay trước, hoặc chỉ đích danh file .BIN.",
+            file=sys.stderr,
+        )
         return 1
     print("KET QUA: PASS")
     return 0
 
 
 if __name__ == "__main__":
+    # Bắt MỌI Exception, không riêng SitlError. README hứa "mã thoát khác 0 khi
+    # hỏng, cắm được vào CI" — mà một AttributeError/OSError lọt ra ngoài thì
+    # thoát bằng traceback trần, KHÔNG có dòng `KET QUA:` nào. Job CI quét
+    # `KET QUA: FAIL` khi đó không thấy gì cả: không PASS, không FAIL.
     try:
         raise SystemExit(main())
     except SitlError as exc:
         print(f"KET QUA: FAIL — {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+
+        traceback.print_exc()
+        print(f"KET QUA: FAIL — lỗi ngoài dự kiến: {exc!r}", file=sys.stderr)
         raise SystemExit(1) from exc

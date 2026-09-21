@@ -42,6 +42,7 @@ CANH_M = 50.0
 # Ngưỡng MIN_ALT của dự án, khai trong backend/config.py. Waypoint 3 m nằm TRÊN
 # ngưỡng này, nên nếu FC bay được thì backend vẫn phải tự kiểm cho mốc 2 m.
 MIN_ALT_DU_AN_M = 2.0
+DA_ARM = 0b1000_0000  # MAV_MODE_FLAG_SAFETY_ARMED
 
 
 def dung_mission(lat0: float, lon0: float) -> list[dict]:
@@ -124,7 +125,13 @@ def bay_va_do(sitl: SitlInstance) -> tuple[list[int], float | None]:
 
     t0 = time.monotonic()
     while time.monotonic() - t0 < 480:
-        msg = sitl.recv_match("MISSION_ITEM_REACHED", timeout=2.0)
+        # Timeout NGẮN khi đang trong cửa sổ đo. Giữa waypoint 2 và 3 không có
+        # MISSION_ITEM_REACHED nào, nên `timeout=2.0` làm mỗi vòng chặn trọn
+        # 2 giây tường — ở speedup=8 là 16 GIÂY MÔ PHỎNG mỗi mẫu. Cả chặng
+        # xuống-rồi-lên chỉ dài cỡ 20-30 giây mô phỏng, tức là chỉ lấy được
+        # một hai mẫu, và con số đáy thành ra phụ thuộc may rủi.
+        trong_cua_so = 2 in da_toi and 4 not in da_toi
+        msg = sitl.recv_match("MISSION_ITEM_REACHED", timeout=0.2 if trong_cua_so else 2.0)
         if msg is not None and msg.seq not in da_toi:
             da_toi.append(msg.seq)
         if 2 in da_toi and 4 not in da_toi:
@@ -133,7 +140,7 @@ def bay_va_do(sitl: SitlInstance) -> tuple[list[int], float | None]:
                 day = alt if day is None else min(day, alt)
         # seq: 0=home, 1=TAKEOFF, 2..4=WAYPOINT, 5=RTL
         hb = sitl.master.messages.get("HEARTBEAT")
-        if hb is not None and not (hb.base_mode & 128) and len(da_toi) >= 3:
+        if hb is not None and not (hb.base_mode & DA_ARM) and len(da_toi) >= 3:
             break
 
     sitl.wait_disarmed(timeout=240.0)
@@ -219,8 +226,18 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Bắt MỌI Exception, không riêng SitlError. README hứa "mã thoát khác 0 khi
+    # hỏng, cắm được vào CI" — mà một AttributeError/OSError lọt ra ngoài thì
+    # thoát bằng traceback trần, KHÔNG có dòng `KET QUA:` nào. Job CI quét
+    # `KET QUA: FAIL` khi đó không thấy gì cả: không PASS, không FAIL.
     try:
         raise SystemExit(main())
     except SitlError as exc:
         print(f"KET QUA: FAIL — {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+
+        traceback.print_exc()
+        print(f"KET QUA: FAIL — lỗi ngoài dự kiến: {exc!r}", file=sys.stderr)
         raise SystemExit(1) from exc
