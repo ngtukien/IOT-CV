@@ -4,6 +4,25 @@ Công cụ để Claude **nhìn màn hình và bấm hộ** trong các phần m�
 Mission Planner, STM32CubeProgrammer, trình nạp DroneBridge, Arduino IDE. Đây là những
 bước mà shell và script không với tới được, và cũng là chỗ người mới hay kẹt lâu nhất.
 
+## Quan hệ với MCP server điều khiển Windows
+
+Từ 21/09/2026 dự án có thêm `windows-mcp` đăng ký trong `.mcp.json`. Hai thứ **bổ sung cho
+nhau, không thay thế nhau**:
+
+| | `gui.ps1` | `windows-mcp` |
+|---|---|---|
+| Cách gọi | shell, Claude phải tự soạn đúng cú pháp | tool MCP có schema, không soạn sai được |
+| Ref phần tử giữa các lần gọi | không giữ, duyệt lại cây mỗi lần | có |
+| Trích DOM trình duyệt | không | có |
+| Audit được toàn bộ | được, 380 dòng | không, 34.700 dòng |
+| Phụ thuộc mạng | không | có (PyPI) |
+| Bị cập nhật ngầm | không | có |
+
+`gui.ps1` là **đường lui**. Windows-MCP có ba issue crash đang mở (#412, #401, #332), nên khi
+nó chết giữa chừng thì `gui.ps1` vẫn chạy. Không xoá file này.
+
+So sánh đầy đủ 21 MCP server và lý do chọn: `plans/reports/260921-research-windows-computer-use-mcp.md`.
+
 ## Vì sao có file này thay vì dùng computer use của Claude Code
 
 Kiểm chứng ngày 21/09/2026 trên tài liệu chính thức:
@@ -13,6 +32,9 @@ Kiểm chứng ngày 21/09/2026 trên tài liệu chính thức:
 | Claude Code **CLI** | **không hỗ trợ** | chỉ macOS, qua `/mcp` bật server `computer-use` |
 | Claude **Desktop app** | **có hỗ trợ** | Settings > General > mục Desktop app > bật Computer use. Cần gói Pro hoặc Max |
 | Computer use của Claude API | cần tự dựng VM | bản mẫu chạy Docker + Xvfb, là môi trường Linux |
+
+Yêu cầu hỗ trợ Windows cho CLI đã nộp ba lần: #39190, #54833, #64381 đều đóng "not planned";
+#82300 vẫn mở từ 29/07/2026 nhưng không có phản hồi nào từ Anthropic. Không nên chờ.
 
 Máy này chạy Windows và phiên làm việc là Claude Code CLI, nên tool `computer-use`
 không tồn tại. File này cung cấp đúng ba năng lực đó bằng PowerShell:

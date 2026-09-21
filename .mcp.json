@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "windows-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "windows-mcp",
+        "serve",
+        "--transport",
+        "stdio",
+        "--tools",
+        "Snapshot,Screenshot,DisplayInventory,Click,Type,Shortcut,Scroll,Clipboard,Drag,Move,Wait"
+      ],
+      "env": {
+        "ANONYMIZED_TELEMETRY": "false",
+        "POSTHOG_API_KEY": "",
+        "WINDOWS_MCP_SCREENSHOT_BACKEND": "mss",
+        "WINDOWS_MCP_WATCHDOG": "false"
+      }
+    }
+  }
+}
