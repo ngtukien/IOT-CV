@@ -507,6 +507,10 @@ Sửa thành 3 job. Bốn ràng buộc bắt buộc:
 - **Không thêm `paths:` filter** vào workflow này. Nếu nó là required check, GitHub báo check bị bỏ qua vì `paths` là `Expected — Waiting` vĩnh viễn → không merge được nữa.
 - Giữ `concurrency` và `permissions: contents: read` đang có.
 - Chỉ chạy Python 3.13 (bỏ ma trận 3.11/3.12 cũ) vì `requires-python` đã khoá `>=3.13,<3.14`.
+- Phiên bản action lấy bản mới nhất đã kiểm chứng ngày 21/09/2026: `actions/checkout@v7`,
+  `actions/setup-node@v7`, `astral-sh/setup-uv@v10`, `pnpm/action-setup@v4`. Bảy PR dependabot
+  đề xuất đúng các bản này đã bị đóng ngày 21/09/2026 vì chúng sửa `requirements*.txt` (phase
+  này xoá) và `ci.yml` (phase này viết lại); nội dung của chúng nằm ngay ở đây.
 
 ```yaml
 jobs:
@@ -514,8 +518,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
       - run: uv sync --extra dev
       - run: uv run ruff check .
 
@@ -523,8 +527,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
       - run: uv sync --extra dev
       - run: uv run pytest
 
@@ -532,9 +536,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: pnpm

@@ -1,0 +1,331 @@
+<#
+.SYNOPSIS
+    Dồn toàn bộ cache và công cụ của dự án IOT-CV sang ổ D:, giải phóng ổ C:.
+
+.DESCRIPTION
+    Idempotent: chạy lại nhiều lần không hỏng gì. Mặc định là DRY-RUN.
+    Muốn thi hành thật thì thêm -Apply.
+
+.EXAMPLE
+    pwsh -File scripts/setup-d-drive.ps1
+    pwsh -File scripts/setup-d-drive.ps1 -Apply
+    pwsh -File scripts/setup-d-drive.ps1 -Apply -MoveExisting
+#>
+[CmdletBinding()]
+param(
+    [string] $Root = 'D:\IOT_Tools',
+    [switch] $Apply,
+    [switch] $MoveExisting,
+    [switch] $ToolBinOnD
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+# ----------------------------------------------------------------------------
+# Tiện ích
+# ----------------------------------------------------------------------------
+
+function Get-FreeSpaceTable {
+    foreach ($letter in 'C', 'D') {
+        $d = Get-PSDrive -Name $letter -PSProvider FileSystem -ErrorAction SilentlyContinue
+        if ($d) {
+            [pscustomobject]@{
+                Drive  = "$letter`:"
+                FreeGB = [math]::Round($d.Free / 1GB, 2)
+                UsedGB = [math]::Round($d.Used / 1GB, 2)
+            }
+        }
+    }
+}
+
+function Get-DirSizeMB {
+    param([string] $Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return $null }
+    $sum = (Get-ChildItem -LiteralPath $Path -Recurse -Force -ErrorAction SilentlyContinue |
+            Measure-Object -Property Length -Sum).Sum
+    if (-not $sum) { return 0 }
+    return [math]::Round($sum / 1MB, 2)
+}
+
+function Write-Step {
+    param([string] $Text)
+    Write-Host ''
+    Write-Host "== $Text" -ForegroundColor Cyan
+}
+
+function Write-Act {
+    param([string] $Text, [string] $State = 'DO')
+    $color = switch ($State) {
+        'OK'   { 'Green' }
+        'SKIP' { 'DarkGray' }
+        'WARN' { 'Yellow' }
+        'DRY'  { 'Magenta' }
+        default { 'White' }
+    }
+    Write-Host ("  [{0,-4}] {1}" -f $State, $Text) -ForegroundColor $color
+}
+
+function Ensure-Dir {
+    param([string] $Path)
+    if (Test-Path -LiteralPath $Path) {
+        Write-Act "thư mục đã có: $Path" 'SKIP'
+        return
+    }
+    if ($Apply) {
+        New-Item -ItemType Directory -Path $Path -Force | Out-Null
+        Write-Act "tạo thư mục: $Path" 'OK'
+    }
+    else {
+        Write-Act "sẽ tạo thư mục: $Path" 'DRY'
+    }
+}
+
+# QUAN TRỌNG: KHÔNG dùng setx. setx cắt cụt giá trị ở 1024 ký tự.
+# PATH của người dùng này dài 1552 ký tự -> setx PATH sẽ phá hỏng PATH.
+function Set-UserEnv {
+    param([string] $Name, [string] $Value)
+    $current = [Environment]::GetEnvironmentVariable($Name, 'User')
+    if ($current -eq $Value) {
+        Write-Act "$Name đã đúng: $Value" 'SKIP'
+        return
+    }
+    if ($Apply) {
+        [Environment]::SetEnvironmentVariable($Name, $Value, 'User')
+        Set-Item -Path "Env:$Name" -Value $Value   # có hiệu lực ngay trong phiên này
+        Write-Act "$Name = $Value  (cũ: '$current')" 'OK'
+    }
+    else {
+        Write-Act "sẽ đặt $Name = $Value  (cũ: '$current')" 'DRY'
+    }
+}
+
+function Move-Tree {
+    param([string] $From, [string] $To, [string] $Label)
+
+    if (-not (Test-Path -LiteralPath $From)) {
+        Write-Act "$Label - nguồn không tồn tại, bỏ qua: $From" 'SKIP'
+        return
+    }
+    $sizeMB = Get-DirSizeMB -Path $From
+    if ($sizeMB -eq 0) {
+        Write-Act "$Label - nguồn rỗng, bỏ qua" 'SKIP'
+        return
+    }
+
+    if (-not $MoveExisting) {
+        Write-Act "$Label - có $sizeMB MB ở $From (thêm -MoveExisting để chuyển)" 'WARN'
+        return
+    }
+    if (-not $Apply) {
+        Write-Act "sẽ chuyển $Label ($sizeMB MB): $From -> $To" 'DRY'
+        return
+    }
+
+    Ensure-Dir $To
+    Write-Act "đang chuyển $Label ($sizeMB MB)..." 'DO'
+    # robocopy chịu được đường dẫn dài và cây thư mục sâu, tốt hơn Move-Item
+    $null = robocopy $From $To /E /MOVE /NFL /NDL /NJH /NJS /R:1 /W:1 /MT:16
+    $rc = $LASTEXITCODE
+    if ($rc -lt 8) {
+        Write-Act "$Label đã chuyển xong (robocopy rc=$rc)" 'OK'
+    }
+    else {
+        Write-Act "$Label CHUYỂN LỖI (robocopy rc=$rc) - dữ liệu cũ vẫn còn ở $From" 'WARN'
+    }
+}
+
+# ----------------------------------------------------------------------------
+# 0. Kiểm tra tiền đề
+# ----------------------------------------------------------------------------
+
+Write-Host ''
+Write-Host '=============================================================' -ForegroundColor White
+Write-Host ' setup-d-drive.ps1 - dồn cache/công cụ sang ổ D:' -ForegroundColor White
+Write-Host '=============================================================' -ForegroundColor White
+if (-not $Apply) {
+    Write-Host ' CHE DO THU (dry-run). Them -Apply de thi hanh that.' -ForegroundColor Magenta
+}
+
+$rootDrive = (Split-Path -Qualifier $Root)
+if (-not (Test-Path -LiteralPath "$rootDrive\")) {
+    throw "Không thấy ổ $rootDrive. Sửa tham số -Root."
+}
+
+Write-Step 'Dung lượng TRƯỚC khi chạy'
+$before = Get-FreeSpaceTable
+$before | Format-Table -AutoSize | Out-String | Write-Host
+
+# ----------------------------------------------------------------------------
+# 1. Tạo cây thư mục
+# ----------------------------------------------------------------------------
+
+Write-Step "1. Tạo cây thư mục dưới $Root"
+
+$dirCache = Join-Path $Root 'cache'
+$dirTools = Join-Path $Root 'tools'
+$dirApps  = Join-Path $Root 'apps'
+$dirBin   = Join-Path $Root 'bin'
+
+Ensure-Dir $Root
+Ensure-Dir $dirCache
+Ensure-Dir $dirTools
+Ensure-Dir $dirApps
+if ($ToolBinOnD) { Ensure-Dir $dirBin }
+
+$pUvCache   = Join-Path $dirCache 'uv'
+$pPipCache  = Join-Path $dirCache 'pip'
+$pNpmCache  = Join-Path $dirCache 'npm'
+$pPnpmStore = Join-Path $dirCache 'pnpm-store'
+$pUvTools   = Join-Path $dirTools 'uv-tools'
+$pUvPython  = Join-Path $dirTools 'uv-python'
+$pPio       = Join-Path $dirTools 'platformio'
+
+foreach ($p in $pUvCache, $pPipCache, $pNpmCache, $pPnpmStore, $pUvTools, $pUvPython, $pPio) {
+    Ensure-Dir $p
+}
+
+# ----------------------------------------------------------------------------
+# 2. Biến môi trường (User scope)
+# ----------------------------------------------------------------------------
+
+Write-Step '2. Đặt biến môi trường ở phạm vi User'
+
+Set-UserEnv 'UV_CACHE_DIR'          $pUvCache
+Set-UserEnv 'UV_TOOL_DIR'           $pUvTools
+Set-UserEnv 'UV_PYTHON_INSTALL_DIR' $pUvPython
+Set-UserEnv 'PIP_CACHE_DIR'         $pPipCache
+Set-UserEnv 'NPM_CONFIG_CACHE'      $pNpmCache
+Set-UserEnv 'PLATFORMIO_CORE_DIR'   $pPio
+
+if ($ToolBinOnD) {
+    Set-UserEnv 'UV_TOOL_BIN_DIR' $dirBin
+    # Sửa PATH bằng .NET API, TUYỆT ĐỐI không dùng setx (cắt cụt ở 1024 ký tự)
+    $userPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
+    if ($userPath -split ';' -contains $dirBin) {
+        Write-Act "PATH đã chứa $dirBin" 'SKIP'
+    }
+    elseif ($Apply) {
+        [Environment]::SetEnvironmentVariable('PATH', ($userPath.TrimEnd(';') + ';' + $dirBin), 'User')
+        Write-Act "đã thêm $dirBin vào PATH (User), độ dài mới = $(($userPath + ';' + $dirBin).Length)" 'OK'
+    }
+    else {
+        Write-Act "sẽ thêm $dirBin vào PATH (User)" 'DRY'
+    }
+}
+else {
+    $defaultBin = Join-Path $env:USERPROFILE '.local\bin'
+    Write-Act "UV_TOOL_BIN_DIR giữ mặc định ($defaultBin) - đã nằm trong PATH, chỉ chứa shim vài trăm KB" 'SKIP'
+}
+
+# ----------------------------------------------------------------------------
+# 3. pnpm store (không phải biến môi trường - là config của pnpm)
+# ----------------------------------------------------------------------------
+
+Write-Step '3. pnpm store-dir'
+
+if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+    $curStore = (pnpm config get store-dir 2>$null)
+    if ($curStore -eq $pPnpmStore) {
+        Write-Act "pnpm store-dir đã đúng: $pPnpmStore" 'SKIP'
+    }
+    elseif ($Apply) {
+        pnpm config set store-dir $pPnpmStore --global | Out-Null
+        Write-Act "pnpm config set store-dir $pPnpmStore (cũ: '$curStore')" 'OK'
+    }
+    else {
+        Write-Act "sẽ đặt pnpm store-dir = $pPnpmStore (cũ: '$curStore')" 'DRY'
+    }
+    Write-Act "LƯU Ý: store phải cùng ổ với project thì pnpm mới hardlink được. Project ở D: -> store ở D: là đúng." 'WARN'
+}
+else {
+    Write-Act 'không tìm thấy pnpm, bỏ qua' 'SKIP'
+}
+
+# ----------------------------------------------------------------------------
+# 4. Chuyển dữ liệu cũ
+# ----------------------------------------------------------------------------
+
+Write-Step '4. Chuyển cache đang nằm trên ổ C:'
+
+$running = Get-Process -Name node, npm, pnpm, python, py, uv, Code, platformio -ErrorAction SilentlyContinue
+if ($running) {
+    $names = ($running | Select-Object -ExpandProperty Name -Unique) -join ', '
+    Write-Act "Đang có tiến trình chạy: $names -- đóng hết trước khi chuyển, nếu không robocopy sẽ bỏ sót file đang bị khoá." 'WARN'
+}
+
+# uv cache: tài liệu uv KHÔNG mô tả quy trình move. Chuyển thư mục thường chạy tốt
+# (cache là content-addressed). Nếu sau đó uv báo lỗi cache -> chạy: uv cache clean
+Move-Tree (Join-Path $env:LOCALAPPDATA 'uv\cache')  $pUvCache   'uv cache'
+Move-Tree (Join-Path $env:LOCALAPPDATA 'pip\Cache') $pPipCache  'pip cache'
+Move-Tree (Join-Path $env:LOCALAPPDATA 'npm-cache') $pNpmCache  'npm cache'
+
+# pnpm: KHÔNG chuyển store bằng tay. pnpm store là content-addressable,
+# cách an toàn là để store cũ lại rồi prune, store mới tự đầy lên khi cài.
+$oldPnpmStore = Join-Path $env:LOCALAPPDATA 'pnpm\store'
+$oldPnpmMB = Get-DirSizeMB -Path $oldPnpmStore
+if ($oldPnpmMB) {
+    Write-Act "store pnpm cũ trên C: còn $oldPnpmMB MB tại $oldPnpmStore" 'WARN'
+    Write-Act "  giải phóng bằng: pnpm store prune   (rồi xoá tay thư mục trên nếu vẫn còn)" 'WARN'
+}
+
+# ----------------------------------------------------------------------------
+# 5. PlatformIO - trường hợp đặc biệt
+# ----------------------------------------------------------------------------
+
+Write-Step '5. PlatformIO core dir'
+
+$oldPio = Join-Path $env:USERPROFILE '.platformio'
+$oldPioMB = Get-DirSizeMB -Path $oldPio
+
+if ($null -eq $oldPioMB) {
+    Write-Act 'chưa có ~/.platformio, sẽ tự tạo trên D: ở lần chạy đầu' 'SKIP'
+}
+else {
+    Write-Act "~/.platformio hiện $oldPioMB MB" 'DO'
+    # penv là virtualenv chứa ĐƯỜNG DẪN TUYỆT ĐỐI -> copy sang chỗ khác là hỏng.
+    # (platformio/platformio-core#3554: "bad interpreter"). Cách sạch: đổi tên, để PIO dựng lại.
+    if ($Apply -and $MoveExisting) {
+        $backup = "$oldPio.old"
+        if (Test-Path -LiteralPath $backup) {
+            Write-Act "đã có $backup - xoá tay nếu chắc chắn không cần" 'WARN'
+        }
+        else {
+            Rename-Item -LiteralPath $oldPio -NewName '.platformio.old'
+            Write-Act "đổi tên $oldPio -> $backup ; PlatformIO sẽ dựng lại trên D:" 'OK'
+            Write-Act "  mở lại VS Code, đợi PlatformIO tải lại, chạy thử 1 project, rồi xoá $backup" 'WARN'
+        }
+    }
+    else {
+        Write-Act "sẽ đổi tên $oldPio -> $oldPio.old (KHÔNG copy: penv chứa đường dẫn tuyệt đối)" 'DRY'
+    }
+}
+
+# ----------------------------------------------------------------------------
+# 6. Kết quả
+# ----------------------------------------------------------------------------
+
+Write-Step 'Dung lượng SAU khi chạy'
+$after = Get-FreeSpaceTable
+
+$rows = foreach ($b in $before) {
+    $a = $after | Where-Object { $_.Drive -eq $b.Drive }
+    [pscustomobject]@{
+        'Ổ'           = $b.Drive
+        'Trống trước' = '{0:N2} GB' -f $b.FreeGB
+        'Trống sau'   = '{0:N2} GB' -f $a.FreeGB
+        'Chênh lệch'  = '{0:+0.00;-0.00;0.00} GB' -f ($a.FreeGB - $b.FreeGB)
+    }
+}
+$rows | Format-Table -AutoSize | Out-String | Write-Host
+
+Write-Host ''
+Write-Host 'XONG.' -ForegroundColor Green
+if ($Apply) {
+    Write-Host 'PHẢI MỞ CỬA SỔ POWERSHELL MỚI thì biến môi trường mới có hiệu lực.' -ForegroundColor Yellow
+    Write-Host 'Kiểm chứng bằng:' -ForegroundColor Yellow
+    Write-Host '    uv cache dir; uv tool dir; uv python dir; pnpm store path; npm config get cache' -ForegroundColor Yellow
+}
+else {
+    Write-Host 'Đây mới chỉ là chạy thử. Thêm -Apply (và -MoveExisting nếu muốn chuyển dữ liệu cũ).' -ForegroundColor Magenta
+}
