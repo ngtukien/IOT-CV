@@ -239,7 +239,13 @@ $env:__COMPAT_LAYER = "RunAsInvoker"
 Start-Process "D:\IOT_Tools\downloads\stm32\SetupSTM32CubeProgrammer_win64.exe"
 ```
 
-⚠️ **`RunAsInvoker` có giá của nó, biết trước rồi hãy chọn.** Hạ xuống Medium integrity nghĩa là installer **không ghi được HKLM**: ở cuối bước 7 nó bật hộp `Error` với dòng `Error writing to registry`. File vẫn cài đủ (1590 MB, 1436 file, gồm cả `Drivers\DFU_Driver\`), CLI và GUI đều chạy, nhưng **không có entry trong Add/Remove Programs** — gỡ bằng thư mục `Uninstaller\` trong chỗ cài. Sau lỗi đó wizard tự khởi động lại từ bước 1; đóng nó đi, đừng bấm lại.
+⚠️ **`RunAsInvoker` có giá của nó, biết trước rồi hãy chọn.** Hạ xuống Medium integrity nghĩa là installer **không ghi được HKLM**: ở cuối bước 7 nó bật hộp `Error` với dòng `Error writing to registry`, rồi **chết luôn ở đó, không chạy tiếp bước 8/9** — mà bước 8/9 mới là chỗ IzPack sinh shortcut và `uninstaller.jar`. Sau lỗi đó wizard tự khởi động lại từ bước 1; đóng nó đi, đừng bấm lại.
+
+**Bốn thứ mất, và không thứ nào là tính năng** (kiểm chứng ngày 21/09/2026): entry Add/Remove Programs · `uninstaller.jar` · shortcut Start Menu và Desktop · `.installationinformation`. Phần chạy nguyên vẹn: 1590 MB / 1436 file, CLI in `2.23.0`, GUI có `ST-LINK` + `Connect`.
+
+**Phase 14 không bị ảnh hưởng** — đây là điều quan trọng nhất cần biết. Driver DFU không dính gì tới registry của installer: `Drivers\DFU_Driver\STM32Bootloader.bat` chỉ gọi `pnputil -i -a Driver\STM32Bootloader.inf`, và cả `.inf`, `.cat`, `installer_x64.exe` đều có đủ trên đĩa. Chạy file `.bat` đó với quyền admin lúc cần là xong.
+
+**Cạm bẫy:** `Uninstaller\unscript.bat` (file gốc của ST) vẫn gọi `uninstaller.jar` chưa bao giờ được tạo — chạy nó chỉ báo lỗi khó hiểu. Bản cài trên máy này đã vá thủ công: `Uninstaller\go-cai-dat.ps1` thay cho uninstaller, entry HKLM viết tay trỏ về nó, hai shortcut Start Menu, và `Uninstaller\DOC-TRUOC-KHI-GO.txt` giải thích cho người đến sau. Script gỡ từ chối chạy nếu không thấy ba file dấu vân tay của bản cài thật — đã thử cho nó thất bại ở một thư mục giả, nó `exit 1` và không xoá gì.
 
 Hai đường, chọn theo việc bạn cần:
 

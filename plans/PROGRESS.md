@@ -55,12 +55,24 @@ Ghi chú:
 
 **Làm thêm ngoài cổng pass:** `%USERPROFILE%\.wslconfig` đã trỏ `swapFile=D:\\WSL\\swap.vhdx`; sau `wsl --shutdown` đã kiểm chứng `D:\WSL\swap.vhdx` tồn tại, WSL thấy 5 GB swap ở `/dev/sdc`, và `%TEMP%\swap.vhdx` trên C: **không còn**.
 
-**⚠️ Nợ kỹ thuật của STM32CubeProgrammer — đọc trước khi vào Phase 14.** Wizard của nó chạy quyền Administrator nên không công cụ computer-use nào bấm được (ranh giới UIPI). Cách đã dùng là ép `__COMPAT_LAYER=RunAsInvoker` để hạ xuống Medium integrity; **đánh đổi là installer báo `Error writing to registry`** (`com.izforge.izpack.event.RegistryInstallerListener.performValueSetting`). Hệ quả đã kiểm chứng:
+**⚠️ STM32CubeProgrammer — đọc trước khi vào Phase 14.** Wizard của nó chạy quyền Administrator nên không công cụ computer-use nào bấm được (ranh giới UIPI). Cách đã dùng là ép `__COMPAT_LAYER=RunAsInvoker` để hạ xuống Medium integrity; **đánh đổi là installer báo `Error writing to registry`** (`com.izforge.izpack.event.RegistryInstallerListener.performValueSetting`) rồi chết ở cuối bước 7/9, nên nó không chạy tới bước 8/9 — bước sinh shortcut và `uninstaller.jar`.
 
-- **Dùng được bình thường.** `STM32_Programmer_CLI.exe --version` in `2.23.0`; GUI mở, có ô chọn kiểu kết nối `ST-LINK` và nút `Connect`; log in `STM32CubeProgrammer API v2.23.0 | Windows-64Bits`.
-- **Thư mục `Drivers\DFU_Driver\` có đủ** (`Driver\`, `STM32Bootloader.bat`) cùng `Drivers\stsw-link009_v3\` — tức là thứ Phase 14 thật sự cần vẫn nằm trên đĩa. Cài driver là bước chạy tay có quyền admin ở Phase 14, không phụ thuộc registry.
-- **Thiếu entry trong HKLM Uninstall** → không hiện ở Add/Remove Programs. Gỡ bằng thư mục `D:\IOT_Tools\apps\STM32CubeProgrammer\Uninstaller\`.
-- Nếu Phase 14 gặp trục trặc driver, cài lại bằng quyền admin (bỏ `RunAsInvoker`) và **tự bấm 9 bước wizard** — chín bước đó đã ghi thành bảng trong `plans/phase-00-cai-cong-cu-pc.md` §00.4.
+**Không mất tính năng nào, đã kiểm chứng từng thứ:** `STM32_Programmer_CLI.exe --version` in `2.23.0`; GUI mở, có ô chọn `ST-LINK` và nút `Connect`, log in `STM32CubeProgrammer API v2.23.0 | Windows-64Bits`; `Drivers\DFU_Driver\` đủ `.inf`, `.cat`, `installer_x64.exe`, `STM32Bootloader.bat`, cùng `Drivers\stsw-link009_v3\`.
+
+**Phase 14 không bị ảnh hưởng.** Driver DFU cài bằng `pnputil -i -a Driver\STM32Bootloader.inf` (chạy `STM32Bootloader.bat` với quyền admin), hoàn toàn độc lập với registry mà installer đã không ghi được.
+
+**Bốn thứ thiếu đã vá thủ công ngày 21/09/2026, kiểm chứng xong:**
+
+| Thiếu | Đã vá bằng |
+|---|---|
+| Entry Add/Remove Programs | Ghi `HKLM\…\Uninstall\STM32CubeProgrammer` (Settings liệt kê đúng: 2.23.0, 1590 MB) |
+| `uninstaller.jar` | `Uninstaller\go-cai-dat.ps1` — xoá thư mục cài + entry + shortcut |
+| Shortcut Start Menu | `Start Menu\Programs\STMicroelectronics\` — 2 shortcut, trỏ đúng file có thật |
+| Không ai biết chuyện này | `Uninstaller\DOC-TRUOC-KHI-GO.txt` |
+
+`go-cai-dat.ps1` từ chối chạy nếu không thấy ba file dấu vân tay của bản cài thật — **đã thử cho nó thất bại**: chạy ở thư mục giả thì nó `exit 1` và không xoá gì, kể cả khi truyền `-Force` (`-Force` chỉ bỏ câu hỏi xác nhận, không bỏ rào an toàn). File gốc `unscript.bat` và `unins_clear.vbs` của ST giữ nguyên, không sửa — nhưng **đừng chạy chúng**, chúng gọi `uninstaller.jar` chưa bao giờ được tạo.
+
+Muốn bản cài chuẩn 100% của ST thì gỡ bằng script trên rồi cài lại có UAC và **tự bấm 9 bước** — bảng chín bước ở `plans/phase-00-cai-cong-cu-pc.md` §00.4.
 
 **Ổ đĩa sau khi xong:** C: còn 30,44 GB, D: còn 127,68 GB. Trên C: còn ~550 MB rác tự giải nén của installer ở `%TEMP%\7zS8555FEEE` và `%TEMP%\7zS869F7A49` — xoá được, chưa xoá.
 
