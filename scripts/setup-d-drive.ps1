@@ -1,8 +1,15 @@
 <#
 .SYNOPSIS
-    Dồn toàn bộ cache và công cụ của dự án IOT-CV sang ổ D:, giải phóng ổ C:.
+    Dồn cache dùng chung toàn máy sang D:\DevCache và app riêng của dự án IOT-CV
+    sang D:\IOT_Tools, giải phóng ổ C:.
 
 .DESCRIPTION
+    Hai gốc tách biệt vì lý do khác nhau: -CacheRoot (mặc định D:\DevCache) chứa
+    cache/tool của TOÀN MÁY (uv, pip, npm, pnpm, uv tool, uv python, platformio) —
+    dùng chung cho mọi dự án, không bao giờ được xoá khi riêng dự án drone kết
+    thúc. -AppRoot (mặc định D:\IOT_Tools) chỉ chứa app CÓ INSTALLER RIÊNG của dự
+    án này (Arduino IDE, Mission Planner, MAVProxy, STM32CubeProgrammer).
+
     Idempotent: chạy lại nhiều lần không hỏng gì. Mặc định là DRY-RUN.
     Muốn thi hành thật thì thêm -Apply.
 
@@ -13,7 +20,8 @@
 #>
 [CmdletBinding()]
 param(
-    [string] $Root = 'D:\IOT_Tools',
+    [string] $CacheRoot = 'D:\DevCache',
+    [string] $AppRoot = 'D:\IOT_Tools',
     [switch] $Apply,
     [switch] $MoveExisting,
     [switch] $ToolBinOnD
@@ -26,16 +34,22 @@ Set-StrictMode -Version Latest
 # Tiện ích
 # ----------------------------------------------------------------------------
 
+# KHÔNG dùng Get-PSDrive: nó nhớ đệm dung lượng từ lúc phiên PowerShell khởi động,
+# nên bảng "trước / sau" luôn in ra chênh lệch 0.00 GB dù script vừa dời vài GB.
+# Đó là một con số xanh vô nghĩa, tệ hơn không có số. DriveInfo đọc lại từ hệ thống
+# mỗi lần gọi.
 function Get-FreeSpaceTable {
     foreach ($letter in 'C', 'D') {
-        $d = Get-PSDrive -Name $letter -PSProvider FileSystem -ErrorAction SilentlyContinue
-        if ($d) {
+        try {
+            $d = [System.IO.DriveInfo]::new("$letter`:\")
+            if (-not $d.IsReady) { continue }
             [pscustomobject]@{
                 Drive  = "$letter`:"
-                FreeGB = [math]::Round($d.Free / 1GB, 2)
-                UsedGB = [math]::Round($d.Used / 1GB, 2)
+                FreeGB = [math]::Round($d.AvailableFreeSpace / 1GB, 2)
+                UsedGB = [math]::Round(($d.TotalSize - $d.AvailableFreeSpace) / 1GB, 2)
             }
         }
+        catch { }
     }
 }
 
@@ -147,9 +161,11 @@ if (-not $Apply) {
     Write-Host ' CHE DO THU (dry-run). Them -Apply de thi hanh that.' -ForegroundColor Magenta
 }
 
-$rootDrive = (Split-Path -Qualifier $Root)
-if (-not (Test-Path -LiteralPath "$rootDrive\")) {
-    throw "Không thấy ổ $rootDrive. Sửa tham số -Root."
+foreach ($r in $CacheRoot, $AppRoot) {
+    $checkDrive = (Split-Path -Qualifier $r)
+    if (-not (Test-Path -LiteralPath "$checkDrive\")) {
+        throw "Không thấy ổ $checkDrive. Sửa tham số -CacheRoot / -AppRoot."
+    }
 }
 
 Write-Step 'Dung lượng TRƯỚC khi chạy'
@@ -160,16 +176,17 @@ $before | Format-Table -AutoSize | Out-String | Write-Host
 # 1. Tạo cây thư mục
 # ----------------------------------------------------------------------------
 
-Write-Step "1. Tạo cây thư mục dưới $Root"
+Write-Step "1. Tạo cây thư mục dưới $CacheRoot (dùng chung toàn máy) và $AppRoot (riêng dự án)"
 
-$dirCache = Join-Path $Root 'cache'
-$dirTools = Join-Path $Root 'tools'
-$dirApps  = Join-Path $Root 'apps'
-$dirBin   = Join-Path $Root 'bin'
+$dirCache = Join-Path $CacheRoot 'cache'
+$dirTools = Join-Path $CacheRoot 'tools'
+$dirBin   = Join-Path $CacheRoot 'bin'
+$dirApps  = Join-Path $AppRoot 'apps'
 
-Ensure-Dir $Root
+Ensure-Dir $CacheRoot
 Ensure-Dir $dirCache
 Ensure-Dir $dirTools
+Ensure-Dir $AppRoot
 Ensure-Dir $dirApps
 if ($ToolBinOnD) { Ensure-Dir $dirBin }
 
@@ -222,21 +239,35 @@ else {
 # 3. pnpm store (không phải biến môi trường - là config của pnpm)
 # ----------------------------------------------------------------------------
 
-Write-Step '3. pnpm store-dir'
+Write-Step '3. pnpm store — KHÔNG ép đường dẫn, chỉ kiểm tra'
 
+# Kiểm chứng 21/09/2026: `pnpm config set store-dir` báo OK nhưng KHÔNG ghi được
+# (lỗi "global bin directory is not in PATH" chặn nó), và `pnpm config get store-dir`
+# vẫn trả về `undefined`.
+#
+# Quan trọng hơn: đó là hành vi ĐÚNG, không phải lỗi. Khi store-dir để trống, pnpm
+# tự tạo MỘT kho cho MỖI Ổ ĐĨA, vì hardlink chỉ hoạt động trong cùng một ổ. Project
+# ở ổ D dùng kho ở ổ D. Ép nó về một đường dẫn cứng sẽ phá cơ chế đó ngay khi có
+# project nằm ở ổ khác. Vì vậy script chỉ BÁO CÁO, không đụng vào.
 if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-    $curStore = (pnpm config get store-dir 2>$null)
-    if ($curStore -eq $pPnpmStore) {
-        Write-Act "pnpm store-dir đã đúng: $pPnpmStore" 'SKIP'
+    $realStore = (pnpm store path 2>$null)
+    if ($realStore) {
+        $drive = ($realStore -split ':')[0]
+        if ($drive -eq 'C') {
+            Write-Act "pnpm đang dùng kho trên ổ C: $realStore" 'WARN'
+            Write-Act "  project ở ổ D sẽ tự sinh kho riêng trên D, không cần làm gì" 'WARN'
+        }
+        else {
+            Write-Act "pnpm dùng kho $realStore (đúng ổ, không cần đổi)" 'OK'
+        }
     }
-    elseif ($Apply) {
-        pnpm config set store-dir $pPnpmStore --global | Out-Null
-        Write-Act "pnpm config set store-dir $pPnpmStore (cũ: '$curStore')" 'OK'
+    # Kho cũ trên ổ C là mồ côi khi mọi project đã nằm ở ổ D.
+    $cStore = Join-Path $env:LOCALAPPDATA 'pnpm\store'
+    $cMB = Get-DirSizeMB -Path $cStore
+    if ($null -ne $cMB -and $cMB -gt 1) {
+        Write-Act "kho pnpm cũ trên ổ C còn $cMB MB tại $cStore" 'WARN'
+        Write-Act "  chạy 'pnpm store prune' trước; nếu vẫn còn thì xoá tay (node_modules đã cài vẫn chạy nhờ hardlink)" 'WARN'
     }
-    else {
-        Write-Act "sẽ đặt pnpm store-dir = $pPnpmStore (cũ: '$curStore')" 'DRY'
-    }
-    Write-Act "LƯU Ý: store phải cùng ổ với project thì pnpm mới hardlink được. Project ở D: -> store ở D: là đúng." 'WARN'
 }
 else {
     Write-Act 'không tìm thấy pnpm, bỏ qua' 'SKIP'
@@ -270,10 +301,65 @@ if ($oldPnpmMB) {
 }
 
 # ----------------------------------------------------------------------------
-# 5. PlatformIO - trường hợp đặc biệt
+# 5. uv tool - vá shim hỏng sau khi dời UV_TOOL_DIR + báo cáo tool mồ côi
 # ----------------------------------------------------------------------------
 
-Write-Step '5. PlatformIO core dir'
+Write-Step '5. uv tool: vá shim + báo cáo tool mồ côi'
+
+# Shim của "uv tool install" (trong UV_TOOL_BIN_DIR) nướng cứng đường dẫn tuyệt
+# đối tới venv của tool trong UV_TOOL_DIR cũ. Dời UV_TOOL_DIR mà không reinstall
+# thì gặp lỗi "uv trampoline failed to canonicalize script path" (đã gặp thật
+# với esptool khi dời D:\IOT_Tools\tools\uv-tools -> D:\DevCache\tools\uv-tools).
+$oldUvToolDir = [Environment]::GetEnvironmentVariable('UV_TOOL_DIR', 'User')
+$haveUv = [bool](Get-Command uv -ErrorAction SilentlyContinue)
+if ($oldUvToolDir -and ($oldUvToolDir -ne $pUvTools) -and (Test-Path -LiteralPath $oldUvToolDir) -and $haveUv) {
+    $toolDirs = Get-ChildItem -LiteralPath $oldUvToolDir -Directory -ErrorAction SilentlyContinue
+    if ($toolDirs) {
+        foreach ($t in $toolDirs) {
+            if ($Apply) {
+                Write-Act "đang vá shim cho tool '$($t.Name)' (uv tool install $($t.Name) --reinstall)..." 'DO'
+                uv tool install $t.Name --reinstall 2>&1 | Out-Null
+                Write-Act "'$($t.Name)' đã reinstall xong, shim đã trỏ đúng chỗ mới" 'OK'
+            }
+            else {
+                Write-Act "sẽ chạy: uv tool install $($t.Name) --reinstall  (shim của '$($t.Name)' sẽ hỏng sau khi UV_TOOL_DIR đổi)" 'DRY'
+            }
+        }
+    }
+    else {
+        Write-Act "$oldUvToolDir không có tool nào, bỏ qua" 'SKIP'
+    }
+}
+else {
+    Write-Act 'UV_TOOL_DIR chưa đổi hoặc chưa có uv, không cần vá shim' 'SKIP'
+}
+
+# Tool mồ côi: cài từ TRƯỚC khi UV_TOOL_DIR từng được đặt, nên vẫn nằm ở vị trí
+# mặc định %APPDATA%\uv\tools. "uv tool list" không còn thấy nó (đang đọc
+# UV_TOOL_DIR mới) dù tool vẫn chạy được bình thường. Chỉ báo cáo, không tự sửa
+# (script không biết lúc chạy MCP server nào đang giữ tool đó).
+$defaultUvToolDir = Join-Path $env:APPDATA 'uv\tools'
+if ((Test-Path -LiteralPath $defaultUvToolDir) -and ($defaultUvToolDir -ne $pUvTools)) {
+    $orphans = Get-ChildItem -LiteralPath $defaultUvToolDir -Directory -ErrorAction SilentlyContinue
+    foreach ($o in $orphans) {
+        Write-Act ("tool mồ côi: '{0}' vẫn nằm ở {1} - lệnh 'uv tool list' không thấy. Sau khi đóng phần mềm đang dùng nó, chạy: uv tool install {0} --reinstall" -f $o.Name, $defaultUvToolDir) 'WARN'
+    }
+}
+
+# cua-driver: trường hợp đã biết cụ thể - cài trước khi UV_TOOL_DIR từng được
+# đặt (76 MB, còn ở C:\Users\<user>\AppData\Roaming\uv\tools\cua-driver). Tool
+# vẫn chạy tốt, chỉ cần dọn khi rảnh. CHỈ chạy lệnh fix lúc MCP server cua-driver
+# KHÔNG đang chạy (nó khoá file venv, reinstall giữa chừng sẽ hỏng).
+$cuaDriverOldDir = Join-Path $defaultUvToolDir 'cua-driver'
+if (Test-Path -LiteralPath $cuaDriverOldDir) {
+    Write-Act "cua-driver mồ côi tại $cuaDriverOldDir. Khi MCP server cua-driver KHÔNG chạy, sửa bằng: uv tool install cua-driver --reinstall --force" 'WARN'
+}
+
+# ----------------------------------------------------------------------------
+# 6. PlatformIO - trường hợp đặc biệt
+# ----------------------------------------------------------------------------
+
+Write-Step '6. PlatformIO core dir'
 
 $oldPio = Join-Path $env:USERPROFILE '.platformio'
 $oldPioMB = Get-DirSizeMB -Path $oldPio
@@ -302,7 +388,7 @@ else {
 }
 
 # ----------------------------------------------------------------------------
-# 6. Kết quả
+# 7. Kết quả
 # ----------------------------------------------------------------------------
 
 Write-Step 'Dung lượng SAU khi chạy'

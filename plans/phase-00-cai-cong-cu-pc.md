@@ -41,7 +41,9 @@ Nếu bạn thấy mình sắp sửa bất kỳ file nào khác trong repo — d
 
 Chi tiết đầy đủ, bằng chứng, và rủi ro từng mục: `plans/reports/260921-research-cai-dat-o-dia-D.md`. Script `scripts/setup-d-drive.ps1` đã có sẵn trong repo, idempotent (chạy lại nhiều lần không hỏng), mặc định là dry-run.
 
-**Đã làm xong (kiểm chứng trên máy này):** script đã chạy `-Apply` — sáu biến môi trường phạm vi User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều đã trỏ vào `D:\IOT_Tools\...`, và cây thư mục `D:\IOT_Tools\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio},apps}` đã tồn tại.
+**Vì sao có HAI thư mục gốc, không phải một.** `D:\DevCache` chứa cache và tool **dùng chung cho TOÀN MÁY** (`uv`, `pip`, `npm`, `pnpm`, `uv tool`, `uv python`, PlatformIO core) — mọi dự án trên máy này đọc/ghi vào đó, nên **không bao giờ được xoá** khi riêng dự án drone kết thúc. `D:\IOT_Tools` giờ chỉ còn chứa app có installer **riêng của dự án này** (Arduino IDE, Mission Planner, MAVProxy, STM32CubeProgrammer) — xoá trọn thư mục này không ảnh hưởng tới dự án nào khác. Ban đầu cả hai gộp chung một thư mục `D:\IOT_Tools`, dễ gây hiểu lầm là cache dùng chung "thuộc về" dự án drone — nên đã tách ra thành hai gốc riêng.
+
+**Đã làm xong (kiểm chứng trên máy này):** script đã chạy `-Apply` — sáu biến môi trường phạm vi User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều đã trỏ vào `D:\DevCache\...`; cây thư mục `D:\DevCache\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio}}` và `D:\IOT_Tools\apps` đều đã tồn tại.
 
 **Còn lại phải làm — tự chạy sau khi đã thoát hẳn VS Code:**
 
@@ -70,7 +72,22 @@ Kiểm chứng (mở cửa sổ PowerShell mới trước khi chạy):
 uv cache dir; uv tool dir; uv python dir; npm config get cache
 ```
 
-Cả bốn dòng phải in đường dẫn bắt đầu bằng `D:\IOT_Tools\`.
+Cả bốn dòng phải in đường dẫn bắt đầu bằng `D:\DevCache\`.
+
+**Sau khi mở PowerShell mới — sửa nốt `cua-driver` mồ côi.** `cua-driver` được cài từ trước khi `UV_TOOL_DIR` từng được đặt, nên vẫn còn nằm ở vị trí mặc định `C:\Users\Nghaiz\AppData\Roaming\uv\tools\cua-driver` (76 MB) — `uv tool list` không còn thấy nó, dù nó vẫn chạy bình thường. Chỉ chạy lệnh sau khi **MCP server `cua-driver` KHÔNG đang chạy** (nó khoá file venv, reinstall giữa chừng sẽ hỏng):
+
+```powershell
+uv tool install cua-driver --reinstall --force
+```
+
+**Kết quả thật khi chạy ngày 21/09/2026.** Ổ C: **28,4 GB → 35,41 GB trống**, thu hồi được 7 GB. Đã chuyển: uv cache 3,86 GB, npm cache 2,69 GB, pip cache 5 MB, Arduino IDE 527 MB, và xoá kho pnpm mồ côi 633 MB trên C:. Bốn điều học được, đã ghi vào script:
+
+1. **`pnpm config set store-dir` không ghi được** và cũng **không nên ghi**. Lỗi "global bin directory is not in PATH" chặn nó, nhưng quan trọng hơn: để trống là hành vi đúng, pnpm cố ý tạo một kho cho **mỗi ổ đĩa** vì hardlink chỉ chạy trong cùng ổ. Kho thật là `D:\.pnpm-store`, đã nằm trên D. Script nay chỉ báo cáo, không ép.
+2. **Kho pnpm cũ trên C: là mồ côi**, `pnpm store prune` không thấy nó vì prune chỉ dọn kho đang dùng. Phải xoá tay. An toàn: `node_modules` đã cài vẫn chạy nhờ hardlink giữ dữ liệu sống.
+3. **Bảng dung lượng trước/sau của script từng luôn in 0.00 GB.** `Get-PSDrive` nhớ đệm từ lúc phiên PowerShell khởi động nên đọc lại vẫn ra số cũ. Một con số vô nghĩa còn tệ hơn không có số, vì nó làm người đọc tưởng script không làm gì. Đã đổi sang `[System.IO.DriveInfo]`.
+4. **`uv tool install --reinstall` thiếu `--force` sẽ lỗi** `Executable already exists`, vì shim cũ trong `~/.local/bin` vẫn còn.
+
+**Còn nợ trên C:** `~/.platformio.old` 80 MB (xoá sau khi PlatformIO dựng lại trên D và chạy thử được một project), cache uv 51 MB (34 file bị khoá), `cua-driver` 76 MB (chờ đóng Claude Code).
 
 ### 00.1 Kiểm kê thứ đã có sẵn
 
@@ -209,13 +226,28 @@ Nếu lỗi:
 
 Dùng cho firmware ESP32 ở Phase 12 (project camera). PlatformIO được chọn làm chính vì nó ghim được phiên bản thư viện trong `platformio.ini` và đưa được vào CI; Arduino IDE là hạng hai, cài để đọc được các tutorial ESP32-CAM trên mạng.
 
-VS Code và PlatformIO IDE **đã được cài sẵn trên máy này** trước khi viết phase này. Không cần cài lại — bước này chỉ còn là **xác minh** cộng **dời `PLATFORMIO_CORE_DIR`** (biến này đã được bước 00.0 đặt sang `D:\IOT_Tools\tools\platformio`, nhưng PlatformIO chỉ đọc nó khi dựng lại core dir).
+VS Code và PlatformIO IDE **đã được cài sẵn trên máy này** trước khi viết phase này. Không cần cài lại — bước này chỉ còn là **xác minh** cộng **dời `PLATFORMIO_CORE_DIR`** (biến này đã được bước 00.0 đặt sang `D:\DevCache\tools\platformio`, nhưng PlatformIO chỉ đọc nó khi dựng lại core dir).
 
 ```powershell
 winget install ArduinoSA.IDE.stable
 ```
 
 `winget` id trên đã được kiểm chứng bằng `winget search` trên chính máy Windows 11 này (`plans/reports/260921-research-esp32-bridge-camera.md` §2). Arduino IDE là **tuỳ chọn** — bỏ qua được nếu muốn gọn.
+
+⚠️ **`winget` bỏ qua flag `--location` cho gói này — đã kiểm chứng trên máy này.** `winget install ArduinoSA.IDE.stable --location "D:\..."` vẫn cài thẳng vào `%LOCALAPPDATA%\Programs\arduino-ide` (527 MB, 6379 file) bất kể có truyền `--location` hay không. Dọn bằng cách chuyển thư mục sang D: rồi để lại một **junction** ở chỗ cũ (không cần quyền admin) để Arduino IDE và bộ cập nhật của nó vẫn tự tìm thấy mình:
+
+```powershell
+# 1. Cài xong ở %LOCALAPPDATA%\Programs\arduino-ide, đóng hẳn Arduino IDE nếu đang mở
+$arduinoOld = "$env:LOCALAPPDATA\Programs\arduino-ide"
+
+# 2. Chuyển toàn bộ thư mục sang D:
+Move-Item $arduinoOld "D:\IOT_Tools\apps\ArduinoIDE"
+
+# 3. Tạo junction tại chỗ cũ trỏ về D: — không cần quyền admin
+New-Item -ItemType Junction -Path $arduinoOld -Target "D:\IOT_Tools\apps\ArduinoIDE"
+```
+
+Đây là công thức dự phòng dùng chung cho **bất kỳ installer nào phớt lờ đường dẫn tuỳ chỉnh**: cài mặc định, `Move-Item` phần nặng sang D:, rồi `New-Item -ItemType Junction` tại chỗ cũ để phần mềm (và bộ cập nhật của nó) vẫn tìm đúng chỗ.
 
 **Dời PlatformIO core dir sang D: — bắt buộc làm SỚM.** Máy này đo được `~/.platformio` hiện chỉ **79,76 MB**, **chưa có thư mục `platforms`** — nghĩa là chưa từng tải toolchain nào, gần như bản cài trắng. **Không được "move" (copy) thư mục này** — đã kiểm chứng là hỏng: `penv` là một virtualenv, nướng cứng đường dẫn tuyệt đối vào shebang script và `pyvenv.cfg`; copy sang chỗ khác cho lỗi `bad interpreter: No such file or directory` (issue `platformio/platformio-core#3554`, xác nhận bởi chính maintainer). Cách đúng — và với 80 MB không toolchain thì cũng là cách rẻ nhất — là **đổi tên rồi để PlatformIO tự dựng lại**:
 
@@ -244,7 +276,7 @@ code --version
 pio system info
 ```
 
-Kết quả mong đợi: `code --version` in 3 dòng (phiên bản, commit hash, kiến trúc). Thanh trạng thái dưới cùng VS Code có biểu tượng con kiến của PlatformIO. `pio system info` in dòng `Core Directory` trỏ về `D:\IOT_Tools\tools\platformio`.
+Kết quả mong đợi: `code --version` in 3 dòng (phiên bản, commit hash, kiến trúc). Thanh trạng thái dưới cùng VS Code có biểu tượng con kiến của PlatformIO. `pio system info` in dòng `Core Directory` trỏ về `D:\DevCache\tools\platformio`.
 
 Nếu lỗi:
 
@@ -263,7 +295,7 @@ Nếu lỗi:
 uv tool install esptool --python 3.13
 ```
 
-`uv tool install` không có flag `--tools-dir` (đã đọc hết `uv tool install --help`, flag đó không tồn tại) — đường duy nhất để đưa payload sang D: là biến `UV_TOOL_DIR`, và biến đó đã được đặt ở bước 00.0. Giữ `UV_TOOL_BIN_DIR` ở mặc định (`~/.local\bin`, đã nằm trong PATH, chỉ chứa vài trăm KB shim) — phần nặng (venv của tool) nằm trong `UV_TOOL_DIR` trên D:.
+`uv tool install` không có flag `--tools-dir` (đã đọc hết `uv tool install --help`, flag đó không tồn tại) — đường duy nhất để đưa payload sang D: là biến `UV_TOOL_DIR`, và biến đó đã được đặt ở bước 00.0. Giữ `UV_TOOL_BIN_DIR` ở mặc định (`~/.local\bin`, đã nằm trong PATH, chỉ chứa vài trăm KB shim) — phần nặng (venv của tool) nằm trong `UV_TOOL_DIR` trên D:, tức là `D:\DevCache\tools\uv-tools\esptool`.
 
 ```powershell
 esptool version
@@ -376,8 +408,8 @@ Commit với prefix `chore(plans):`.
 
 ## Cổng pass
 
-- [ ] Sáu biến môi trường User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều trỏ vào `D:\IOT_Tools\...` — kiểm bằng `uv cache dir; uv tool dir; uv python dir; npm config get cache`.
-- [ ] Cây thư mục `D:\IOT_Tools\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio},apps}` tồn tại.
+- [ ] Sáu biến môi trường User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều trỏ vào `D:\DevCache\...` — kiểm bằng `uv cache dir; uv tool dir; uv python dir; npm config get cache`.
+- [ ] Cây thư mục `D:\DevCache\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio}}` và `D:\IOT_Tools\apps` tồn tại.
 - [ ] `py --list` hiện `3.13`.
 - [ ] `node --version` in v24.x, `pnpm --version` in 11.x, `uv --version` in 0.12.x.
 - [ ] `pwsh -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được.
@@ -386,7 +418,7 @@ Commit với prefix `chore(plans):`.
 - [ ] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` (kiểm bằng `InstallLocation` trong registry Uninstall), mở được, hiện màn hình `FLIGHT DATA` với nút `CONNECT`.
 - [ ] MAVProxy cài trong `D:\IOT_Tools\apps\MAVProxy\`; `where.exe mavproxy` in đường dẫn `D:\`; `mavproxy.exe --version` chạy được.
 - [ ] STM32CubeProgrammer mở được, thấy ô chọn kiểu kết nối.
-- [ ] `code --version` in 3 dòng; PlatformIO IDE hiện trong danh sách extension đã cài của VS Code; `pio system info` in `Core Directory` trỏ `D:\IOT_Tools\tools\platformio`.
+- [ ] `code --version` in 3 dòng; PlatformIO IDE hiện trong danh sách extension đã cài của VS Code; `pio system info` in `Core Directory` trỏ `D:\DevCache\tools\platformio`.
 - [ ] `esptool version` in `v5.x`; `uv run python -c "import pymavlink; print(pymavlink.__version__)"` (trong `D:\Coding\IOT-CV`) in `2.4.x` và `sys.executable` bắt đầu bằng `D:\`.
 - [ ] `plans/PROGRESS.md` mục Phase 00 đã tick, ghi số phiên bản thực tế, và đã commit.
 
