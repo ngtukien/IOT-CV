@@ -35,16 +35,18 @@ Plan: plans/phase-00-cai-cong-cu-pc.md
 
 Ngày bắt đầu: ______ · Ngày xong: ______
 
+- [ ] Sáu biến môi trường User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều trỏ vào `D:\IOT_Tools\...` — kiểm bằng `uv cache dir; uv tool dir; uv python dir; npm config get cache`.
+- [ ] Cây thư mục `D:\IOT_Tools\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio},apps}` tồn tại.
 - [ ] `py --list` hiện `3.13`.
 - [ ] `node --version` in v24.x, `pnpm --version` in 11.x, `uv --version` in 0.12.x.
 - [ ] `pwsh -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được.
 - [ ] `docker info --format "{{.ServerVersion}}"` in ra số phiên bản.
 - [ ] `wsl --list --verbose` hiện `Ubuntu` VERSION = `2`; `df -h /` trong WSL còn > 15 GB.
-- [ ] Mission Planner mở được, hiện màn hình `FLIGHT DATA`.
-- [ ] MAVProxy đã cài (shortcut Start Menu hoặc `mavproxy.exe --version`).
+- [ ] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` (kiểm bằng `InstallLocation` trong registry Uninstall), mở được, hiện màn hình `FLIGHT DATA`.
+- [ ] MAVProxy cài trong `D:\IOT_Tools\apps\MAVProxy\`; `where.exe mavproxy` in đường dẫn `D:\`; `mavproxy.exe --version` chạy được.
 - [ ] STM32CubeProgrammer mở được.
-- [ ] `code --version` chạy; PlatformIO IDE có trong danh sách extension.
-- [ ] `esptool version` in `v5.x`; `py -3.13 -m pip show pymavlink` in `Version: 2.4.x`.
+- [ ] `code --version` chạy; PlatformIO IDE có trong danh sách extension; `pio system info` in `Core Directory` trỏ `D:\IOT_Tools\tools\platformio`.
+- [ ] `esptool version` in `v5.x`; `uv run python -c "import pymavlink; print(pymavlink.__version__)"` (trong `D:\Coding\IOT-CV`) in `2.4.x` và `sys.executable` bắt đầu bằng `D:\`.
 - [ ] Đã ghi số phiên bản thực tế vào Ghi chú dưới đây.
 
 Ghi chú: 
