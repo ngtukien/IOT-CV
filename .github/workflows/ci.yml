@@ -18,10 +18,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: pip
       - name: Install ruff
         run: pip install ruff
@@ -33,10 +33,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        # Dự án ghim 3.13 (plans/phase-00 §"Vì sao Python 3.13"). Ma trận cũ chạy
+        # 3.11 + 3.12 nên mâu thuẫn với chính quyết định đó, và đã vỡ thật:
+        # numpy 2.5.3 yêu cầu >=3.12 -> job 3.11 chết ở bước cài (PR #21).
+        python-version: ["3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
