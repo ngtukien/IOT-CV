@@ -8,7 +8,14 @@ bước mà shell và script không với tới được, và cũng là chỗ ng
 
 Từ 21/09/2026 dự án có thêm `cua-driver` đăng ký trong `.mcp.json` (trycua/cua, 25.268 sao,
 MIT, có crate Windows riêng, CI kiểm 122/122 thao tác gồm WPF, WinForms, Electron, WebView2).
-Hai thứ **bổ sung cho nhau, không thay thế nhau**:
+
+> ⚠️ **Thứ tự đã chốt ngày 21/09/2026: dùng `cua-driver` TRƯỚC.** `gui.ps1` chỉ chạy khi
+> `cua-driver` không dùng được, và phải nói rõ lý do đã lùi. Luật đầy đủ cùng bằng chứng:
+> `.claude/rules/computer-use-cua-driver-first.md`. Bảng dưới so sánh năng lực hai công cụ;
+> nó **không** có nghĩa là được tuỳ ý chọn cái nào.
+
+Bảng so sánh, hai dòng cuối đo được trong phiên 21/09/2026 trên Mission Planner và trên
+wizard STM32CubeProgrammer:
 
 | | `gui.ps1` | `cua-driver` |
 |---|---|---|
@@ -18,9 +25,14 @@ Hai thứ **bổ sung cho nhau, không thay thế nhau**:
 | Audit được toàn bộ | được, 380 dòng | không |
 | Phụ thuộc mạng | không | có (PyPI) |
 | Bị cập nhật ngầm | không | có |
+| Thấy cửa sổ con / hộp thoại | **không** — chỉ đọc `MainWindowTitle`, một tiến trình ra đúng một dòng | có, mỗi cái một `window_id` |
+| Khi thao tác không tới đích | gửi xong, im lặng | báo lỗi có tên và lý do |
 
-`gui.ps1` là **đường lui**. Một MCP server bên ngoài có thể crash, đổi API, hoặc bị chặn bởi
-ranh giới UIPI khi cửa sổ đích chạy quyền Administrator. Khi đó `gui.ps1` vẫn chạy. Không xoá.
+`gui.ps1` là **đường lui**. Một MCP server bên ngoài có thể crash hoặc đổi API; khi đó
+`gui.ps1` vẫn chạy. Không xoá.
+
+⚠️ **Nhưng UIPI thì lùi về đây cũng vô ích** — xem § "Giới hạn đã biết". Cả hai công cụ đều
+chạy ở Medium integrity, nên cửa sổ chạy quyền Administrator chặn cả hai như nhau.
 
 So sánh đầy đủ 21 MCP server và lý do chọn: `plans/reports/260921-research-windows-computer-use-mcp.md`.
 
@@ -76,27 +88,27 @@ Vì vậy mặc định chuyển sang dán clipboard, có lưu và trả lại c
 
 ```powershell
 # xem có những cửa sổ nào, màn hình nào
-pwsh -File scripts/gui/gui.ps1 -Action windows
-pwsh -File scripts/gui/gui.ps1 -Action monitors
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action windows
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action monitors
 
 # nhìn
-pwsh -File scripts/gui/gui.ps1 -Action shot -Monitor 0
-pwsh -File scripts/gui/gui.ps1 -Action shot -Window "Mission Planner" -Out tmp/mp.png
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action shot -Monitor 0
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action shot -Window "Mission Planner" -Out tmp/mp.png
 
 # đọc cấu trúc trước khi bấm, luôn làm bước này
-pwsh -File scripts/gui/gui.ps1 -Action tree -Window "Mission Planner" -Depth 4
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action tree -Window "Mission Planner" -Depth 4
 
 # thao tác qua UIAutomation (ưu tiên)
-pwsh -File scripts/gui/gui.ps1 -Action invoke   -Window "Mission Planner" -Name "Connect"
-pwsh -File scripts/gui/gui.ps1 -Action select   -Window "Mission Planner" -Name "SETUP"
-pwsh -File scripts/gui/gui.ps1 -Action setvalue -Window "Mission Planner" -Name "COM Port" -Text "COM5"
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action invoke   -Window "Mission Planner" -Name "Connect"
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action select   -Window "Mission Planner" -Name "SETUP"
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action setvalue -Window "Mission Planner" -Name "COM Port" -Text "COM5"
 
 # bấm theo toạ độ (khi UIAutomation không thấy control)
-pwsh -File scripts/gui/gui.ps1 -Action click -X 1240 -Y 380
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action click -X 1240 -Y 380
 
 # gõ chữ và phím tắt
-pwsh -File scripts/gui/gui.ps1 -Action type -Window "Mission Planner" -Text "SERIAL3_PROTOCOL"
-pwsh -File scripts/gui/gui.ps1 -Action key  -Window "Mission Planner" -Keys "{ENTER}"
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action type -Window "Mission Planner" -Text "SERIAL3_PROTOCOL"
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action key  -Window "Mission Planner" -Keys "{ENTER}"
 ```
 
 Toạ độ trong ảnh chụp cửa sổ là toạ độ tương đối. Lệnh `shot` in ra **góc màn hình** của
@@ -113,8 +125,17 @@ cửa sổ; cộng giá trị đó vào toạ độ đọc từ ảnh để ra t
 ## Giới hạn đã biết
 
 - Arduino IDE 2 là ứng dụng Electron, UIAutomation đọc rất kém. Dùng `shot` cộng bấm toạ độ.
-- Ứng dụng chạy quyền Administrator sẽ không nhận thao tác từ tiến trình thường. Chạy
-  Claude Code với quyền tương đương, hoặc tự bấm bước đó.
+- **Ứng dụng chạy quyền Administrator sẽ không nhận thao tác từ tiến trình thường** (ranh
+  giới UIPI của Windows). Điều này đúng với **cả `gui.ps1` lẫn `cua-driver`** — cả hai đều ở
+  Medium integrity, nên đây không phải lý do để đổi từ công cụ này sang công cụ kia. Khác
+  biệt duy nhất là cách báo: `cua-driver` từ chối kèm thông điệp *"the call would return
+  success but no input would land"*, còn `gui.ps1` gửi rồi im lặng — tức là nó **thất bại mà
+  trông như thành công**, đúng loại lỗi mà `plans/phase-00-cai-cong-cu-pc.md` §00.0 gọi là
+  "báo xanh giả". Đường ra là cài/chạy bằng dòng lệnh, hoặc để người vận hành tự bấm bước đó.
+  Kiểm chứng 21/09/2026 trên wizard STM32CubeProgrammer 2.23.0.
+- **App Java Swing không có cây UIA** (Java Access Bridge mặc định tắt). `-Action tree` và
+  `get_window_state` chỉ trả về khung cửa sổ, không thấy nút nào. Phải bấm theo toạ độ đọc
+  từ ảnh chụp. Installer của ST thuộc loại này.
 - Ảnh chụp tốn khoảng 1.000 đến 1.800 token mỗi tấm. Chụp riêng cửa sổ thay vì cả màn hình
   ảo nhiều màn hình, và giảm `-MaxWidth` khi chỉ cần nhìn bố cục.
 - Màn hình ảo của máy này rộng 6720x1620 do có hai màn hình. Luôn chụp theo `-Monitor`

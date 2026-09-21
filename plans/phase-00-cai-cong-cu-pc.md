@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | – | ~2,75 giờ | Không |
+| xong 21/09/2026, trừ 00.4 (STM32CubeProgrammer) | – | ~2,95 giờ | Không |
 
 ## Mục tiêu
 
@@ -154,12 +154,17 @@ Kết quả mong đợi: mở Mission Planner từ Start Menu, thấy màn hình
 
 ```powershell
 Test-Path "D:\IOT_Tools\apps\MissionPlanner\MissionPlanner.exe"
+Test-Path "C:\Program Files (x86)\Mission Planner\MissionPlanner.exe"
 Get-ItemProperty HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
   Where-Object DisplayName -like "*Mission Planner*" |
   Select-Object DisplayName, DisplayVersion, InstallLocation
 ```
 
-`InstallLocation` phải trỏ vào `D:\`. Nếu vẫn in `C:\Program Files (x86)\Mission Planner`, property đã bị bỏ qua — dùng lại đường GUI ở trên.
+Dòng đầu phải in `True`, dòng thứ hai phải in `False`. **Đó mới là bằng chứng.**
+
+⚠️ **Đừng kết luận theo `InstallLocation` — MSI này để trống nó.** Kiểm chứng ngày 21/09/2026: cài thành công vào `D:\IOT_Tools\apps\MissionPlanner` (295,8 MB, 1319 file, `MissionPlanner.exe` chạy được), registry vẫn in `DisplayName : Mission Planner`, `DisplayVersion : 1.3.83`, `InstallLocation :` **rỗng**. Cổng pass bản cũ bắt `InstallLocation` phải trỏ `D:\` nên **không bao giờ pass được, kể cả khi cài đúng** — đây là "báo đỏ giả", mặt còn lại của bài học ở mục 00.0: một cổng canh sai thứ thì vô dụng dù nó đỏ hay xanh. Hỏi ngược lại: *nếu installer thật sự đổ vào C:, dòng nào sẽ đổi màu?* Câu trả lời là hai dòng `Test-Path`, không phải dòng registry.
+
+Cũng đừng kết luận theo mã thoát của `msiexec`. `ExitCode = 0` trong lần cài này là thật, nhưng nó thật vì hai dòng `Test-Path` xác nhận, không phải ngược lại.
 
 Nếu lỗi:
 
@@ -201,17 +206,55 @@ Board SpeedyBee F405 V5 xuất xưởng chạy Betaflight. Lần nạp ArduPilot
 
 Việc này chỉ thực sự dùng ở **Phase 14**. Nhưng cài ngay bây giờ vì nó cần đăng ký một tài khoản ST miễn phí, và bạn không muốn ngồi chờ email xác thực vào đúng hôm hàng về.
 
-**Không có lệnh tải trực tiếp, và không có flag đường dẫn một dòng kiểu `/DIR=`.** Đây là installer InstallAnywhere (Java) — tài liệu ST mô tả chạy nó bằng `jre\bin\java -jar SetupSTM32CubeProgrammer-X.Y.Z.exe`, dấu hiệu đặc trưng của InstallAnywhere; cách cài im lặng của nó là cơ chế hai bước (cài tay một lần sinh ra file XML, lần sau chạy XML đó), không có flag đơn lẻ để chỉ định thư mục. Làm bằng tay:
+**Không có lệnh tải trực tiếp, và không có flag đường dẫn một dòng kiểu `/DIR=`.** Đây là installer **IzPack** (Java) — kiểm chứng ngày 21/09/2026 bằng stack trace của chính nó: `com.izforge.izpack.installer.unpacker.UnpackerBase`, `com.izforge.izpack.event.RegistryInstallerListener`. (Bản cũ của mục này ghi là InstallAnywhere — sai, nhưng mô tả cơ chế cài im lặng hai bước thì đúng: cài tay một lần sinh file XML, lần sau chạy XML đó.) Không có flag đơn lẻ để chỉ định thư mục. Làm bằng tay:
 
 1. Mở trình duyệt vào `st.com`.
 2. Tìm "STM32CubeProgrammer".
 3. Đăng ký một tài khoản ST miễn phí (họ gửi link tải qua email).
-4. Tải bản Windows, giải nén, chạy installer. Có thể cần Java — installer sẽ báo.
-5. Ở trang **"Choose Install Folder"**, gõ `D:\IOT_Tools\apps\STM32CubeProgrammer`.
+4. Tải bản Windows (`SetupSTM32CubeProgrammer_win64.zip`), giải nén, chạy file `.exe` bên trong. Cần Java — máy này đã có OpenJDK 24.
+5. Bấm qua wizard 9 bước; đường dẫn đặt ở **bước 4**.
 
-⚠️ **Chưa xác minh:** trang "Choose Install Folder" có chắc chắn xuất hiện hay không — chưa lấy được ảnh chụp/mô tả từ tài liệu ST (`st.com` chặn truy cập tự động, không mở được bằng công cụ). Đây là trang mặc định của InstallAnywhere nên khả năng cao là có. **Dự phòng:** nếu không thấy trang chọn thư mục, cứ cài mặc định và chấp nhận ~200–300 MB trên C: — đây là công cụ dùng đúng một lần ở Phase 14, không phải thứ phình to theo thời gian, nên chi phí này chấp nhận được.
+**Đã xác minh ngày 21/09/2026 trên bản 2.23.0 — chín bước đó là:**
 
-⚠️ URL trang sản phẩm trên `st.com` **chưa xác minh được** bằng công cụ tự động (st.com chặn) — điều đó không có nghĩa trang hỏng, chỉ nghĩa là phải mở bằng trình duyệt tay.
+| Bước | Trang | Phải làm gì |
+|---|---|---|
+| 1 | Welcome | Next |
+| 2 | Information | Next |
+| 3 | ST Licensing agreement | Chọn **"I accept the terms of this license agreement"** (SLA0048) — Next đang xám cho tới khi chọn |
+| 4 | **STM32CubeProgrammer Package installation** | Ô **"Select the installation path:"** — xoá mặc định, gõ `D:\IOT_Tools\apps\STM32CubeProgrammer`. Hiện hộp `Message` xác nhận sẽ tạo thư mục → OK |
+| 5 | Terms of Use | Tick **"I have read and understood… ST Terms of Use"**. Trang này cũng báo ST thu thập thống kê sử dụng ẩn danh; tắt sau qua `Help > User Preferences` |
+| 6 | Components selection | Core Files (bắt buộc) + STM32CubeProgrammer + STM32TrustedPackageCreator. **Tổng 1,41 GB** |
+| 7 | Pack installation progress | Chờ |
+| 8–9 | Shortcut + hoàn tất | Next / Done |
+
+**Hai chỗ bản cũ của mục này đoán sai:**
+
+1. Trang chọn thư mục **có** tồn tại, nhưng tên nó **không** phải "Choose Install Folder" — nó là **"STM32CubeProgrammer Package installation"** với nhãn "Select the installation path:", nằm ở bước 4/9. Tìm theo tên cũ sẽ không thấy.
+2. Dự phòng cũ viết "cứ cài mặc định và chấp nhận ~200–300 MB trên C:". **Sai gần 5 lần** — bộ cài chiếm **1,41 GB**. Với ổ C: chỉ còn ~35 GB, đó không còn là chi phí vặt. Nếu buộc phải cài lên C:, biết trước con số thật rồi hãy quyết.
+
+⚠️ **Wizard này chạy quyền Administrator nên không công cụ computer-use nào bấm được nó** (ranh giới UIPI: `cua-driver` lẫn `gui.ps1` đều ở Medium integrity). Cách đã dùng được: đặt biến `__COMPAT_LAYER = "RunAsInvoker"` trước khi `Start-Process`, ép installer chạy Medium integrity. Chi tiết và các bẫy kèm theo: `.claude/rules/computer-use-cua-driver-first.md`.
+
+```powershell
+$env:__COMPAT_LAYER = "RunAsInvoker"
+Start-Process "D:\IOT_Tools\downloads\stm32\SetupSTM32CubeProgrammer_win64.exe"
+```
+
+⚠️ **`RunAsInvoker` có giá của nó, biết trước rồi hãy chọn.** Hạ xuống Medium integrity nghĩa là installer **không ghi được HKLM**: ở cuối bước 7 nó bật hộp `Error` với dòng `Error writing to registry`, rồi **chết luôn ở đó, không chạy tiếp bước 8/9** — mà bước 8/9 mới là chỗ IzPack sinh shortcut và `uninstaller.jar`. Sau lỗi đó wizard tự khởi động lại từ bước 1; đóng nó đi, đừng bấm lại.
+
+**Bốn thứ mất, và không thứ nào là tính năng** (kiểm chứng ngày 21/09/2026): entry Add/Remove Programs · `uninstaller.jar` · shortcut Start Menu và Desktop · `.installationinformation`. Phần chạy nguyên vẹn: 1590 MB / 1436 file, CLI in `2.23.0`, GUI có `ST-LINK` + `Connect`.
+
+**Phase 14 không bị ảnh hưởng** — đây là điều quan trọng nhất cần biết. Driver DFU không dính gì tới registry của installer: `Drivers\DFU_Driver\STM32Bootloader.bat` chỉ gọi `pnputil -i -a Driver\STM32Bootloader.inf`, và cả `.inf`, `.cat`, `installer_x64.exe` đều có đủ trên đĩa. Chạy file `.bat` đó với quyền admin lúc cần là xong.
+
+**Cạm bẫy:** `Uninstaller\unscript.bat` (file gốc của ST) vẫn gọi `uninstaller.jar` chưa bao giờ được tạo — chạy nó chỉ báo lỗi khó hiểu. Bản cài trên máy này đã vá thủ công: `Uninstaller\go-cai-dat.ps1` thay cho uninstaller, entry HKLM viết tay trỏ về nó, hai shortcut Start Menu, và `Uninstaller\DOC-TRUOC-KHI-GO.txt` giải thích cho người đến sau. Script gỡ từ chối chạy nếu không thấy ba file dấu vân tay của bản cài thật — đã thử cho nó thất bại ở một thư mục giả, nó `exit 1` và không xoá gì.
+
+Hai đường, chọn theo việc bạn cần:
+
+| Cách | Được | Mất |
+|---|---|---|
+| `RunAsInvoker` | Tự động hoá được toàn bộ, không cần ai ngồi bấm | Không có entry gỡ cài; nếu Phase 14 trục trặc driver thì phải cài lại |
+| Chạy thường (có UAC) | Registry đầy đủ, đúng chuẩn | **Phải tự bấm 9 bước** — UIPI chặn mọi công cụ tự động |
+
+⚠️ URL trang sản phẩm trên `st.com` **không truy cập được** bằng công cụ tự động — kiểm chứng 21/09/2026 bằng `Invoke-WebRequest -Method Head` vào cả trang sản phẩm lẫn trang chủ: cái đầu lỗi kết nối, cái sau hết hạn 25 giây. Điều đó không có nghĩa trang hỏng, chỉ nghĩa là phải mở bằng trình duyệt tay. Việc tải **không tự động hoá được**, vì còn phải đăng nhập tài khoản ST.
 
 **Chưa cần cài lúc này:** `Zadig` và `dfu-util`. Hai thứ đó chỉ dùng khi driver DFU hỏng ở Phase 14, và Zadig là con dao hai lưỡi — chạy nó "cho chắc" có thể làm STM32CubeProgrammer không nhận board nữa.
 
@@ -361,7 +404,7 @@ exit
 Kết quả mong đợi:
 
 - `lsb_release -a` in `Ubuntu 24.04...`.
-- `df -h /` hiện ổ WSL còn **trên 900 GB**. Cần dư ít nhất 15 GB. **Đừng ghim tên thiết bị vào tài liệu** (ví dụ `/dev/sdX`) — tên đổi theo thứ tự gắn đĩa giữa các lần khởi động; chỉ dựa vào con số `Avail`.
+- `df -h /` hiện ổ WSL còn **trên 900 GB**. Cần dư ít nhất 15 GB. **Đừng ghim tên thiết bị vào tài liệu** (ví dụ `/dev/sdX`) — tên đổi theo thứ tự gắn đĩa giữa các lần khởi động; chỉ dựa vào con số `Avail`. **Đã thấy tận mắt ngày 21/09/2026:** đầu phiên `df` in `/dev/sdf`, sau một lần `wsl --shutdown` thì cùng ổ đó in `/dev/sdd`. Cùng dữ liệu, cùng 920 GB trống, khác tên. Ai viết `/dev/sdf` vào script kiểm tra thì hôm sau script đó đỏ mà chẳng có gì hỏng.
 - `free -h` hiện RAM WSL được cấp (mặc định khoảng một nửa RAM máy).
 
 **Bịt lỗ hổng file swap trước khi build ArduPilot ở Phase 02.** Ổ ảo Ubuntu (`ext4.vhdx`) đã nằm đúng trên D: (đã xác nhận qua registry Lxss + quét không thấy `.vhdx` nào dưới `%LOCALAPPDATA%\Packages`), nhưng file **swap** của WSL2 mặc định nằm ở `%Temp%\swap.vhdx` trên **C:**, bất kể distro ở đâu (tài liệu Microsoft, `wsl-config`). Build ArduPilot ngốn RAM có thể kích hoạt swap đúng lúc C: đang chật. Tạo `%USERPROFILE%\.wslconfig`:
@@ -393,13 +436,49 @@ nạp web của DroneBridge. Đây là chỗ người mới kẹt lâu nhất v�
 hộ. Đọc `scripts/gui/README.md` trước khi dùng lần đầu, đặc biệt phần bốn rào an toàn.
 
 ```powershell
-pwsh -File scripts/gui/gui.ps1 -Action monitors
-pwsh -File scripts/gui/gui.ps1 -Action windows
-pwsh -File scripts/gui/gui.ps1 -Action shot -Monitor 0 -Out tmp/thu.png
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action monitors
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action windows
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action shot -Monitor 0 -Out tmp/thu.png
 ```
+
+⚠️ **`-NoProfile` là bắt buộc, không phải tuỳ chọn.** Bỏ nó đi thì `pwsh` nạp profile người dùng, và nếu profile đó chạy `fastfetch` (máy này có) thì khoảng 40 dòng ASCII art cộng hai lỗi `Set-PSReadLineOption` sẽ trộn thẳng vào stdout trước kết quả thật. Với người đọc thì chỉ khó chịu; với Claude phân tích output thì kết quả bị chôn dưới đống nhiễu và dễ bị cắt mất. Đã kiểm chứng ngày 21/09/2026: cùng một lệnh, không `-NoProfile` cho output không dùng được, có `-NoProfile` cho đúng bảng `Id / ProcessName / MainWindowTitle`.
+
+**`gui.ps1` chỉ thấy một cửa sổ mỗi tiến trình.** Nó liệt kê theo `MainWindowTitle`, nên một app mở hộp thoại con sẽ chỉ hiện đúng một dòng. Mission Planner lúc chạy lần đầu bật popup **"Altitude Angel"** (dịch vụ UTM bên thứ ba, dự án không dùng) che mất cửa sổ chính — `gui.ps1` không thấy popup đó. `cua-driver` thấy cả hai. Xem mục "Dùng `cua-driver` trước, `gui.ps1` là đường lui" bên dưới.
 
 **AN TOÀN:** không dùng công cụ này cho ARM, Motor Test, hay bất cứ thao tác nào làm motor
 quay. Những nút đó người vận hành tự bấm, tay luôn cầm RC. Xem `SAFETY.md` mục 1 và 2.
+
+#### Dùng `cua-driver` trước, `gui.ps1` là đường lui
+
+Thứ tự đã kiểm chứng trên Mission Planner ngày 21/09/2026: **thử `cua-driver` trước**, chỉ lùi
+về `gui.ps1` khi MCP server hỏng, bị chặn bởi ranh giới UIPI, hoặc không có mạng. Ba điểm hơn
+đo được, không phải suy đoán:
+
+| | `gui.ps1` | `cua-driver` |
+|---|---|---|
+| Cửa sổ con / hộp thoại | không thấy (chỉ đọc `MainWindowTitle`) | thấy, kèm `window_id` riêng |
+| Biết mình đang bấm gì | không, bấm theo toạ độ | có — `role`, `label`, `enabled`, `actions` |
+| Kiểm chứng sau khi bấm | tự chụp lại rồi tự nhìn | `verify_state` trả `satisfied` / `unsatisfied` / `unknown` |
+
+Quy trình mỗi lượt: `list_windows(pid)` → `get_window_state(pid, window_id)` → thao tác bằng
+`element_token` → `verify_state`. Bảng chỉ mục phần tử bị thay mới sau mỗi `get_window_state`
+của **cùng** cửa sổ, nên phải snapshot lại trước mỗi lượt thao tác.
+
+**Hai cái bẫy đã sập thật, ghi lại để khỏi sập lần nữa:**
+
+1. **`element_token` lấy từ cửa sổ CHA không bấm được nút của cửa sổ CON.** Cây UIA của cửa sổ
+   chính Mission Planner có lồng nguyên popup "Altitude Angel" vào, kể cả nút `Cancel` — nhìn
+   thì tưởng bấm được. Bấm bằng token từ snapshot cửa sổ cha trả về `route: synthetic_events`
+   và popup **vẫn còn**. Phải `get_window_state` đúng `window_id` của popup, khi đó token mới
+   đi đường `route: accessibility` và đóng được. Thấy cây có lồng cửa sổ con thì snapshot lại
+   theo `window_id` của nó, đừng bấm xuyên từ cha.
+2. **`effect: "unverifiable"` nghĩa là "đã gửi", không phải "đã xong".** Cả hai lần bấm đều trả
+   `unverifiable` — lần hỏng và lần được giống hệt nhau ở trường này. Thứ phân biệt là
+   `verify_state` (hoặc `list_windows` lại). Đây đúng là bài học "báo xanh giả" ở mục 00.0
+   dịch sang ngôn ngữ GUI: *transport thành công không phải là kết quả*. Không bao giờ đi tiếp
+   chỉ vì lệnh bấm không ném lỗi.
+
+Phiên nào thao tác nhiều lượt thì truyền cùng một nhãn `session` ngắn cho mọi lệnh.
 
 ### 00.9 Ghi lại vào PROGRESS
 
@@ -417,10 +496,10 @@ Commit với prefix `chore(plans):`.
 - [ ] Cây thư mục `D:\DevCache\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio}}` và `D:\IOT_Tools\apps` tồn tại.
 - [ ] `py --list` hiện `3.13`.
 - [ ] `node --version` in v24.x, `pnpm --version` in 11.x, `uv --version` in 0.12.x.
-- [ ] `pwsh -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được.
+- [ ] `pwsh -NoProfile -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được. (`-NoProfile` bắt buộc — xem 00.8.)
 - [ ] `docker info --format "{{.ServerVersion}}"` in ra số phiên bản (Docker Desktop đang chạy).
 - [ ] `wsl --list --verbose` hiện `Ubuntu` với VERSION = `2`; vào được bằng `wsl -d Ubuntu`; `df -h /` trong WSL còn > 15 GB.
-- [ ] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` (kiểm bằng `InstallLocation` trong registry Uninstall), mở được, hiện màn hình `FLIGHT DATA` với nút `CONNECT`.
+- [ ] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` — `Test-Path` trên D: in `True` **và** trên `C:\Program Files (x86)\Mission Planner` in `False` (đừng dùng `InstallLocation`, MSI này để trống, xem 00.2); mở được, hiện màn hình `FLIGHT DATA` với nút `CONNECT`.
 - [ ] MAVProxy cài trong `D:\IOT_Tools\apps\MAVProxy\`; `where.exe mavproxy` in đường dẫn `D:\`; `mavproxy.exe --version` chạy được.
 - [ ] STM32CubeProgrammer mở được, thấy ô chọn kiểu kết nối.
 - [ ] `code --version` in 3 dòng; PlatformIO IDE hiện trong danh sách extension đã cài của VS Code; `pio system info` in `Core Directory` trỏ `D:\DevCache\tools\platformio`.
@@ -454,8 +533,9 @@ Commit với prefix `chore(plans):`.
 | 00.5 VS Code + PlatformIO + Arduino IDE | 0,5 | PlatformIO tự tải toolchain |
 | 00.6 esptool + pymavlink | 0,25 | |
 | 00.7 WSL2 lần đầu | 0,25 | |
-| 00.8 Ghi PROGRESS | 0,1 | |
-| **Tổng** | **2,75** | Có thể làm song song: bấm tải Mission Planner rồi làm bước khác trong lúc chờ |
+| 00.8 Kiểm tra bộ điều khiển giao diện | 0,1 | Bảng cũ thiếu hẳn dòng này và gọi nhầm 00.9 thành "00.8" |
+| 00.9 Ghi PROGRESS | 0,1 | |
+| **Tổng** | **2,95** | Có thể làm song song: bấm tải Mission Planner rồi làm bước khác trong lúc chờ |
 
 ## Ghi chú cho sổ tay
 
