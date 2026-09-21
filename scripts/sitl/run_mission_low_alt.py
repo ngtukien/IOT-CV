@@ -34,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harness  # noqa: E402
 from harness import SitlError, SitlInstance, print_ket_qua  # noqa: E402
 
-USE_DIR = "/tmp/sitl-mission-low"
+USE_DIR = "mission-low"
 DO_CAO_CAO_M = 25.0
 DO_CAO_THAP_M = 3.0
 CANH_M = 50.0
@@ -105,99 +105,101 @@ def dung_mission(lat0: float, lon0: float) -> list[dict]:
     return items
 
 
+def bay_va_do(sitl: SitlInstance) -> tuple[list[int], float | None]:
+    """Chạy mission AUTO và đo độ cao thấp nhất TRÊN ĐÚNG CHẶNG có waypoint thấp.
+
+    CỬA SỔ LẤY MẪU rất hẹp, và đó là điểm mấu chốt: chỉ từ lúc TỚI waypoint 2
+    (cao 25 m) đến lúc TỚI waypoint 4 (cao 25 m) — đúng chặng đi xuống waypoint
+    3 rồi leo trở lên.
+
+    Bản đầu lấy mẫu suốt cả mission, kể cả đoạn RTL HẠ CÁNH cuối. Đáy khi đó
+    luôn là ~0 m vì máy bay chạm đất — BẤT KỂ FC có bay xuống waypoint thấp hay
+    không. Phép đo đó không phân biệt được hai khả năng nó sinh ra để phân
+    biệt, nên con số "-0,0 m" nó cho KHÔNG chứng minh điều gì.
+    (Tự bắt được 22/09/2026.)
+    """
+    sitl.start_auto_mission()
+    da_toi: list[int] = []
+    day: float | None = None
+
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < 480:
+        msg = sitl.recv_match("MISSION_ITEM_REACHED", timeout=2.0)
+        if msg is not None and msg.seq not in da_toi:
+            da_toi.append(msg.seq)
+        if 2 in da_toi and 4 not in da_toi:
+            with contextlib.suppress(SitlError):
+                alt = sitl.get_position()["alt_rel_m"]
+                day = alt if day is None else min(day, alt)
+        # seq: 0=home, 1=TAKEOFF, 2..4=WAYPOINT, 5=RTL
+        hb = sitl.master.messages.get("HEARTBEAT")
+        if hb is not None and not (hb.base_mode & 128) and len(da_toi) >= 3:
+            break
+
+    sitl.wait_disarmed(timeout=240.0)
+    return da_toi, day
+
+
+def ket_luan_phase_07(day: float | None) -> tuple[bool, str]:
+    """Diễn giải số đo. Tách riêng để câu kết luận không bao giờ mạnh hơn số đo.
+
+    Cận dưới 0,5 m: nếu đáy vẫn ~0 thì phép đo lại dính đoạn hạ cánh chứ không
+    phải waypoint thấp — khi đó TỪ CHỐI kết luận thay vì báo bừa.
+    """
+    dat = day is not None and 0.5 < day < DO_CAO_THAP_M + 3.0
+    if dat:
+        return True, (
+            f"FC NHẬN và BAY waypoint {DO_CAO_THAP_M:.0f} m (xuống tới {day:.1f} m) "
+            f"— nó KHÔNG kiểm hộ độ cao tối thiểu, nên `validate_mission()` ở "
+            f"backend là BẮT BUỘC, không phải thừa"
+        )
+    return False, (
+        "Chưa kết luận được: độ cao đáy nằm ngoài dải tin được (xem số đo ở "
+        "trên). Đừng suy ra điều gì về việc backend có được tin FC hay không."
+    )
+
+
 def main() -> int:
     ket_qua: list[tuple[str, str]] = []
 
-    with SitlInstance(USE_DIR, speedup=8) as sitl:
+    with SitlInstance(harness.run_dir(USE_DIR), speedup=8) as sitl:
         sitl.wait_ready()
         home = sitl.get_position()
-        lat0, lon0 = home["lat"], home["lon"]
+        items = dung_mission(home["lat"], home["lon"])
 
-        items = dung_mission(lat0, lon0)
-
-        # Câu hỏi 1: FC có TỪ CHỐI lúc nạp không?
-        nap_duoc = True
-        loi_nap = ""
+        # Câu hỏi 1: FC có TỪ CHỐI ngay lúc nạp không?
         try:
             harness.upload_mission(sitl, items)
         except SitlError as exc:
-            nap_duoc = False
-            loi_nap = str(exc)
+            ket_qua.append(
+                (f"FC nhận mission có waypoint {DO_CAO_THAP_M:.0f} m?", f"TỪ CHỐI — {exc}")
+            )
+            print_ket_qua(ket_qua, title="Mission waypoint thấp 3 m (Phase 03)")
+            # Cũng là một câu trả lời hợp lệ, chỉ là câu trả lời KHÁC.
+            print("FC từ chối mission ngay lúc nạp — kết luận Phase 07 đổi hướng", file=sys.stderr)
+            return 1
+
+        ket_qua.append((f"FC nhận mission có waypoint {DO_CAO_THAP_M:.0f} m?", "NHẬN"))
+        doc_lai = harness.download_mission(sitl)
         ket_qua.append(
             (
-                f"FC nhận mission có waypoint {DO_CAO_THAP_M:.0f} m?",
-                "NHẬN" if nap_duoc else f"TỪ CHỐI — {loi_nap[:120]}",
+                "Độ cao từng item đọc lại từ FC",
+                str([round(float(d.get("z", 0)), 1) for d in doc_lai]),
             )
         )
 
-        alt_thap_nhat_khi_bay = None
-        da_toi: list[int] = []
-        if nap_duoc:
-            doc_lai = harness.download_mission(sitl)
-            alt_doc_lai = [round(float(d.get("z", 0)), 1) for d in doc_lai]
-            ket_qua.append(("Độ cao từng item đọc lại từ FC", str(alt_doc_lai)))
+        # Câu hỏi 2: nó có BAY XUỐNG thật không?
+        da_toi, day = bay_va_do(sitl)
 
-            # Câu hỏi 2: nó có BAY XUỐNG thật không?
-            sitl.start_auto_mission()
-
-            # CỬA SỔ LẤY MẪU rất hẹp, và đó là điểm mấu chốt: chỉ từ lúc TỚI
-            # waypoint 2 (cao 25 m) đến lúc TỚI waypoint 4 (cao 25 m) — tức là
-            # đúng chặng đi xuống waypoint 3 rồi leo trở lên.
-            #
-            # Bản trước lấy mẫu suốt cả mission, kể cả đoạn RTL HẠ CÁNH cuối.
-            # Đáy khi đó luôn là ~0 m vì máy bay chạm đất — bất kể FC có bay
-            # xuống waypoint thấp hay không. Phép đo đó không phân biệt được
-            # hai khả năng nó sinh ra để phân biệt, nên con số "-0,0 m" nó cho
-            # KHÔNG chứng minh điều gì. (Tự bắt được 22/09/2026.)
-            t0 = time.monotonic()
-            while time.monotonic() - t0 < 480:
-                msg = sitl.recv_match("MISSION_ITEM_REACHED", timeout=2.0)
-                if msg is not None and msg.seq not in da_toi:
-                    da_toi.append(msg.seq)
-                if 2 in da_toi and 4 not in da_toi:
-                    with contextlib.suppress(SitlError):
-                        alt = sitl.get_position()["alt_rel_m"]
-                        if alt_thap_nhat_khi_bay is None:
-                            alt_thap_nhat_khi_bay = alt
-                        else:
-                            alt_thap_nhat_khi_bay = min(alt_thap_nhat_khi_bay, alt)
-                # seq: 0=home, 1=TAKEOFF, 2..4=WAYPOINT, 5=RTL
-                hb = sitl.master.messages.get("HEARTBEAT")
-                if hb is not None and not (hb.base_mode & 128) and len(da_toi) >= 3:
-                    break
-
-            ket_qua.append(("Waypoint đã tới (seq)", str(da_toi)))
-            ket_qua.append(
-                (
-                    "Độ cao THẤP NHẤT trên chặng waypoint 2→4 (chặng có WP thấp)",
-                    f"{alt_thap_nhat_khi_bay:.1f} m"
-                    if alt_thap_nhat_khi_bay is not None
-                    else "không đo được",
-                )
-            )
-            sitl.wait_disarmed(timeout=240.0)
-
-    # "Bay xuống thật" = xuống GẦN 3 m. Chặn thêm cận dưới 0,5 m: nếu đáy ~0 thì
-    # máy bay đã chạm đất, tức phép đo lại dính đoạn hạ cánh chứ không phải
-    # waypoint thấp — khi đó không được kết luận gì.
-    bay_xuong_that = (
-        alt_thap_nhat_khi_bay is not None and 0.5 < alt_thap_nhat_khi_bay < DO_CAO_THAP_M + 3.0
-    )
+    ket_qua.append(("Waypoint đã tới (seq)", str(da_toi)))
     ket_qua.append(
         (
-            "KẾT LUẬN cho Phase 07",
-            (
-                f"FC NHẬN và BAY waypoint {DO_CAO_THAP_M:.0f} m (xuống tới "
-                f"{alt_thap_nhat_khi_bay:.1f} m) — nó KHÔNG kiểm hộ độ cao tối thiểu, "
-                f"nên `validate_mission()` ở backend là BẮT BUỘC, không phải thừa"
-            )
-            if bay_xuong_that
-            else (
-                "FC không bay xuống thấp như mission yêu cầu — xem số đo ở trên "
-                "trước khi kết luận backend được phép tin FC"
-            ),
+            "Độ cao THẤP NHẤT trên chặng waypoint 2→4 (chặng có WP thấp)",
+            f"{day:.1f} m" if day is not None else "không đo được",
         )
     )
+    dat, cau_ket = ket_luan_phase_07(day)
+    ket_qua.append(("KẾT LUẬN cho Phase 07", cau_ket))
     ket_qua.append(
         (
             "MIN_ALT của dự án (backend/config.py)",
@@ -206,13 +208,11 @@ def main() -> int:
     )
     print_ket_qua(ket_qua, title="Mission waypoint thấp 3 m (Phase 03)")
 
-    if not nap_duoc:
-        # Không phải lỗi runner: đây cũng là một câu trả lời hợp lệ, chỉ là
-        # câu trả lời KHÁC. Ghi rõ rồi thoát khác 0 để người đọc phải xem.
-        print("FC từ chối mission ngay lúc nạp — kết luận Phase 07 đổi hướng", file=sys.stderr)
-        return 1
     if not da_toi:
         print("Mission không chạy waypoint nào", file=sys.stderr)
+        return 1
+    if not dat:
+        print("Phép đo không nằm trong dải tin được — không kết luận", file=sys.stderr)
         return 1
     print("KET QUA: PASS")
     return 0

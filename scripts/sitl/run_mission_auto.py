@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harness  # noqa: E402
 from harness import SitlError, SitlInstance, print_ket_qua  # noqa: E402
 
-USE_DIR = "/tmp/sitl-mission-auto"
+USE_DIR = "mission-auto"
 DO_CAO_M = 25.0
 CANH_M = 60.0  # cạnh tam giác waypoint
 
@@ -123,7 +123,7 @@ def so_khop(da_gui: list[dict], doc_lai: list[dict]) -> list[str]:
 def main() -> int:
     ket_qua: list[tuple[str, str]] = []
 
-    with SitlInstance(USE_DIR, speedup=8) as sitl:
+    with SitlInstance(harness.run_dir(USE_DIR), speedup=8) as sitl:
         sitl.wait_ready()
         home = sitl.get_position()
         lat0, lon0 = home["lat"], home["lon"]

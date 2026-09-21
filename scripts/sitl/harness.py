@@ -43,6 +43,24 @@ VENV_PYTHON = os.environ.get("SITL_PYTHON", os.path.expanduser("~/venv-ardupilot
 SITL_BINARY = ARDUPILOT_DIR / "build" / "sitl" / "bin" / "arducopter"
 LOGS_DIR = REPO_ROOT / "logs" / "sitl"
 
+# Nơi mỗi runner dựng thư mục làm việc riêng cho phiên SITL của nó.
+#
+# KHÔNG dùng /tmp: đó là thư mục ai cũng ghi được, nên một đường dẫn đoán trước
+# được như `/tmp/sitl-mode-chain` có thể bị người dùng khác trên cùng máy chèn
+# symlink vào (SonarCloud python:S5443). Thư mục dưới $HOME thuộc về một người.
+#
+# Cũng KHÔNG đặt trong repo: repo nằm trên ổ Windows gắn qua 9p, mà SITL ghi log
+# rất dày — để đó là tự làm chậm mô phỏng. `~/.cache` là ext4 gốc của WSL.
+RUN_DIR_BASE = Path(os.environ.get("SITL_RUN_DIR", os.path.expanduser("~/.cache/iot-cv-sitl")))
+
+
+def run_dir(ten: str) -> Path:
+    """Thư mục làm việc riêng cho một runner. Tạo sẵn với quyền chỉ chủ sở hữu."""
+    d = RUN_DIR_BASE / ten
+    d.mkdir(parents=True, exist_ok=True, mode=0o700)
+    return d
+
+
 # Cờ EKF_STATUS_REPORT.flags — đồng bộ với backend/mavlink/telemetry.py, nơi
 # các giá trị này được xác định bằng đo A/B trên SITL chứ không tra tài liệu.
 _EKF_ATTITUDE = 1

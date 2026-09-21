@@ -29,9 +29,10 @@ Mỗi script in một khối `## KET QUA` dạng bảng và kết bằng `KET QU
 ## Hai luật vận hành
 
 **Chạy lần lượt, không song song.** Mỗi script tự mở một phiên SITL riêng
-(`--use-dir` riêng) rồi tự tắt. `refuse_if_conflict()` **từ chối chạy** nếu phát
-hiện SITL nào đang sống, để không giẫm lên phiên bạn đang mở tay bằng Mission
-Planner. Đó là tính năng, không phải phiền toái.
+(`--use-dir` riêng dưới `~/.cache/iot-cv-sitl/<tên>`) rồi tự tắt.
+`refuse_if_conflict()` **từ chối chạy** nếu phát hiện SITL nào đang sống, để
+không giẫm lên phiên bạn đang mở tay bằng Mission Planner. Đó là tính năng,
+không phải phiền toái.
 
 **Binary phải build sẵn.** Harness chạy `sim_vehicle.py --no-rebuild`. Lý do
 không chỉ là tốc độ: build từ đây **hỏng** trên máy này vì `sim_vehicle.py` chạy
@@ -43,7 +44,7 @@ binary thì `_check_binaries()` in ra đúng lệnh build (bằng python venv).
 ## `harness.py` — dùng gì từ nó
 
 ```python
-with SitlInstance("/tmp/sitl-abc", speedup=5) as sitl:
+with SitlInstance(harness.run_dir("ten-runner"), speedup=5) as sitl:
     sitl.wait_ready()             # BẮT BUỘC trước mọi mode cần vị trí
     sitl.set_mode("GUIDED")
     sitl.arm()
@@ -52,12 +53,12 @@ with SitlInstance("/tmp/sitl-abc", speedup=5) as sitl:
 
 `wait_ready()` · `set_mode()` · `arm()` · `takeoff()` · `wait_altitude()` ·
 `wait_disarmed()` · `get_position()` → dict · `get_mode_name()` · `set_param()` ·
-`square_via_rc()`, cộng `upload_mission()` / `download_mission()` /
-`print_ket_qua()` / `find_latest_bin()` ở mức module.
+`start_auto_mission()` · `square_via_rc()`, cộng `run_dir()` / `upload_mission()` /
+`download_mission()` / `print_ket_qua()` / `find_latest_bin()` ở mức module.
 
-## Bốn cái bẫy đã sập thật (22/09/2026)
+## Năm cái bẫy đã sập thật (22/09/2026)
 
-Ghi ở đây để người sau không mất lại chừng ấy thời gian. Cả bốn đều **im lặng**:
+Ghi ở đây để người sau không mất lại chừng ấy thời gian. Cả năm đều **im lặng**:
 làm sai thì hỏng, mà thông báo lỗi không chỉ vào nguyên nhân.
 
 1. **Đổi mode sang GUIDED quá sớm.** Lệnh thành công, heartbeat báo đúng
@@ -78,6 +79,13 @@ làm sai thì hỏng, mà thông báo lỗi không chỉ vào nguyên nhân.
 4. **RTL không chuyển mode sang `LAND`.** Mode **vẫn là `RTL`** suốt lúc hạ.
    Chờ `LAND` là chờ mãi. Muốn thử `LAND` thì gọi riêng.
 
+5. **AUTO từ mặt đất cần `AUTO_OPTIONS = 3`.** `MAV_CMD_MISSION_START` trả
+   `MAV_RESULT_DENIED`; arm thẳng trong AUTO trả `MAV_RESULT_FAILED`; và nếu
+   cứ để đó thì máy bay tự disarm sau `DISARM_DELAY = 10` s vì nó nằm dưới đất
+   với ga bằng 0. Tham số `AUTO_OPTIONS` bit 0 cho phép arm trong AUTO, bit 1
+   cho phép cất cánh không cần nâng ga. Trên drone THẬT, bit 1 nghĩa là máy bay
+   tự nhấc lên mà không ai chạm cần ga — đọc `SAFETY.md` trước.
+
 Thêm một cái về môi trường, không phải về ArduPilot: SITL khởi động với `-w`
 (xoá EEPROM) sẽ **đổ toàn bộ ~1370 tham số** ngay sau khi nối. Vòng chờ
 `PARAM_VALUE` nào chỉ lọc theo kiểu message sẽ vớ phải gói đầu tiên trong cơn lũ
@@ -86,7 +94,12 @@ Thêm một cái về môi trường, không phải về ArduPilot: SITL khởi 
 
 ## Log bay
 
-Log `.BIN` nằm dưới `<use-dir>/logs/`. `run_log_dump.py` rút ra CSV vào
+Log `.BIN` nằm dưới `~/.cache/iot-cv-sitl/<tên-runner>/logs/`.
+
+Cố ý **không** để trong `/tmp`: đó là thư mục ai cũng ghi được, nên một đường dẫn
+đoán trước được có thể bị người khác trên cùng máy chèn symlink vào. Cũng cố ý
+**không** để trong repo: repo nằm trên ổ Windows gắn qua 9p, mà SITL ghi log rất
+dày. Đổi chỗ bằng biến `SITL_RUN_DIR` nếu cần. `run_log_dump.py` rút ra CSV vào
 `logs/sitl/`. Cả `.BIN` lẫn CSV đều **không commit** — `.gitignore` chặn, chỉ
 `.gitkeep` được giữ. Mở `.BIN` bằng [UAV Log Viewer](https://plot.ardupilot.org).
 

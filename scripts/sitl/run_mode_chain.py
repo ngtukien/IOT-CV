@@ -40,7 +40,7 @@ import harness  # noqa: E402
 from harness import SitlError, SitlInstance, print_ket_qua  # noqa: E402
 
 DO_CAO_M = 20.0
-USE_DIR = "/tmp/sitl-mode-chain"
+USE_DIR = "mode-chain"
 
 # Mode bay thử khi ĐANG TRÊN KHÔNG, theo thứ tự. STABILIZE và LAND không nằm ở
 # đây: xem hai điểm về thứ tự trong docstring.
@@ -82,7 +82,7 @@ def main() -> int:
     ket_qua: list[tuple[str, str]] = []
     da_qua: list[str] = []
 
-    with SitlInstance(USE_DIR, speedup=5) as sitl:
+    with SitlInstance(harness.run_dir(USE_DIR), speedup=5) as sitl:
         # --- 1. STABILIZE, dưới đất ---------------------------------------
         sitl.set_mode("STABILIZE")
         da_qua.append("STABILIZE")

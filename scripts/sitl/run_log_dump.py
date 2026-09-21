@@ -35,15 +35,11 @@ from harness import LOGS_DIR, SitlError, print_ket_qua  # noqa: E402
 
 # Thư mục các runner khác ghi log. `--use-dir` của sim_vehicle.py đặt log dưới
 # <use-dir>/logs/, nên quét cả hai mức.
+# Quét thư mục làm việc của các runner. `RUN_DIR_BASE` nằm dưới $HOME, không
+# phải /tmp — xem chú thích ở `harness.RUN_DIR_BASE`.
 THU_MUC_QUET = [
-    Path("/tmp/sitl-mode-chain/logs"),
-    Path("/tmp/sitl-mission-auto/logs"),
-    Path("/tmp/sitl-mission-low/logs"),
-    Path("/tmp/sitl-rtl-alt/logs"),
-    Path("/tmp/sitl-mode-chain"),
-    Path("/tmp/sitl-mission-auto"),
-    Path("/tmp/sitl-mission-low"),
-    Path("/tmp/sitl-rtl-alt"),
+    *sorted(harness.RUN_DIR_BASE.glob("*/logs")),
+    *sorted(harness.RUN_DIR_BASE.glob("*")),
     LOGS_DIR,
 ]
 

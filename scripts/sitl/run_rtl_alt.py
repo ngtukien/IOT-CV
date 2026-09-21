@@ -51,7 +51,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harness  # noqa: E402
 from harness import SitlError, SitlInstance, print_ket_qua  # noqa: E402
 
-USE_DIR = "/tmp/sitl-rtl-alt"
+USE_DIR = "rtl-alt"
 DO_CAO_CAT_CANH_M = 20.0
 KHOANG_BAY_RA_M = 60.0
 
@@ -147,7 +147,7 @@ def main() -> int:
     ket_qua: list[tuple[str, str]] = []
     luot: list[dict] = []
 
-    with SitlInstance(USE_DIR, speedup=5) as sitl:
+    with SitlInstance(harness.run_dir(USE_DIR), speedup=5) as sitl:
         sitl.wait_ready()
         home = sitl.get_position()
         lat0, lon0 = home["lat"], home["lon"]
