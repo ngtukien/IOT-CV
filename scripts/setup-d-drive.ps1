@@ -34,16 +34,22 @@ Set-StrictMode -Version Latest
 # Tiện ích
 # ----------------------------------------------------------------------------
 
+# KHÔNG dùng Get-PSDrive: nó nhớ đệm dung lượng từ lúc phiên PowerShell khởi động,
+# nên bảng "trước / sau" luôn in ra chênh lệch 0.00 GB dù script vừa dời vài GB.
+# Đó là một con số xanh vô nghĩa, tệ hơn không có số. DriveInfo đọc lại từ hệ thống
+# mỗi lần gọi.
 function Get-FreeSpaceTable {
     foreach ($letter in 'C', 'D') {
-        $d = Get-PSDrive -Name $letter -PSProvider FileSystem -ErrorAction SilentlyContinue
-        if ($d) {
+        try {
+            $d = [System.IO.DriveInfo]::new("$letter`:\")
+            if (-not $d.IsReady) { continue }
             [pscustomobject]@{
                 Drive  = "$letter`:"
-                FreeGB = [math]::Round($d.Free / 1GB, 2)
-                UsedGB = [math]::Round($d.Used / 1GB, 2)
+                FreeGB = [math]::Round($d.AvailableFreeSpace / 1GB, 2)
+                UsedGB = [math]::Round(($d.TotalSize - $d.AvailableFreeSpace) / 1GB, 2)
             }
         }
+        catch { }
     }
 }
 
@@ -233,21 +239,35 @@ else {
 # 3. pnpm store (không phải biến môi trường - là config của pnpm)
 # ----------------------------------------------------------------------------
 
-Write-Step '3. pnpm store-dir'
+Write-Step '3. pnpm store — KHÔNG ép đường dẫn, chỉ kiểm tra'
 
+# Kiểm chứng 21/09/2026: `pnpm config set store-dir` báo OK nhưng KHÔNG ghi được
+# (lỗi "global bin directory is not in PATH" chặn nó), và `pnpm config get store-dir`
+# vẫn trả về `undefined`.
+#
+# Quan trọng hơn: đó là hành vi ĐÚNG, không phải lỗi. Khi store-dir để trống, pnpm
+# tự tạo MỘT kho cho MỖI Ổ ĐĨA, vì hardlink chỉ hoạt động trong cùng một ổ. Project
+# ở ổ D dùng kho ở ổ D. Ép nó về một đường dẫn cứng sẽ phá cơ chế đó ngay khi có
+# project nằm ở ổ khác. Vì vậy script chỉ BÁO CÁO, không đụng vào.
 if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-    $curStore = (pnpm config get store-dir 2>$null)
-    if ($curStore -eq $pPnpmStore) {
-        Write-Act "pnpm store-dir đã đúng: $pPnpmStore" 'SKIP'
+    $realStore = (pnpm store path 2>$null)
+    if ($realStore) {
+        $drive = ($realStore -split ':')[0]
+        if ($drive -eq 'C') {
+            Write-Act "pnpm đang dùng kho trên ổ C: $realStore" 'WARN'
+            Write-Act "  project ở ổ D sẽ tự sinh kho riêng trên D, không cần làm gì" 'WARN'
+        }
+        else {
+            Write-Act "pnpm dùng kho $realStore (đúng ổ, không cần đổi)" 'OK'
+        }
     }
-    elseif ($Apply) {
-        pnpm config set store-dir $pPnpmStore --global | Out-Null
-        Write-Act "pnpm config set store-dir $pPnpmStore (cũ: '$curStore')" 'OK'
+    # Kho cũ trên ổ C là mồ côi khi mọi project đã nằm ở ổ D.
+    $cStore = Join-Path $env:LOCALAPPDATA 'pnpm\store'
+    $cMB = Get-DirSizeMB -Path $cStore
+    if ($null -ne $cMB -and $cMB -gt 1) {
+        Write-Act "kho pnpm cũ trên ổ C còn $cMB MB tại $cStore" 'WARN'
+        Write-Act "  chạy 'pnpm store prune' trước; nếu vẫn còn thì xoá tay (node_modules đã cài vẫn chạy nhờ hardlink)" 'WARN'
     }
-    else {
-        Write-Act "sẽ đặt pnpm store-dir = $pPnpmStore (cũ: '$curStore')" 'DRY'
-    }
-    Write-Act "LƯU Ý: store phải cùng ổ với project thì pnpm mới hardlink được. Project ở D: -> store ở D: là đúng." 'WARN'
 }
 else {
     Write-Act 'không tìm thấy pnpm, bỏ qua' 'SKIP'
@@ -332,7 +352,7 @@ if ((Test-Path -LiteralPath $defaultUvToolDir) -and ($defaultUvToolDir -ne $pUvT
 # KHÔNG đang chạy (nó khoá file venv, reinstall giữa chừng sẽ hỏng).
 $cuaDriverOldDir = Join-Path $defaultUvToolDir 'cua-driver'
 if (Test-Path -LiteralPath $cuaDriverOldDir) {
-    Write-Act "cua-driver mồ côi tại $cuaDriverOldDir. Khi MCP server cua-driver KHÔNG chạy, sửa bằng: uv tool install cua-driver --reinstall" 'WARN'
+    Write-Act "cua-driver mồ côi tại $cuaDriverOldDir. Khi MCP server cua-driver KHÔNG chạy, sửa bằng: uv tool install cua-driver --reinstall --force" 'WARN'
 }
 
 # ----------------------------------------------------------------------------

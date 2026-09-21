@@ -77,8 +77,17 @@ Cả bốn dòng phải in đường dẫn bắt đầu bằng `D:\DevCache\`.
 **Sau khi mở PowerShell mới — sửa nốt `cua-driver` mồ côi.** `cua-driver` được cài từ trước khi `UV_TOOL_DIR` từng được đặt, nên vẫn còn nằm ở vị trí mặc định `C:\Users\Nghaiz\AppData\Roaming\uv\tools\cua-driver` (76 MB) — `uv tool list` không còn thấy nó, dù nó vẫn chạy bình thường. Chỉ chạy lệnh sau khi **MCP server `cua-driver` KHÔNG đang chạy** (nó khoá file venv, reinstall giữa chừng sẽ hỏng):
 
 ```powershell
-uv tool install cua-driver --reinstall
+uv tool install cua-driver --reinstall --force
 ```
+
+**Kết quả thật khi chạy ngày 21/09/2026.** Ổ C: **28,4 GB → 35,41 GB trống**, thu hồi được 7 GB. Đã chuyển: uv cache 3,86 GB, npm cache 2,69 GB, pip cache 5 MB, Arduino IDE 527 MB, và xoá kho pnpm mồ côi 633 MB trên C:. Bốn điều học được, đã ghi vào script:
+
+1. **`pnpm config set store-dir` không ghi được** và cũng **không nên ghi**. Lỗi "global bin directory is not in PATH" chặn nó, nhưng quan trọng hơn: để trống là hành vi đúng, pnpm cố ý tạo một kho cho **mỗi ổ đĩa** vì hardlink chỉ chạy trong cùng ổ. Kho thật là `D:\.pnpm-store`, đã nằm trên D. Script nay chỉ báo cáo, không ép.
+2. **Kho pnpm cũ trên C: là mồ côi**, `pnpm store prune` không thấy nó vì prune chỉ dọn kho đang dùng. Phải xoá tay. An toàn: `node_modules` đã cài vẫn chạy nhờ hardlink giữ dữ liệu sống.
+3. **Bảng dung lượng trước/sau của script từng luôn in 0.00 GB.** `Get-PSDrive` nhớ đệm từ lúc phiên PowerShell khởi động nên đọc lại vẫn ra số cũ. Một con số vô nghĩa còn tệ hơn không có số, vì nó làm người đọc tưởng script không làm gì. Đã đổi sang `[System.IO.DriveInfo]`.
+4. **`uv tool install --reinstall` thiếu `--force` sẽ lỗi** `Executable already exists`, vì shim cũ trong `~/.local/bin` vẫn còn.
+
+**Còn nợ trên C:** `~/.platformio.old` 80 MB (xoá sau khi PlatformIO dựng lại trên D và chạy thử được một project), cache uv 51 MB (34 file bị khoá), `cua-driver` 76 MB (chờ đóng Claude Code).
 
 ### 00.1 Kiểm kê thứ đã có sẵn
 

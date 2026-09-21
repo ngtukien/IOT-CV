@@ -1355,7 +1355,7 @@ tham số `-CacheRoot` (mặc định `D:\DevCache`) và `-AppRoot` (mặc đị
 3. **`cua-driver` bị mồ côi, vẫn còn ở C:.** Nó được cài từ trước khi `UV_TOOL_DIR` từng
    được đặt, nên nằm ở `C:\Users\Nghaiz\AppData\Roaming\uv\tools\cua-driver` (76 MB) và
    `uv tool list` không còn thấy nó nữa. Nó vẫn chạy được. Cách sửa chỉ là một lệnh, nhưng
-   CHỈ chạy khi MCP server đó KHÔNG đang chạy: `uv tool install cua-driver --reinstall`.
+   CHỈ chạy khi MCP server đó KHÔNG đang chạy: `uv tool install cua-driver --reinstall --force`.
    Đây là bước rõ ràng người dùng tự chạy sau khi khởi động lại phiên làm việc.
 
 4. **Vẫn còn sót trên C:, cần thoát hẳn VS Code mới dọn được:** 633 MB pnpm store cũ
