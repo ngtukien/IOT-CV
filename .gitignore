@@ -57,6 +57,11 @@ runs/
 # ---------------------------------------------------------------------------
 logs/*
 !logs/.gitkeep
+# Phase 03: giu thu muc logs/sitl/ trong git nhung KHONG commit du lieu bay.
+# Can ca 3 dong: logs/* da loai tru thu muc cha nen phai mo lai no truoc.
+!logs/sitl/
+logs/sitl/*
+!logs/sitl/.gitkeep
 detections/
 snapshots/
 *.BIN

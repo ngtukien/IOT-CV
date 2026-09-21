@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Phase 03 — Việc của bạn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+/* Token màu + font dùng chung với docs/linh-kien-s500.html — đừng đổi lệch. */
+:root{
+  --ground:#EDF0EE; --surface:#FFFFFF; --surface2:#F5F8F7; --sunken:#E4E9E7;
+  --ink:#131A17; --ink2:#44514C; --muted:#77857F; --line:#DCE3E0; --line2:#C8D2CE;
+  --accent:#C9481B; --accent-ink:#C9481B; --accent-soft:#FAE9E1;
+  --ok:#1C7A54; --ok-soft:#DFF1E9;
+  --warn:#9B6206; --warn-soft:#F9EFDA;
+  --danger:#B5322C; --danger-soft:#F8E5E3;
+  --term-bg:#12191C; --term-ink:#DDE6E4;
+  --shadow:0 1px 2px rgba(19,26,23,.06), 0 6px 20px -12px rgba(19,26,23,.28);
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1412; --surface:#161D1A; --surface2:#1B2421; --sunken:#111815;
+    --ink:#E7EDEA; --ink2:#B0BDB8; --muted:#7F8D88; --line:#26312D; --line2:#33403B;
+    --accent:#FF7C48; --accent-ink:#FF9166; --accent-soft:#2C1911;
+    --ok:#45C48D; --ok-soft:#0F2820;
+    --warn:#DCA33E; --warn-soft:#282013;
+    --danger:#E86B63; --danger-soft:#2B1614;
+    --term-bg:#0A0F11; --term-ink:#D6E2DF;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1412; --surface:#161D1A; --surface2:#1B2421; --sunken:#111815;
+  --ink:#E7EDEA; --ink2:#B0BDB8; --muted:#7F8D88; --line:#26312D; --line2:#33403B;
+  --accent:#FF7C48; --accent-ink:#FF9166; --accent-soft:#2C1911;
+  --ok:#45C48D; --ok-soft:#0F2820;
+  --warn:#DCA33E; --warn-soft:#282013;
+  --danger:#E86B63; --danger-soft:#2B1614;
+  --term-bg:#0A0F11; --term-ink:#D6E2DF;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size:15.5px; line-height:1.65; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:860px; margin:0 auto; padding:26px 16px 90px}
+h1,h2,h3,h4{font-family:Archivo, system-ui, sans-serif; text-wrap:balance; margin:0}
+h1{font-size:clamp(27px,5.4vw,40px); font-weight:800; letter-spacing:-.02em; line-height:1.08}
+h2{font-size:clamp(19px,3.4vw,23px); font-weight:700; letter-spacing:-.01em}
+h3{font-size:16px; font-weight:700}
+h4{font-size:14px; font-weight:700}
+p{margin:0}
+a{color:var(--accent-ink)}
+.mono{font-family:"JetBrains Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+header{display:flex; flex-direction:column; gap:13px; margin-bottom:22px}
+.eyebrow{font-family:Archivo,sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent-ink)}
+.lede{color:var(--ink2); max-width:64ch}
+
+/* ---------- panel ---------- */
+.panel{background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--radius); padding:17px 18px; box-shadow:var(--shadow)}
+.panel + .panel{margin-top:13px}
+
+/* ---------- split: tôi làm / bạn làm ---------- */
+.split{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:20px 0}
+@media (max-width:640px){ .split{grid-template-columns:1fr} }
+.split .panel{margin:0}
+.split h3{margin-bottom:9px; display:flex; align-items:center; gap:7px}
+.split ul{margin:0; padding-left:19px; color:var(--ink2); font-size:14.4px}
+.split li{margin:4px 0}
+.badge{font-family:Archivo,sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; padding:3px 8px; border-radius:99px; white-space:nowrap}
+.badge.bot{background:var(--ok-soft); color:var(--ok)}
+.badge.you{background:var(--accent-soft); color:var(--accent-ink)}
+
+/* ---------- progress ---------- */
+.meter{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:15px 17px; display:flex; flex-direction:column; gap:10px; box-shadow:var(--shadow); margin:20px 0}
+.meter-top{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap}
+.meter-label{font-family:Archivo,sans-serif; font-weight:700; font-size:12.5px;
+  letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+.meter-num{font-family:"JetBrains Mono",monospace; font-size:18px; font-weight:600}
+.meter-num b{color:var(--ok)}
+.bar{height:7px; border-radius:99px; background:var(--sunken); overflow:hidden}
+.bar>i{display:block; height:100%; width:0%; background:var(--ok); border-radius:99px; transition:width .35s ease}
+.meter-foot{font-size:12.5px; color:var(--muted)}
+
+/* ---------- mục lục ---------- */
+.toc{background:var(--surface2); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 17px; margin:20px 0}
+.toc ol{margin:8px 0 0; padding-left:20px; color:var(--ink2); font-size:14.4px}
+.toc li{margin:5px 0}
+.toc a{text-decoration:none; color:var(--ink2)}
+.toc a:hover{color:var(--accent-ink); text-decoration:underline}
+.toc .t{font-family:"JetBrains Mono",monospace; font-size:12px; color:var(--muted); margin-left:5px}
+
+/* ---------- bước ---------- */
+.step{margin:34px 0 0; scroll-margin-top:16px}
+.step-head{display:flex; align-items:flex-start; gap:12px; margin-bottom:6px}
+.step-n{flex:none; width:36px; height:36px; border-radius:9px; background:var(--accent);
+  color:#fff; font-family:Archivo,sans-serif; font-weight:800; font-size:17px;
+  display:grid; place-items:center; margin-top:1px}
+.step-n.done{background:var(--ok)}
+.step-meta{font-size:12.5px; color:var(--muted); margin-top:2px}
+.step-body{padding-left:48px}
+@media (max-width:560px){ .step-body{padding-left:0} }
+
+/* ---------- hành động đánh số ---------- */
+.acts{counter-reset:act; margin:14px 0; padding:0; list-style:none}
+.acts>li{counter-increment:act; position:relative; padding-left:31px; margin:13px 0}
+.acts>li::before{content:counter(act); position:absolute; left:0; top:1px;
+  width:22px; height:22px; border-radius:50%; background:var(--sunken); color:var(--ink2);
+  font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:600;
+  display:grid; place-items:center}
+
+/* ---------- phím + nút ---------- */
+kbd{font-family:"JetBrains Mono",monospace; font-size:12.5px; background:var(--surface);
+  border:1px solid var(--line2); border-bottom-width:2px; border-radius:5px;
+  padding:1.5px 6px; white-space:nowrap; color:var(--ink)}
+.btn-ui{font-family:Archivo,sans-serif; font-size:12px; font-weight:700; letter-spacing:.04em;
+  background:var(--sunken); border:1px solid var(--line2); border-radius:5px;
+  padding:2px 8px; white-space:nowrap}
+code{font-family:"JetBrains Mono",monospace; font-size:.9em; background:var(--sunken);
+  padding:1.5px 5px; border-radius:4px; word-break:break-word}
+
+/* ---------- khối terminal ---------- */
+.term{background:var(--term-bg); color:var(--term-ink); border-radius:8px;
+  padding:0; margin:11px 0; overflow:hidden; border:1px solid var(--line2)}
+.term-bar{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:7px 12px; background:rgba(255,255,255,.05); border-bottom:1px solid rgba(255,255,255,.08)}
+.term-where{font-family:Archivo,sans-serif; font-size:10.5px; font-weight:700;
+  letter-spacing:.09em; text-transform:uppercase; color:#8FA8A2}
+.term-copy{font-family:Archivo,sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; background:transparent; border:1px solid rgba(255,255,255,.2);
+  color:#A9C0BA; padding:3px 9px; border-radius:5px; cursor:pointer}
+.term-copy:hover{background:rgba(255,255,255,.1); color:#E4EEEC}
+.term pre{margin:0; padding:12px 13px; overflow-x:auto;
+  font-family:"JetBrains Mono",monospace; font-size:13px; line-height:1.72}
+.term .p{color:#6E8A84; user-select:none}
+.term .c{color:#7FBFA8}
+
+/* ---------- thấy gì ---------- */
+.saw{background:var(--ok-soft); border-left:3px solid var(--ok); border-radius:0 7px 7px 0;
+  padding:11px 14px; margin:11px 0; font-size:14.4px}
+.saw h4{color:var(--ok); font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; margin-bottom:5px}
+
+/* ---------- cảnh báo ---------- */
+.note{border-radius:0 7px 7px 0; padding:11px 14px; margin:13px 0; font-size:14.4px; border-left:3px solid}
+.note h4{font-size:11.5px; letter-spacing:.09em; text-transform:uppercase; margin-bottom:5px}
+.note.warn{background:var(--warn-soft); border-color:var(--warn)} .note.warn h4{color:var(--warn)}
+.note.stop{background:var(--danger-soft); border-color:var(--danger)} .note.stop h4{color:var(--danger)}
+.note.info{background:var(--surface2); border-color:var(--line2)} .note.info h4{color:var(--muted)}
+.note p + p{margin-top:7px}
+
+/* ---------- sơ đồ cửa sổ ---------- */
+.wins{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:13px 0}
+@media (max-width:640px){ .wins{grid-template-columns:1fr} }
+.win{background:var(--surface2); border:1px solid var(--line); border-radius:8px; padding:11px 12px}
+.win.key{border-color:var(--accent); border-width:2px; background:var(--accent-soft)}
+.win .wt{font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:600; color:var(--ink);
+  display:block; margin-bottom:5px; word-break:break-all}
+.win .wd{font-size:13.2px; color:var(--ink2)}
+.win .wk{display:inline-block; margin-top:7px; font-family:Archivo,sans-serif; font-size:10px;
+  font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--accent-ink)}
+
+/* ---------- bảng ---------- */
+.tbl{width:100%; border-collapse:collapse; margin:13px 0; font-size:14px}
+.tbl th{text-align:left; font-family:Archivo,sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+  padding:7px 10px; border-bottom:1.5px solid var(--line2)}
+.tbl td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink2)}
+.tbl td:first-child{color:var(--ink)}
+.tbl tr:last-child td{border-bottom:none}
+.scroll-x{overflow-x:auto; -webkit-overflow-scrolling:touch}
+
+/* ---------- checkbox ---------- */
+.checks{list-style:none; margin:13px 0; padding:0}
+.checks li{margin:0; border-bottom:1px solid var(--line)}
+.checks li:last-child{border-bottom:none}
+.checks label{display:flex; gap:11px; align-items:flex-start; cursor:pointer; padding:10px 2px; font-size:14.6px}
+.checks input{flex:none; width:19px; height:19px; margin:1px 0 0; accent-color:var(--ok); cursor:pointer}
+.checks input:checked + span{color:var(--muted); text-decoration:line-through}
+.checks .who{font-family:Archivo,sans-serif; font-size:9.5px; font-weight:700; letter-spacing:.07em;
+  text-transform:uppercase; padding:2px 6px; border-radius:99px; margin-left:auto; flex:none; align-self:center}
+
+/* ---------- ô chép ---------- */
+.slot{background:var(--surface2); border:1.5px dashed var(--line2); border-radius:8px;
+  padding:12px 14px; margin:11px 0}
+.slot h4{color:var(--accent-ink); font-size:11.5px; letter-spacing:.09em;
+  text-transform:uppercase; margin-bottom:6px}
+.slot .where{font-size:13.2px; color:var(--ink2)}
+.slot .line{border-bottom:1px solid var(--line2); height:22px; margin-top:9px}
+
+hr{border:none; border-top:1px solid var(--line); margin:34px 0}
+footer{margin-top:44px; padding-top:18px; border-top:1px solid var(--line);
+  font-size:13px; color:var(--muted)}
+
+@media print{
+  body{background:#fff; font-size:11pt}
+  .term-copy,.meter{display:none}
+  .step{page-break-inside:avoid}
+  .term{background:#f4f4f4; color:#111; border:1px solid #bbb}
+  .term .p{color:#777} .term .c{color:#376}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">Phase 03 · ArduPilot trên drone ảo</span>
+  <h1>Việc của bạn — khoảng 1 giờ 30</h1>
+  <p class="lede">
+    Phần máy móc lặp đi lặp lại đã có script chạy tự động. Trang này chỉ còn
+    <b>ba việc phải là bạn tự làm</b>, vì tới Phase 19 và 20 bạn sẽ đứng giữa sân với drone
+    thật, cánh quạt đang quay, và lúc đó không có ai gõ hộ.
+  </p>
+</header>
+
+<div class="split">
+  <div class="panel">
+    <h3><span class="badge bot">Script lo</span></h3>
+    <ul>
+      <li>Chuỗi 7 chế độ bay, bay hình vuông</li>
+      <li>Thí nghiệm <code>RTL_ALT</code> 15 m so với 50 m</li>
+      <li>Mission 5 waypoint, chạy ở AUTO</li>
+      <li>Mission có waypoint thấp 3 m</li>
+      <li>Tải log <code>.BIN</code>, vẽ đồ thị độ cao</li>
+      <li>Viết phần kiến thức trong sổ tay</li>
+    </ul>
+  </div>
+  <div class="panel">
+    <h3><span class="badge you">Bạn lo</span></h3>
+    <ul>
+      <li><b>Ba lỗi pre-arm</b> — gây ra rồi tự sửa <span class="mono">(~40 phút)</span></li>
+      <li><b>Một lần bay tay</b> — cho biết cảm giác <span class="mono">(~20 phút)</span></li>
+      <li><b>Ba câu tự luận</b> GUIDED khác AUTO <span class="mono">(~5 phút)</span></li>
+      <li>Cộng thời gian mở máy và chờ <span class="mono">(~25 phút)</span></li>
+    </ul>
+  </div>
+</div>
+
+<div class="meter">
+  <div class="meter-top">
+    <span class="meter-label">Tiến độ của bạn</span>
+    <span class="meter-num"><b id="pn">0</b> / <span id="pt">0</span></span>
+  </div>
+  <div class="bar"><i id="pb"></i></div>
+  <p class="meter-foot" id="pf">Tick vào ô ở mỗi bước. Trình duyệt tự nhớ, đóng trang mở lại vẫn còn.</p>
+</div>
+
+<div class="toc">
+  <span class="meter-label">Đi tới bước</span>
+  <ol>
+    <li><a href="#b1">Mở cửa sổ Ubuntu</a><span class="t">2 phút</span></li>
+    <li><a href="#b2">Chạy drone ảo</a><span class="t">3 phút</span></li>
+    <li><a href="#b3">Mở Mission Planner và nối vào</a><span class="t">5 phút</span></li>
+    <li><a href="#b4">Ba lỗi pre-arm — việc chính</a><span class="t">40 phút</span></li>
+    <li><a href="#b5">Một lần bay tay</a><span class="t">20 phút</span></li>
+    <li><a href="#b6">Ba câu tự luận</a><span class="t">5 phút</span></li>
+    <li><a href="#b7">Tắt máy và chép log về</a><span class="t">5 phút</span></li>
+    <li><a href="#b8">Báo lại cho tôi</a><span class="t">1 phút</span></li>
+  </ol>
+</div>
+
+<div class="note info">
+  <h4>Chuẩn bị trước khi mở bước 1</h4>
+  <p>Cần đúng hai thứ, cả hai đã cài xong ở Phase 02: <b>Ubuntu</b> (chạy trong Windows, đây là nơi
+  drone ảo sống) và <b>Mission Planner</b> (màn hình nhìn drone). Không cần cắm gì vào máy. Không có
+  phần cứng nào tham gia ở phase này.</p>
+  <p>Nếu thiếu một trong hai, quay lại <code>plans/phase-02-wsl2-sitl.md</code> trước đã.</p>
+</div>
+
+
+<!-- ══════════════════════════ BƯỚC 1 ══════════════════════════ -->
+<section class="step" id="b1">
+  <div class="step-head">
+    <div class="step-n">1</div>
+    <div>
+      <h2>Mở cửa sổ Ubuntu</h2>
+      <p class="step-meta">2 phút · đây là cửa sổ chữ màu đen, nơi bạn gõ lệnh</p>
+    </div>
+  </div>
+  <div class="step-body">
+
+  <ol class="acts">
+    <li>Bấm phím <kbd>⊞ Windows</kbd> trên bàn phím. Đó là phím có hình cửa sổ, nằm cạnh phím
+      <kbd>Alt</kbd> bên trái, hàng dưới cùng.</li>
+    <li>Menu Start hiện ra kèm một ô tìm kiếm. Gõ thẳng chữ <code>ubuntu</code>, không cần bấm
+      vào đâu trước.</li>
+    <li>Kết quả đầu tiên hiện ra là <b>Ubuntu</b> với biểu tượng vòng tròn màu cam. Bấm
+      <kbd>Enter</kbd>.</li>
+  </ol>
+
+  <div class="saw">
+    <h4>Bạn phải thấy</h4>
+    <p>Một cửa sổ nền đen mở ra, bên trong có một dòng chữ kết thúc bằng dấu <code>$</code>,
+    đại khái như <code>nghaiz@DESKTOP:~$</code> rồi con trỏ nhấp nháy. Tên máy có thể khác,
+    không sao. Miễn là có dấu <code>$</code> và con trỏ nháy.</p>
+  </div>
+
+  <div class="note warn">
+    <h4>Nếu không thấy Ubuntu trong Start</h4>
+    <p>Mở PowerShell (bấm <kbd>⊞ Windows</kbd>, gõ <code>powershell</code>, Enter) rồi gõ
+    <code>wsl -l -v</code>. Nếu nó in ra dòng có chữ <code>Ubuntu</code> thì gõ tiếp
+    <code>wsl -d Ubuntu</code> là vào được. Nếu không in ra gì, Ubuntu chưa cài — quay về Phase 02.</p>
+  </div>
+
+  <ul class="checks" data-g="b1">
+    <li><label><input type="checkbox"><span>Cửa sổ Ubuntu đã mở, thấy dấu <code>$</code> nhấp nháy</span><span class="who badge you">bạn</span></label></li>
+  </ul>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════ BƯỚC 2 ══════════════════════════ -->
+<section class="step" id="b2">
+  <div class="step-head">
+    <div class="step-n">2</div>
+    <div>
+      <h2>Chạy drone ảo</h2>
+      <p class="step-meta">3 phút · hai dòng lệnh, rồi chờ</p>
+    </div>
+  </div>
+  <div class="step-body">
+
+  <p>Gõ đúng hai dòng dưới đây vào cửa sổ Ubuntu, mỗi dòng bấm <kbd>Enter</kbd> một lần.
+  Hoặc bấm nút <b>Chép</b> rồi dán bằng chuột phải.</p>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">Cửa sổ Ubuntu</span>
+      <button class="term-copy" data-copy="cd /mnt/d/Coding/IOT-CV
+./scripts/run_sitl.sh">Chép</button>
+    </div>
+<pre><span class="p">$</span> <span class="c">cd /mnt/d/Coding/IOT-CV</span>
+<span class="p">$</span> <span class="c">./scripts/run_sitl.sh</span></pre>
+  </div>
+
+  <div class="note info">
+    <h4>Lần đầu chạy sẽ lâu</h4>
+    <p>Chữ chạy rất nhiều, mất khoảng <b>30 tới 60 giây</b>. Đó là bình thường, nó đang dựng
+    drone ảo. Đừng bấm gì thêm, đừng đóng cửa sổ. Cứ để yên.</p>
+  </div>
+
+  <p>Khi xong, <b>ba cửa sổ mới</b> tự hiện ra. Nhận mặt chúng cho quen, vì bạn chỉ được gõ
+  vào <b>một</b> trong ba:</p>
+
+  <div class="wins">
+    <div class="win">
+      <span class="wt">Console</span>
+      <span class="wd">Bảng số liệu: độ cao, pin, tốc độ. Chỉ để nhìn.</span>
+      <span class="wk">Không gõ được</span>
+    </div>
+    <div class="win">
+      <span class="wt">Map</span>
+      <span class="wd">Bản đồ có một chấm là drone. Đây là chỗ bạn thấy nó bay.</span>
+      <span class="wk">Không gõ được</span>
+    </div>
+    <div class="win key">
+      <span class="wt">STABILIZE&gt;</span>
+      <span class="wd">Cửa sổ có dấu nhắc chữ <b>STABILIZE&gt;</b>. Đây là chỗ gõ lệnh.</span>
+      <span class="wk">★ Gõ vào đây</span>
+    </div>
+  </div>
+
+  <div class="note stop">
+    <h4>Nhầm cửa sổ là lỗi số một của người mới</h4>
+    <p>Nếu bạn gõ mà <b>không có gì phản hồi</b>, gần như chắc chắn bạn đang gõ nhầm vào cửa sổ
+    <b>Console</b>. Cửa sổ đúng là cái có dấu nhắc <code>STABILIZE&gt;</code> ở đầu dòng.
+    Bấm chuột một lần vào đúng cửa sổ đó rồi gõ lại.</p>
+    <p>Từ đây trở đi, mọi khối lệnh ghi nhãn <b>MAVProxy</b> đều có nghĩa là cửa sổ này.</p>
+  </div>
+
+  <p>Thử một lệnh vô hại cho chắc:</p>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">MAVProxy — cửa sổ có STABILIZE&gt;</span>
+      <button class="term-copy" data-copy="mode">Chép</button>
+    </div>
+<pre><span class="p">STABILIZE&gt;</span> <span class="c">mode</span></pre>
+  </div>
+
+  <div class="saw">
+    <h4>Bạn phải thấy</h4>
+    <p>Nó in ra chế độ bay hiện tại, ví dụ <code>Mode STABILIZE</code>. Nếu thấy dòng đó,
+    bạn đang gõ đúng cửa sổ và drone ảo đang sống.</p>
+  </div>
+
+  <ul class="checks" data-g="b2">
+    <li><label><input type="checkbox"><span>Ba cửa sổ đã hiện ra</span><span class="who badge you">bạn</span></label></li>
+    <li><label><input type="checkbox"><span>Gõ <code>mode</code> vào cửa sổ <code>STABILIZE&gt;</code> và nó có trả lời</span><span class="who badge you">bạn</span></label></li>
+  </ul>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════ BƯỚC 3 ══════════════════════════ -->
+<section class="step" id="b3">
+  <div class="step-head">
+    <div class="step-n">3</div>
+    <div>
+      <h2>Mở Mission Planner và nối vào</h2>
+      <p class="step-meta">5 phút · để nhìn drone bằng mắt, không chỉ bằng chữ</p>
+    </div>
+  </div>
+  <div class="step-body">
+
+  <div class="note info">
+    <h4>Giữ nguyên cửa sổ Ubuntu</h4>
+    <p>Đừng đóng, đừng tắt. Drone ảo đang chạy trong đó. Mission Planner chỉ là màn hình
+    nhìn vào nó thôi.</p>
+  </div>
+
+  <ol class="acts">
+    <li>Bấm <kbd>⊞ Windows</kbd>, gõ <code>mission planner</code>, bấm <kbd>Enter</kbd>.
+      Chờ nó mở, khoảng 10 tới 20 giây.</li>
+    <li>Nhìn lên <b>góc trên bên phải</b> cửa sổ Mission Planner. Ở đó có một ô chọn nhỏ
+      (dạng danh sách xổ xuống). Mặc định thường ghi <span class="btn-ui">AUTO</span> hoặc
+      một tên cổng dạng <span class="btn-ui">COM3</span>.</li>
+    <li>Bấm vào ô đó, chọn <span class="btn-ui">UDP</span> trong danh sách xổ ra.</li>
+    <li>Ngay bên phải ô vừa chọn có nút to ghi <span class="btn-ui">CONNECT</span>. Bấm vào nó.</li>
+    <li>Một hộp thoại nhỏ hiện lên hỏi số cổng, có sẵn một ô nhập. Gõ <code>14550</code> rồi bấm
+      <span class="btn-ui">OK</span>.</li>
+  </ol>
+
+  <div class="saw">
+    <h4>Bạn phải thấy</h4>
+    <p>Màn hình chính chuyển sang hiện <b>HUD</b> — một hình tròn nửa xanh da trời nửa nâu đất,
+    kiểu đồng hồ chân trời trong buồng lái máy bay. Quanh nó là các con số đang chạy. Dưới
+    cùng có thanh trạng thái đổi sang chữ <span class="btn-ui">DISCONNECT</span> thay vì
+    <span class="btn-ui">CONNECT</span>.</p>
+  </div>
+
+  <div class="note warn">
+    <h4>Nếu bấm CONNECT mà không có gì xảy ra</h4>
+    <p><b>Chờ đã.</b> Lần nối đầu Mission Planner phải tải toàn bộ danh sách tham số về, mất
+    30 giây tới 1 phút. Có thanh chạy nhỏ ở dưới. Cứ để yên.</p>
+    <p>Nếu quá 2 phút vẫn trắng: quay lại cửa sổ Ubuntu xem drone ảo còn chạy không. Nếu nó đã
+    thoát, chạy lại bước 2.</p>
+  </div>
+
+  <div class="note warn">
+    <h4>Nếu số trên Mission Planner không khớp với cửa sổ MAVProxy</h4>
+    <p>Bạn đang nối nhầm vào một drone ảo cũ còn sót lại từ lần chạy trước. Mở một cửa sổ
+    Ubuntu <b>mới</b> và gõ dòng dưới để dọn sạch, rồi làm lại bước 2:</p>
+    <div class="term">
+      <div class="term-bar">
+        <span class="term-where">Cửa sổ Ubuntu mới</span>
+        <button class="term-copy" data-copy="pkill -f sim_vehicle">Chép</button>
+      </div>
+<pre><span class="p">$</span> <span class="c">pkill -f sim_vehicle</span></pre>
+    </div>
+  </div>
+
+  <ul class="checks" data-g="b3">
+    <li><label><input type="checkbox"><span>Mission Planner đã nối, thấy HUD và số liệu chạy</span><span class="who badge you">bạn</span></label></li>
+  </ul>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════ BƯỚC 4 ══════════════════════════ -->
+<section class="step" id="b4">
+  <div class="step-head">
+    <div class="step-n">4</div>
+    <div>
+      <h2>Ba lỗi pre-arm — đây là việc chính</h2>
+      <p class="step-meta">40 phút · thứ duy nhất trong trang này sẽ cứu bạn ở Phase 19 và 20</p>
+    </div>
+  </div>
+  <div class="step-body">
+
+  <div class="note info">
+    <h4>Tại sao phải cố tình làm hỏng</h4>
+    <p>ArduPilot có hàng chục điều kiện kiểm tra trước khi cho cánh quay. Khi một điều kiện
+    không đạt, nó <b>từ chối</b> và in ra một dòng bắt đầu bằng <code>PreArm:</code> nói rõ
+    lý do.</p>
+    <p>Tới Phase 20 bạn đứng giữa sân, drone thật, cánh đã lắp, và nó từ chối arm. Người phải
+    đọc dòng đó là bạn. Nếu hôm nay bạn chưa từng thấy một dòng <code>PreArm:</code> nào thì
+    lúc ấy là lúc đầu tiên, và đó là lúc tệ nhất để học.</p>
+  </div>
+
+  <p>Trước hết thử arm bình thường, xem nó cho hay không:</p>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">MAVProxy</span>
+      <button class="term-copy" data-copy="arm throttle">Chép</button>
+    </div>
+<pre><span class="p">STABILIZE&gt;</span> <span class="c">arm throttle</span></pre>
+  </div>
+
+  <div class="note info">
+    <h4>Chú ý chữ nó in ra</h4>
+    <p>Bản ArduCopter của dự án in <code>Arming motors</code> khi thành công và
+    <code>Disarming</code> khi tắt. <b>Không phải</b> chữ <code>ARMED</code> / <code>DISARMED</code>
+    như nhiều tài liệu trên mạng ghi. Đừng hoang mang khi không thấy chữ ARMED.</p>
+  </div>
+
+  <p>Arm được ngay cũng không sao. Bài tập vẫn phải làm: ta sẽ <b>tự gây ra</b> ba lỗi khác nhau.</p>
+
+  <hr>
+
+  <h3>Lỗi thứ nhất — drone không biết mình đang ở đâu</h3>
+  <p>Ta tắt GPS giả. Không có GPS thì bộ lọc vị trí không hội tụ, và ArduPilot từ chối.</p>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">MAVProxy — gõ từng dòng</span>
+      <button class="term-copy" data-copy="param set GPS_TYPE 0">Chép</button>
+    </div>
+<pre><span class="p">STABILIZE&gt;</span> <span class="c">param set GPS_TYPE 0</span>
+
+<span class="p">          </span> ... đếm thầm 30 giây, để nó kịp mất định vị ...
+
+<span class="p">STABILIZE&gt;</span> <span class="c">arm throttle</span></pre>
+  </div>
+
+  <div class="saw">
+    <h4>Bạn phải thấy</h4>
+    <p>Một dòng bắt đầu bằng <code>PreArm:</code> liên quan tới định vị hoặc GPS. Dòng chính xác
+    tuỳ phiên bản — <b>đừng chép từ trang này</b>, chép từ màn hình của chính bạn. Dòng đó cũng
+    hiện trong Mission Planner ở tab <span class="btn-ui">Messages</span>.</p>
+  </div>
+
+  <div class="slot">
+    <h4>Chép vào sổ tay</h4>
+    <p class="where">Mở <code>docs/so-tay/03-hoc-ardupilot-drone-ao.md</code>, tìm mục
+    <b>"Ba dòng PreArm của chính bạn"</b>. Dán <b>nguyên văn</b> dòng lỗi, rồi viết thêm
+    <b>một câu của bạn</b> giải thích vì sao ArduPilot từ chối.</p>
+    <div class="line"></div><div class="line"></div>
+  </div>
+
+  <p>Sửa lại cho drone khoẻ:</p>
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">MAVProxy</span>
+      <button class="term-copy" data-copy="param set GPS_TYPE 1">Chép</button>
+    </div>
+<pre><span class="p">STABILIZE&gt;</span> <span class="c">param set GPS_TYPE 1</span></pre>
+  </div>
+  <p>Chờ khoảng 30 giây rồi <code>arm throttle</code> lại. Nó phải cho arm. Nếu chưa, chờ thêm.</p>
+
+  <hr>
+
+  <h3>Lỗi thứ hai — cần ga đang đẩy cao</h3>
+  <p>Nếu bạn cầm tay điều khiển với cần ga đang đẩy lên mà drone arm được, nó sẽ nhảy dựng
+  lên ngay. ArduPilot chặn việc đó.</p>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">MAVProxy — gõ từng dòng</span>
+      <button class="term-copy" data-copy="rc 3 1800">Chép</button>
+    </div>
+<pre><span class="p">STABILIZE&gt;</span> <span class="c">rc 3 1800</span>
+
+<span class="p">          </span> ... đợi 2 giây ...
+
+<span class="p">STABILIZE&gt;</span> <span class="c">arm throttle</span></pre>
+  </div>
+
+  <div class="saw">
+    <h4>Bạn phải thấy</h4>
+    <p>Một dòng <code>PreArm:</code> hoặc <code>Arm:</code> nói về throttle. Chép nguyên văn.</p>
+  </div>
+
+  <div class="slot">
+    <h4>Chép vào sổ tay — dòng thứ hai</h4>
+    <div class="line"></div><div class="line"></div>
+  </div>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">MAVProxy — hạ ga về thấp</span>
+      <button class="term-copy" data-copy="rc 3 1000">Chép</button>
+    </div>
+<pre><span class="p">STABILIZE&gt;</span> <span class="c">rc 3 1000</span></pre>
+  </div>
+
+  <div class="note warn">
+    <h4>Sửa xong vẫn báo lỗi?</h4>
+    <p>Đợi thêm 1 tới 2 giây rồi thử lại. Drone ảo đọc kênh điều khiển theo chu kỳ, không
+    tức thì.</p>
+  </div>
+
+  <hr>
+
+  <h3>Lỗi thứ ba — hàng rào ảo</h3>
+  <p>Bật hàng rào geofence, thêm một điều kiện nữa phải đạt trước khi arm.</p>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">MAVProxy — gõ từng dòng</span>
+      <button class="term-copy" data-copy="param set FENCE_ENABLE 1">Chép</button>
+    </div>
+<pre><span class="p">STABILIZE&gt;</span> <span class="c">param set FENCE_ENABLE 1</span>
+
+<span class="p">          </span> ... đợi 2 giây ...
+
+<span class="p">STABILIZE&gt;</span> <span class="c">arm throttle</span></pre>
+  </div>
+
+  <div class="note warn">
+    <h4>Nếu lỗi này không bật ra</h4>
+    <p>Fence có thể vẫn cho arm tuỳ cấu hình. Không sao, đổi cách khác: gõ
+    <code>param set ARMING_CHECK 1</code> để bật <b>toàn bộ</b> kiểm tra rồi
+    <code>arm throttle</code> — gần như chắc chắn sẽ lòi ra một lỗi nào đó. Chép dòng đó làm
+    lỗi thứ ba. Xong nhớ trả về: <code>param set ARMING_CHECK 0</code>.</p>
+  </div>
+
+  <div class="slot">
+    <h4>Chép vào sổ tay — dòng thứ ba</h4>
+    <div class="line"></div><div class="line"></div>
+  </div>
+
+  <p>Dọn dẹp cho sạch trước khi sang bước 5:</p>
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">MAVProxy</span>
+      <button class="term-copy" data-copy="param set FENCE_ENABLE 0
+param set GPS_TYPE 1
+rc 3 1000">Chép</button>
+    </div>
+<pre><span class="p">STABILIZE&gt;</span> <span class="c">param set FENCE_ENABLE 0</span>
+<span class="p">STABILIZE&gt;</span> <span class="c">param set GPS_TYPE 1</span>
+<span class="p">STABILIZE&gt;</span> <span class="c">rc 3 1000</span></pre>
+  </div>
+
+  <div class="note stop">
+    <h4>Luật không thương lượng</h4>
+    <p><b>Không bao giờ tắt hết <code>ARMING_CHECK</code> cho nhanh.</b> Trên drone ảo việc đó
+    chỉ làm bạn mất cơ hội học. Trên drone thật, đó là cách người ta làm gãy drone và cắt vào
+    tay. Đây là luật số 3 trong <code>SAFETY.md</code>.</p>
+    <p>Thói quen hình thành từ hôm nay, không phải từ ngày drone thật bay.</p>
+  </div>
+
+  <ul class="checks" data-g="b4">
+    <li><label><input type="checkbox"><span>Gây được lỗi pre-arm thứ nhất và đã chép nguyên văn vào sổ tay</span><span class="who badge you">bạn</span></label></li>
+    <li><label><input type="checkbox"><span>Gây được lỗi thứ hai và đã chép</span><span class="who badge you">bạn</span></label></li>
+    <li><label><input type="checkbox"><span>Gây được lỗi thứ ba và đã chép</span><span class="who badge you">bạn</span></label></li>
+    <li><label><input type="checkbox"><span>Mỗi dòng đã có <b>một câu của tôi</b> giải thích vì sao bị từ chối</span><span class="who badge you">bạn</span></label></li>
+    <li><label><input type="checkbox"><span>Sửa được cả ba, giờ <code>arm throttle</code> in <code>Arming motors</code></span><span class="who badge you">bạn</span></label></li>
+  </ul>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════ BƯỚC 5 ══════════════════════════ -->
+<section class="step" id="b5">
+  <div class="step-head">
+    <div class="step-n">5</div>
+    <div>
+      <h2>Một lần bay tay</h2>
+      <p class="step-meta">20 phút · script bay hộ được, nhưng cảm giác thì không truyền lại được</p>
+    </div>
+  </div>
+  <div class="step-body">
+
+  <div class="note info">
+    <h4>Hiểu lệnh <code>rc</code> trước khi gõ</h4>
+    <p><code>rc N &lt;số&gt;</code> giả lập việc đẩy một cần trên tay điều khiển.
+    <b><code>1500</code> nghĩa là buông tay, cần về giữa.</b> Nhỏ hơn 1500 là đẩy một bên,
+    lớn hơn là bên kia.</p>
+    <p>Kênh 1 nghiêng trái phải, kênh 2 chúi trước sau, kênh 3 ga lên xuống, kênh 4 xoay.</p>
+    <p><b>Người mới hay quên trả cần về 1500</b> rồi hoảng khi drone bay mãi không dừng.
+    Nhớ điều này.</p>
+  </div>
+
+  <p>Gõ từng dòng một, <b>đọc cột bên phải trước khi gõ dòng tiếp theo</b>:</p>
+
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead><tr><th style="width:38%">Gõ vào MAVProxy</th><th>Nhìn gì, chờ bao lâu</th></tr></thead>
+    <tbody>
+      <tr><td><code>mode guided</code></td><td>Cửa sổ Console đổi chế độ sang GUIDED. Gần như tức thì.</td></tr>
+      <tr><td><code>arm throttle</code></td><td>In <code>Arming motors</code>. Nếu bị từ chối, quay lại bước 4 đọc dòng lỗi.</td></tr>
+      <tr><td><code>takeoff 30</code></td><td><b>Chờ khoảng 20 giây.</b> Nhìn số độ cao trong Console bò dần lên 30.</td></tr>
+      <tr><td><code>mode loiter</code></td><td>Drone đứng im một chỗ trên bản đồ, tự giữ vị trí.</td></tr>
+      <tr><td><code>rc 2 1400</code></td><td>Chấm trên bản đồ <b>bắt đầu trôi</b>. Đếm 5 giây.</td></tr>
+      <tr><td><code>rc 2 1500</code></td><td>Nó <b>phanh lại và đứng yên</b>. Đây là điều đáng để ý nhất.</td></tr>
+      <tr><td><code>rc 1 1600</code></td><td>Trôi sang hướng khác. Đếm 5 giây.</td></tr>
+      <tr><td><code>rc 1 1500</code></td><td>Lại đứng yên.</td></tr>
+      <tr><td><code>mode althold</code></td><td>Vẫn giữ độ cao, nhưng <b>không còn tự giữ vị trí nữa</b> — nó bắt đầu trôi nhẹ.</td></tr>
+      <tr><td><code>mode rtl</code></td><td><b>Chờ 1 tới 2 phút.</b> Nó leo cao, bay về điểm cất cánh, rồi hạ.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="saw">
+    <h4>Bạn phải thấy ở cuối</h4>
+    <p>Chế độ tự chuyển sang <code>LAND</code>, drone hạ xuống, rồi in <code>Disarming</code>.
+    Bạn không cần gõ gì thêm — RTL tự làm hết.</p>
+  </div>
+
+  <div class="note info">
+    <h4>Điều đáng để ý nhất của cả bước này</h4>
+    <p>So sánh <code>mode loiter</code> với <code>mode althold</code>. Cùng buông tay, nhưng
+    LOITER đứng im còn ALT_HOLD trôi. Đó chính là ý <b>"máy giữ giùm bao nhiêu phần"</b>.
+    Nhớ cảm giác đó — tới Phase 20 bạn sẽ chọn chế độ dựa vào đúng cảm giác này.</p>
+  </div>
+
+  <div class="scroll-x">
+  <table class="tbl">
+    <thead><tr><th style="width:42%">Nếu gặp</th><th>Làm gì</th></tr></thead>
+    <tbody>
+      <tr><td><code>takeoff 30</code> không làm gì</td><td>Chưa arm, hoặc không ở GUIDED. Gõ lại <code>mode guided</code> rồi <code>arm throttle</code>.</td></tr>
+      <tr><td><code>mode loiter</code> bị từ chối</td><td>Định vị chưa đủ tốt. Chờ thêm 30 giây rồi gõ lại.</td></tr>
+      <tr><td>Drone trôi mãi không dừng</td><td>Bạn quên trả cần. Gõ <code>rc 1 1500</code> và <code>rc 2 1500</code>. Hoặc <code>mode loiter</code> để nó tự phanh.</td></tr>
+      <tr><td>Drone rơi tự do</td><td>Đang ở STABILIZE. Gõ <code>mode althold</code> rồi <code>rc 3 1500</code>.</td></tr>
+      <tr><td>Rối quá, muốn làm lại</td><td>Gõ <code>mode rtl</code>. Nó tự về, tự hạ. Đây là nút cứu.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <ul class="checks" data-g="b5">
+    <li><label><input type="checkbox"><span>Bay trọn chuỗi GUIDED → LOITER → ALT_HOLD → RTL, không crash</span><span class="who badge you">bạn</span></label></li>
+    <li><label><input type="checkbox"><span>Cảm nhận được khác biệt giữa LOITER và ALT_HOLD khi buông cần</span><span class="who badge you">bạn</span></label></li>
+  </ul>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════ BƯỚC 6 ══════════════════════════ -->
+<section class="step" id="b6">
+  <div class="step-head">
+    <div class="step-n">6</div>
+    <div>
+      <h2>Ba câu tự luận</h2>
+      <p class="step-meta">5 phút · đây là cổng pass, không phải bài tập cho vui</p>
+    </div>
+  </div>
+  <div class="step-body">
+
+  <div class="panel">
+    <h3>Câu hỏi</h3>
+    <p style="margin-top:8px; color:var(--ink2)">
+      <b>GUIDED khác AUTO ở chỗ nào, và vì sao website của dự án sẽ dùng GUIDED chứ không
+      dùng AUTO để lái tay?</b>
+    </p>
+  </div>
+
+  <div class="note stop">
+    <h4>Viết trước, đọc đáp án sau</h4>
+    <p>Sổ tay <code>docs/so-tay/03-hoc-ardupilot-drone-ao.md</code> có sẵn đáp án ở dưới một
+    đường kẻ ngang. <b>Đừng cuộn xuống đó.</b> Viết câu của bạn vào ô phía trên trước đã, dù
+    viết sai cũng được. Đọc đáp án trước khi tự viết là phá mất cả bài tập, và cổng pass
+    ghi rõ điều đó.</p>
+  </div>
+
+  <div class="slot">
+    <h4>Nơi viết</h4>
+    <p class="where">Mở <code>docs/so-tay/03-hoc-ardupilot-drone-ao.md</code>, mục
+    <b>"GUIDED khác AUTO"</b>, ô trống nằm <b>trên</b> đường kẻ ngang. Ba câu là đủ. Viết bằng
+    lời của bạn, không tra cứu.</p>
+    <div class="line"></div><div class="line"></div><div class="line"></div>
+  </div>
+
+  <p>Nếu bí, ba câu hỏi phụ này dẫn tới câu trả lời. Trả lời chúng trước rồi ghép lại:</p>
+  <ul style="color:var(--ink2); font-size:14.6px">
+    <li>Khi bay AUTO, danh sách waypoint nằm ở đâu — trong máy tính hay trong drone?</li>
+    <li>Nếu rút dây mạng giữa chừng, AUTO có bay tiếp không? GUIDED thì sao?</li>
+    <li>Website điều khiển tay theo thời gian thực. Điều đó hợp với cái nào hơn?</li>
+  </ul>
+
+  <ul class="checks" data-g="b6">
+    <li><label><input type="checkbox"><span>Đã tự viết câu trả lời <b>trước khi</b> đọc đáp án</span><span class="who badge you">bạn</span></label></li>
+    <li><label><input type="checkbox"><span>Đọc đáp án rồi và thấy mình hiểu đúng hướng</span><span class="who badge you">bạn</span></label></li>
+  </ul>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════ BƯỚC 7 ══════════════════════════ -->
+<section class="step" id="b7">
+  <div class="step-head">
+    <div class="step-n">7</div>
+    <div>
+      <h2>Tắt máy và chép log về</h2>
+      <p class="step-meta">5 phút · để tôi đọc log hộ bạn</p>
+    </div>
+  </div>
+  <div class="step-body">
+
+  <p>Mỗi chuyến bay, kể cả bay ảo, đều tự ghi một file nhật ký. Tôi sẽ vẽ đồ thị từ file đó.
+  Việc của bạn chỉ là chép nó về.</p>
+
+  <ol class="acts">
+    <li>Bấm chuột vào cửa sổ MAVProxy (cái có <code>STABILIZE&gt;</code>), gõ <code>exit</code>
+      rồi <kbd>Enter</kbd>. Hoặc bấm <kbd>Ctrl</kbd> + <kbd>C</kbd>. Ba cửa sổ sẽ đóng lại.</li>
+    <li>Quay về cửa sổ Ubuntu, chạy khối lệnh dưới.</li>
+  </ol>
+
+  <div class="note warn">
+    <h4>Phải tắt drone ảo trước khi chép</h4>
+    <p>Nếu còn chạy, file log đang được ghi dở và sẽ mở không được.</p>
+  </div>
+
+  <div class="term">
+    <div class="term-bar">
+      <span class="term-where">Cửa sổ Ubuntu</span>
+      <button class="term-copy" data-copy="ls -lt ~/ardupilot/ArduCopter/logs/ | head
+mkdir -p /mnt/d/Coding/IOT-CV/logs/sitl
+cp ~/ardupilot/ArduCopter/logs/*.BIN /mnt/d/Coding/IOT-CV/logs/sitl/">Chép</button>
+    </div>
+<pre><span class="p">$</span> <span class="c">ls -lt ~/ardupilot/ArduCopter/logs/ | head</span>
+<span class="p">$</span> <span class="c">mkdir -p /mnt/d/Coding/IOT-CV/logs/sitl</span>
+<span class="p">$</span> <span class="c">cp ~/ardupilot/ArduCopter/logs/*.BIN /mnt/d/Coding/IOT-CV/logs/sitl/</span></pre>
+  </div>
+
+  <div class="saw">
+    <h4>Bạn phải thấy</h4>
+    <p>Dòng đầu liệt kê vài file tên dạng <code>00000001.BIN</code>. Hai dòng sau chạy im lặng,
+    không in gì — <b>im lặng nghĩa là thành công</b> trong Linux.</p>
+  </div>
+
+  <div class="note warn">
+    <h4>Nếu thư mục log trống</h4>
+    <p>Drone ảo chỉ ghi log khi đã arm ít nhất một lần. Nếu bạn làm bước 4 và 5 thì chắc chắn
+    có. Nếu vẫn trống, bay lại một vòng ngắn có arm.</p>
+  </div>
+
+  <div class="note info">
+    <h4>Đừng cố đưa file .BIN lên git</h4>
+    <p>File log nặng và không phải mã nguồn, nên repo đã chặn sẵn. Chép về chỉ để xem.
+    Tuyệt đối không dùng <code>git add -f</code> để ép nó vào.</p>
+  </div>
+
+  <ul class="checks" data-g="b7">
+    <li><label><input type="checkbox"><span>Đã tắt drone ảo</span><span class="who badge you">bạn</span></label></li>
+    <li><label><input type="checkbox"><span>File <code>.BIN</code> đã nằm trong <code>logs/sitl/</code></span><span class="who badge you">bạn</span></label></li>
+  </ul>
+
+  </div>
+</section>
+
+
+<!-- ══════════════════════════ BƯỚC 8 ══════════════════════════ -->
+<section class="step" id="b8">
+  <div class="step-head">
+    <div class="step-n">8</div>
+    <div>
+      <h2>Báo lại cho tôi</h2>
+      <p class="step-meta">1 phút</p>
+    </div>
+  </div>
+  <div class="step-body">
+
+  <p>Nhắn cho tôi ba thứ, tôi lo phần còn lại:</p>
+
+  <div class="panel">
+    <ol style="margin:0; padding-left:20px; color:var(--ink2)">
+      <li><b>Ba dòng <code>PreArm:</code></b> — dán nguyên văn, kể cả khi bạn đã ghi vào sổ tay rồi.</li>
+      <li><b>Bay tay xong hay chưa</b> — và có gì khác với mong đợi không.</li>
+      <li><b>Đã có file <code>.BIN</code> trong <code>logs/sitl/</code> chưa.</b></li>
+    </ol>
+  </div>
+
+  <p style="margin-top:13px; color:var(--ink2)">Sau đó tôi sẽ: chạy script tự động cho các phần
+  còn lại, vẽ đồ thị từ log của bạn, ghép kết quả thật vào sổ tay, và tick
+  <code>plans/PROGRESS.md</code>.</p>
+
+  <div class="note stop">
+    <h4>Tôi sẽ không tick hộ những ô bạn chưa làm</h4>
+    <p>Cổng pass nào chưa có bằng chứng thật thì tôi để trống và ghi rõ là còn trống. Một bảng
+    tiến độ toàn dấu tick mà không đúng sự thật còn tệ hơn một bảng còn ô trống.</p>
+  </div>
+
+  </div>
+</section>
+
+
+<hr>
+
+<h2 id="tracuu">Tra cứu nhanh</h2>
+<p style="color:var(--ink2); margin-top:6px">In trang này ra hoặc để mở bên cạnh khi bay.</p>
+
+<div class="scroll-x">
+<table class="tbl">
+  <thead><tr><th style="width:36%">Lệnh</th><th>Nó làm gì</th></tr></thead>
+  <tbody>
+    <tr><td><code>mode</code></td><td>In chế độ bay hiện tại</td></tr>
+    <tr><td><code>status</code></td><td>In một khối trạng thái: vị trí, pin, arm hay chưa</td></tr>
+    <tr><td><code>arm throttle</code></td><td>Cho phép cánh quay. In <code>Arming motors</code> nếu được</td></tr>
+    <tr><td><code>disarm</code></td><td>Tắt. In <code>Disarming</code></td></tr>
+    <tr><td><code>takeoff 30</code></td><td>Cất cánh lên 30 mét. Chỉ chạy ở GUIDED</td></tr>
+    <tr><td><code>mode guided</code></td><td>Chế độ nhận lệnh từ máy tính. Website sẽ dùng cái này</td></tr>
+    <tr><td><code>mode loiter</code></td><td>Đứng im một chỗ, tự chống gió</td></tr>
+    <tr><td><code>mode althold</code></td><td>Giữ độ cao thôi, vị trí thì trôi</td></tr>
+    <tr><td><code>mode rtl</code></td><td>Tự về điểm cất cánh và hạ. <b>Nút cứu khi rối</b></td></tr>
+    <tr><td><code>mode land</code></td><td>Hạ ngay tại chỗ đang đứng</td></tr>
+    <tr><td><code>rc 3 1500</code></td><td>Đặt cần ga về giữa. <code>1500</code> luôn là giữa</td></tr>
+    <tr><td><code>rc 1 1500</code> / <code>rc 2 1500</code></td><td>Trả cần nghiêng và cần chúi về giữa</td></tr>
+    <tr><td><code>param show RTL_ALT</code></td><td>Xem một tham số. Dùng <code>*</code> để tìm: <code>param show RTL*</code></td></tr>
+    <tr><td><code>param set RTL_ALT 5000</code></td><td>Đổi tham số. Đơn vị ở đây là centimet, nên 5000 là 50 mét</td></tr>
+    <tr><td><code>wp list</code></td><td>Đọc danh sách waypoint đang nằm trong drone</td></tr>
+    <tr><td><code>exit</code></td><td>Tắt drone ảo</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 style="margin-top:34px">Gặp lỗi thì mở bảng này</h2>
+<div class="scroll-x">
+<table class="tbl">
+  <thead><tr><th style="width:40%">Hiện tượng</th><th>Nguyên nhân hay gặp nhất và cách xử</th></tr></thead>
+  <tbody>
+    <tr><td>Gõ gì cũng không phản hồi</td><td>Đang gõ nhầm cửa sổ <b>Console</b>. Bấm vào cửa sổ có <code>STABILIZE&gt;</code></td></tr>
+    <tr><td><code>param show</code> báo không tìm thấy</td><td>Sai tên. Tìm bằng dấu sao: <code>param show RTL*</code></td></tr>
+    <tr><td>Mission Planner không thấy gì</td><td>Chọn <span class="btn-ui">UDP</span> chưa, cổng có đúng <code>14550</code> không, drone ảo còn chạy không</td></tr>
+    <tr><td>Số hai màn hình không khớp</td><td>Còn sót drone ảo cũ. Gõ <code>pkill -f sim_vehicle</code> rồi chạy lại</td></tr>
+    <tr><td>Không thấy chữ <code>ARMED</code></td><td>Bản này in <code>Arming motors</code>. Đúng rồi, không phải lỗi</td></tr>
+    <tr><td>Nghịch param làm không arm được nữa</td><td>Đặt lại giá trị cũ, hoặc tắt hẳn rồi chạy <code>./scripts/run_sitl.sh -w</code> để xoá sạch về mặc định</td></tr>
+    <tr><td>Rối hoàn toàn, muốn bắt đầu lại</td><td>Đóng hết cửa sổ, gõ <code>pkill -f sim_vehicle</code>, làm lại từ bước 2. Không mất gì cả</td></tr>
+  </tbody>
+</table>
+</div>
+
+<footer>
+  <p><b>Phase 03 — Học ArduPilot trên drone ảo.</b> Bản đầy đủ của phase:
+  <code>plans/phase-03-hoc-ardupilot-drone-ao.md</code>. Ba luật cứng về an toàn:
+  <code>SAFETY.md</code>. Nơi ghi chép của bạn:
+  <code>docs/so-tay/03-hoc-ardupilot-drone-ao.md</code>.</p>
+  <p style="margin-top:9px">Phase này không có phần cứng nào tham gia. Drone ảo hoàn toàn,
+  không có cánh quạt nào quay thật.</p>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // Nút chép. Có bản dự phòng cho trình duyệt cũ hoặc trang mở bằng file://
+  document.querySelectorAll(".term-copy").forEach(function(b){
+    b.addEventListener("click", function(){
+      var txt = b.getAttribute("data-copy") || "";
+      var done = function(){
+        var old = b.textContent; b.textContent = "Đã chép";
+        setTimeout(function(){ b.textContent = old; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done, fallback);
+      } else { fallback(); }
+      function fallback(){
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+          document.body.appendChild(ta); ta.select();
+          document.execCommand("copy"); document.body.removeChild(ta); done();
+        } catch(e){ b.textContent = "Chép tay"; }
+      }
+    });
+  });
+
+  // Checkbox nhớ trạng thái. Bọc try/catch vì localStorage có thể bị chặn
+  // (cửa sổ ẩn danh, site data bị xoá) — trang vẫn phải chạy bình thường.
+  var KEY = "iotcv-phase03-viec-cua-ban";
+  var boxes = Array.prototype.slice.call(document.querySelectorAll(".checks input"));
+  boxes.forEach(function(el, i){ el.dataset.i = String(i); });
+
+  function load(){
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var on = JSON.parse(raw);
+      if (!Array.isArray(on)) return;
+      boxes.forEach(function(el, i){ el.checked = !!on[i]; });
+    } catch(e){ /* không có bộ nhớ thì thôi, tick vẫn dùng được trong phiên */ }
+  }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(boxes.map(function(el){ return el.checked; }))); }
+    catch(e){ /* bỏ qua */ }
+  }
+
+  var pn = document.getElementById("pn"),
+      pt = document.getElementById("pt"),
+      pb = document.getElementById("pb"),
+      pf = document.getElementById("pf");
+
+  function paint(){
+    var n = boxes.filter(function(el){ return el.checked; }).length;
+    var t = boxes.length;
+    pn.textContent = String(n);
+    pt.textContent = String(t);
+    pb.style.width = t ? (n / t * 100) + "%" : "0%";
+
+    // Đánh dấu bước đã xong
+    document.querySelectorAll(".step").forEach(function(sec){
+      var ins = sec.querySelectorAll(".checks input");
+      var num = sec.querySelector(".step-n");
+      if (!ins.length || !num) return;
+      var all = Array.prototype.every.call(ins, function(el){ return el.checked; });
+      num.classList.toggle("done", all);
+      if (all) num.textContent = "✓";
+      else num.textContent = num.dataset.n;
+    });
+
+    if (n === 0)      pf.textContent = "Chưa bắt đầu. Mở bước 1.";
+    else if (n === t) pf.textContent = "Xong hết phần của bạn. Sang bước 8, nhắn lại cho tôi.";
+    else              pf.textContent = "Còn " + (t - n) + " ô. Trình duyệt tự nhớ, đóng trang mở lại vẫn còn.";
+  }
+
+  document.querySelectorAll(".step-n").forEach(function(el){ el.dataset.n = el.textContent; });
+  boxes.forEach(function(el){ el.addEventListener("change", function(){ save(); paint(); }); });
+  load(); paint();
+})();
+</script>
+</body>
+</html>

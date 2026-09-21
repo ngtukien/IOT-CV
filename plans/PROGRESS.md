@@ -208,7 +208,29 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] Viết được câu trả lời tự luận "GUIDED khác AUTO ở chỗ nào" **trước khi** đọc đáp án.
 - [ ] `logs/sitl/.gitkeep` đã commit; không file `.BIN` nào lọt vào git.
 
-Ghi chú: 
+Ghi chú:
+
+**21/09/2026 — phạm vi Phase 03 đã đổi, chủ dự án quyết.** Plan gốc bắt tự bay hết
+~6 giờ. Nay cắt đôi: phần cơ học lặp lại do script chạy, người học giữ đúng ba việc
+mà Phase 19–20 sẽ cần tới khi cầm drone thật.
+
+- **Người học tự làm (~1,5 h):** gây và sửa 3 lỗi pre-arm; một lần bay tay
+  GUIDED → LOITER → ALT_HOLD → RTL; tự viết câu trả lời GUIDED-khác-AUTO **trước**
+  khi đọc đáp án. Hướng dẫn từng bước: `docs/huong-dan/phase-03-viec-cua-ban.html`.
+- **Script tự động (~4,5 h) — CÒN NỢ, CHƯA XONG:** `scripts/sitl/` gồm chuỗi 7 mode,
+  thí nghiệm `RTL_ALT` 1500 so với 5000, mission 5 waypoint chạy AUTO, mission có
+  waypoint `Alt` = 3 m, và dump log `.BIN` ra CSV. Phiên sau phải làm nốt phần này.
+
+**Sửa `.gitignore` (bắt buộc, không phải tuỳ chọn):** cổng pass đòi commit
+`logs/sitl/.gitkeep` nhưng luật `logs/*` ở dòng 58 chặn luôn cả thư mục con, nên gate
+đó vốn KHÔNG thể đạt. Đã thêm ba dòng `!logs/sitl/` + `logs/sitl/*` + `!logs/sitl/.gitkeep`.
+Đã kiểm chứng hai chiều: `.gitkeep` commit được, file `.BIN` vẫn bị `*.bin` chặn.
+
+**Lệch với plan, cố ý:** plan dòng 35 ghi "Không đụng `scripts/`" vì plan gốc giả định
+phase này không code gì. Phạm vi đổi thì lệnh cấm đó hết đúng; script đặt ở
+`scripts/sitl/`, không sửa `scripts/run_sitl.sh`.
+
+**Chưa tick ô nào.** Mọi cổng pass đều cần bằng chứng thật, chưa có thì để trống.
 
 ## Phase 04 — Param + tránh vật cản ảo
 
