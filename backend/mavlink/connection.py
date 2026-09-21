@@ -60,8 +60,17 @@ STREAM_RATES: dict[int, float] = {
     74: 5,  # VFR_HUD             — tốc độ mặt đất, tốc độ leo
     132: 5,  # DISTANCE_SENSOR    — khoảng cách vật cản (Phase 07)
     147: 1,  # BATTERY_STATUS     — dòng điện + % pin
+    193: 2,  # EKF_STATUS_REPORT  — nguồn DUY NHẤT của `ekf_ok`, xem telemetry.py
     330: 5,  # OBSTACLE_DISTANCE  — mảng 72 cung proximity (Phase 07)
 }
+
+# GHI CHO PHASE 07 — đo trên SITL ArduCopter 4.7-dev ngày 2026-09-22:
+# xin nhịp cho OBSTACLE_DISTANCE (330) bị flight controller trả lời bằng
+# STATUSTEXT "No ap_message for mavlink id (330)", tức là ArduPilot KHÔNG lập
+# lịch được message này qua SET_MESSAGE_INTERVAL — nó do driver proximity tự
+# đẩy khi có cảm biến. Dòng 330 ở trên vì thế vô hại nhưng cũng vô tác dụng;
+# đừng mất công gỡ lỗi "sao xin rồi mà không thấy". DISTANCE_SENSOR (132) thì
+# xin được, chỉ là SITL này chưa gắn rangefinder nên đo ra 0 Hz.
 
 # Nghỉ giữa hai lệnh SET_MESSAGE_INTERVAL. Dội 9 lệnh trong 1 ms thì FC hoặc
 # link nối tiếp chậm sẽ rớt bớt — mất nhịp của đúng message đó, im lặng.

@@ -32,6 +32,10 @@ log = logging.getLogger(__name__)
 # đổi import. Định nghĩa thật nằm ở schemas.py cùng chỗ với hợp đồng.
 __all__ = [
     "COPTER_MODES",
+    "EKF_ATTITUDE",
+    "EKF_CONST_POS_MODE",
+    "EKF_POS_HORIZ_ABS",
+    "EKF_VELOCITY_HORIZ",
     "TelemetryReader",
     "TelemetryState",
     "build_telemetry",
@@ -81,6 +85,42 @@ _SEVERITY_WARN = 4
 _BACKOFF_START_S = 1.0
 _BACKOFF_MAX_S = 10.0
 
+# Cờ trong EKF_STATUS_REPORT.flags (EKF_STATUS_FLAGS của MAVLink).
+EKF_ATTITUDE = 1
+EKF_VELOCITY_HORIZ = 2
+EKF_POS_HORIZ_ABS = 16
+EKF_CONST_POS_MODE = 128
+
+
+def _ekf_ok_tu_flags(flags: int) -> bool:
+    """EKF có đủ tin cậy để bay dẫn đường hay không.
+
+    ┌─ ĐÃ ĐO, KHÔNG ĐOÁN (Phase 05, việc 5.2.5) ────────────────────────────┐
+    │ Plan gợi ý suy `ekf_ok` từ bit AHRS trong                             │
+    │ `SYS_STATUS.onboard_control_sensors_health`. Đo A/B trên SITL         │
+    │ (ArduCopter 4.7-dev, 2026-09-22) cho thấy gợi ý đó SAI:               │
+    │                                                                        │
+    │   GPS tắt  (EKF hỏng): health = 0x4771FC2F                            │
+    │   GPS bật  (EKF khoẻ): health = 0x5771FC2F                            │
+    │   XOR                 = 0x10000000  -> PREARM_CHECK, KHÔNG phải AHRS  │
+    │                                                                        │
+    │ Bit AHRS `0x20000000` thậm chí không có trong `..._present`. Cứ theo   │
+    │ plan mà làm thì `ekf_ok` sẽ LUÔN False — đúng kiểu "chặn arm nhầm" mà │
+    │ plan lo. Còn PREARM_CHECK thì rộng hơn EKF, đặt tên `ekf_ok` cho nó    │
+    │ là nói dối người đọc.                                                  │
+    │                                                                        │
+    │ Nguồn ĐÚNG là EKF_STATUS_REPORT (id 193). Đo cùng lúc, lặp lại được:  │
+    │   khoẻ  flags=0x033F  ATTITUDE VEL_H VEL_V POS_H_REL POS_H_ABS ...    │
+    │   hỏng  flags=0x00A7  ATTITUDE VEL_H VEL_V POS_V_ABS CONST_POS_MODE   │
+    │   bật lại -> 0x033F (về đúng trạng thái cũ)                           │
+    │                                                                        │
+    │ CONST_POS_MODE = EKF đã bỏ cuộc và ghim vị trí cố định. Nó bật thì     │
+    │ mọi thứ dựa vào vị trí đều không đáng tin, nên phải xét riêng.         │
+    └────────────────────────────────────────────────────────────────────────┘
+    """
+    can = EKF_ATTITUDE | EKF_VELOCITY_HORIZ | EKF_POS_HORIZ_ABS
+    return (flags & can) == can and not (flags & EKF_CONST_POS_MODE)
+
 
 def mode_name(custom_mode: int) -> str:
     """Đổi custom_mode của Copter thành tên người đọc được."""
@@ -128,19 +168,11 @@ def update_state(state: TelemetryState, msg, now: float | None = None) -> Teleme
         voltage = getattr(msg, "voltage_battery", 65535)
         if voltage not in (0, 65535):
             state.battery_voltage = voltage / 1000.0
-        # ---------------------------------------------------------------
-        # ekf_ok: CHƯA LÀM, cố ý. Nó suy từ một bit trong
-        # `onboard_control_sensors_health`, nhưng tên/giá trị bit AHRS trong
-        # pymavlink 2.4.49 CHƯA được kiểm chứng trên máy này.
-        #
-        # Cách kiểm chứng (Phase 05, việc 5.2.5) — làm rồi mới viết code:
-        #   1. in hex(msg.onboard_control_sensors_health) khi SITL đang chạy;
-        #   2. đối chiếu với dòng "EKF3 IMU0 is using GPS" trong console MAVProxy;
-        #   3. ghi hằng số đúng vào đây rồi mới parse.
-        #
-        # Tới lúc đó `ekf_ok` ở nguyên None = "CHƯA BIẾT". Đoán True là tệ hơn
-        # không biết: Phase 06 dùng nó để chặn arm, đoán sai thì chặn nhầm.
-        # ---------------------------------------------------------------
+        # ekf_ok KHÔNG lấy từ đây — xem nhánh EKF_STATUS_REPORT bên dưới và
+        # khối chú thích của `_ekf_ok_tu_flags`.
+
+    elif msg_type == "EKF_STATUS_REPORT":
+        state.ekf_ok = _ekf_ok_tu_flags(getattr(msg, "flags", 0))
 
     elif msg_type == "BATTERY_STATUS":
         # current_battery tính theo cA (10 mA); -1 nghĩa là không đo được.

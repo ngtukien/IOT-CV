@@ -481,13 +481,28 @@ class WebSocketHub:
         mọi lỗi và đi tiếp — xem `_khong_duoc_chet_lang_le`.
         """
         interval = 1.0 / max(config.TELEMETRY_HZ, 1.0)
+        loop = asyncio.get_running_loop()
+        moc_ke = loop.time()
+
         while True:
             try:
                 await self._reconcile_control_ownership()
                 await self.broadcast("telemetry", build_telemetry(self.state))
             except Exception:  # noqa: BLE001
                 self._khong_duoc_chet_lang_le("telemetry_loop")
-            await asyncio.sleep(interval)
+
+            # Ngủ tới MỐC KẾ, không phải ngủ đủ `interval`. Ngủ đủ interval sau
+            # khi làm việc thì chu kỳ = việc + interval, nên nhịp trôi xuống
+            # dưới TELEMETRY_HZ. Đo thật với SITL: 7,29 Hz (giãn cách 125-142 ms)
+            # thay vì 8 Hz — trượt cổng pass §5.6 bài 3.
+            moc_ke += interval
+            cho = moc_ke - loop.time()
+            if cho < 0:
+                # Tụt lại quá xa (máy nghẽn). BỎ nhịp đã lỡ thay vì bắn dồn một
+                # loạt để "trả nợ" — dồn nhịp làm client ngập chứ không giúp gì.
+                moc_ke = loop.time()
+                cho = 0
+            await asyncio.sleep(cho)
 
     def _khong_duoc_chet_lang_le(self, ten_vong: str) -> None:
         """Ghi lỗi của một vòng nền và BÁO RA NGOÀI, rồi để vòng chạy tiếp.

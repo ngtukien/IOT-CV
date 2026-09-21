@@ -9,6 +9,10 @@ from backend.mavlink.connection import (
     MavlinkConnection,
 )
 from backend.mavlink.telemetry import (
+    EKF_ATTITUDE,
+    EKF_CONST_POS_MODE,
+    EKF_POS_HORIZ_ABS,
+    EKF_VELOCITY_HORIZ,
     TelemetryState,
     build_telemetry,
     is_link_alive,
@@ -236,21 +240,57 @@ def test_home_position_chia_1e7():
     assert abs(state.home_lon - 106.66) < 1e-9
 
 
-def test_ekf_ok_KnownGap():
-    """PIN KHOẢNG TRỐNG — `ekf_ok` cố ý CHƯA parse (xem nhánh SYS_STATUS trong
-    telemetry.py). Test này chỉ ĐỎ khi có người hiện thực nó.
+def test_ekf_ok_khong_lay_tu_sys_status():
+    """`ekf_ok` KHÔNG suy từ SYS_STATUS — đã đo và bác bỏ cách đó.
 
-    ĐỎ ở đây nghĩa là ĐÃ LÀM XONG, không phải hỏng. Khi đó: XOÁ test này và
-    viết test khẳng định giá trị đúng — đừng sửa nó để pin trạng thái mới
-    (`rules/pinned-baseline-test-companion.md`).
+    Bit AHRS 0x20000000 thậm chí không có trong `onboard_control_sensors_present`
+    trên build này; lấy theo nó thì `ekf_ok` luôn False và Phase 06 chặn arm
+    nhầm mãi mãi. Chi tiết phép đo: docstring `_ekf_ok_tu_flags`.
     """
     state = TelemetryState()
     update_state(state, FakeMessage("SYS_STATUS", voltage_battery=11_400), now=1.0)
 
-    assert state.ekf_ok is None, (
-        "ekf_ok đã có giá trị — nếu bit AHRS vừa được kiểm chứng và hiện thực thì "
-        "XOÁ test pin này, đừng đổi nó thành pin của trạng thái mới."
+    assert state.ekf_ok is None, "SYS_STATUS không được phép đặt ekf_ok"
+
+
+def test_ekf_ok_khoe_khi_co_du_loi_giai():
+    """flags=0x033F — số ĐO THẬT từ SITL lúc GPS bật, EKF khoẻ."""
+    state = TelemetryState()
+    update_state(state, FakeMessage("EKF_STATUS_REPORT", flags=0x033F), now=1.0)
+
+    assert state.ekf_ok is True
+
+
+def test_ekf_ok_hong_khi_mat_vi_tri_tuyet_doi():
+    """flags=0x00A7 — số ĐO THẬT lúc GPS tắt: mất POS_HORIZ_ABS và bật
+    CONST_POS_MODE (EKF bỏ cuộc, ghim vị trí cố định)."""
+    state = TelemetryState()
+    update_state(state, FakeMessage("EKF_STATUS_REPORT", flags=0x00A7), now=1.0)
+
+    assert state.ekf_ok is False
+
+
+def test_ekf_ok_const_pos_mode_du_mot_minh_da_la_hong():
+    """CONST_POS_MODE bật nghĩa là vị trí không đáng tin, kể cả khi mọi cờ
+    khác đều sáng. Bỏ vế `not CONST_POS_MODE` thì test này đỏ."""
+    day_du = EKF_ATTITUDE | EKF_VELOCITY_HORIZ | EKF_POS_HORIZ_ABS
+    state = TelemetryState()
+
+    update_state(state, FakeMessage("EKF_STATUS_REPORT", flags=day_du), now=1.0)
+    assert state.ekf_ok is True
+
+    update_state(
+        state,
+        FakeMessage("EKF_STATUS_REPORT", flags=day_du | EKF_CONST_POS_MODE),
+        now=2.0,
     )
+    assert state.ekf_ok is False
+
+
+def test_ekf_status_report_co_trong_stream_rates():
+    """Không xin nhịp thì FC không gửi EKF_STATUS_REPORT, và `ekf_ok` sẽ ở
+    None mãi mãi mà không có gì báo."""
+    assert 193 in STREAM_RATES
 
 
 def test_statustext_khong_vao_state():
