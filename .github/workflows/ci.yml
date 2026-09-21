@@ -41,8 +41,11 @@ jobs:
       # --locked: uv.lock phải khớp pyproject.toml, lệch thì fail thay vì âm thầm
       #   giải lại. Đây là cổng thật, không phải chiều lòng linter.
       # --no-build: chỉ cài wheel dựng sẵn, không chạy setup script của sdist nào.
+      # `uv run --no-sync` ở các bước sau: sync đã xong ngay trên, nên để `uv run`
+      #   tự giải lại phụ thuộc vừa thừa vừa mở lại đúng cái cửa mà --locked/--no-build
+      #   vừa đóng.
       - run: uv sync --extra dev --locked --no-build
-      - run: uv run ruff check .
+      - run: uv run --no-sync ruff check .
 
   test:
     runs-on: ubuntu-latest
@@ -54,7 +57,7 @@ jobs:
       # Job này KHÔNG build frontend, nên `frontend/dist` vắng mặt và
       # `test_frontend_duoc_serve` tự skip (pytest.mark.skipif). Đó là chủ đích,
       # không phải test bị bỏ quên: Phase 10 kiểm chứng thật bằng Playwright.
-      - run: uv run pytest
+      - run: uv run --no-sync pytest
 
   frontend:
     runs-on: ubuntu-latest
