@@ -364,3 +364,89 @@ Sai offset hoặc chụp nhầm màn → đổi sang `peekwin` (dễ cài nhất
 - Tool `Type` của Windows-MCP gõ bằng SendInput Unicode hay clipboard, ảnh hưởng tiếng Việt.
 - Không repo nào trong 8 repo đọc sâu có issue nào nhắc IME, CJK hay tiếng Việt. **Bốn repo
   có 0 issue tổng cộng**, nên không có báo cáo không đồng nghĩa với chạy đúng.
+
+---
+
+# QUYẾT ĐỊNH CUỐI 21/09/2026 — chọn `cua-driver`, không phải Windows-MCP
+
+Hai đợt đọc sâu tiếp theo (8 repo nhóm B, 6 repo nhóm A, cộng nhóm agent framework) đổi kết
+luận một lần nữa. Ghi lại đầy đủ vì hai phần trên giờ đã lỗi thời ở phần xếp hạng.
+
+## 14 repo đuôi bảng: hầu hết không có UIAutomation thật
+
+Đợt đọc mã 6 repo nhóm A cho kết quả âm rõ ràng: grep `IUIAutomation|AutomationElement|
+pywinauto|FlaUI|comtypes` trên toàn bộ mã nguồn của cả 6 repo được **0 kết quả**. Những gì
+chúng gọi là "accessibility tree" thực ra là `EnumWindows`/`EnumChildWindows` ở mức HWND, thứ
+mù hoàn toàn trước WPF, UWP, Electron, Qt. Cụ thể:
+
+- `Windows-MCP.Net`: `FindElementByAutomationIdAsync` nhận **HWND** làm "automationId". Hằng số
+  `SM_*VIRTUALSCREEN` có khai báo nhưng **không dùng ở đâu cả**; chụp màn hình chỉ lấy màn chính.
+- `GhostDesk`: từ chối đa màn hình **có chủ đích**, và dùng `MOUSEEVENTF_ABSOLUTE` không kèm
+  `MOUSEEVENTF_VIRTUALDESK` nên **x=3840 không thể tới được**. Tài liệu UAC tốt nhất nhóm, nhưng vô dụng ở đây.
+- `winremote-mcp`: là repo duy nhất trong 6 cái **nhìn được màn hình thứ hai**, nhưng đường gõ
+  chữ đi qua `pyautogui.typewrite`, **nuốt im lặng mọi ký tự phi-ASCII** (tiếng Việt có dấu).
+- `mcp-windows-automation`: `pyautogui.click(960, 1000)` **toạ độ cứng 1920x1080**; 240 trong 442
+  tool chết vì `mcp = FastMCP(...)` bị gán đè ba lần. Không dùng.
+- `mcp-windows-desktop-automation`: **không có chức năng chụp màn hình**, nó là một `TODO` trả về
+  chuỗi văn bản giả.
+
+## Người thắng: `trycua/cua` → thành phần `cua-driver`
+
+| Tiêu chí | Giá trị đã xác minh |
+|---|---|
+| Sao / giấy phép | 25.268 / MIT, đẩy code 21/09/2026 |
+| Gói | PyPI `cua-driver` 0.28.2, có wheel `win_amd64` và `win_arm64` riêng |
+| Nền tảng Windows | crate Rust `platform-windows` + `cua-driver-uia`, dùng Win32 + UIA + native input |
+| Độ phủ đã kiểm | CI chấp nhận **122/122 thao tác** trên Windows, có harness cho **WPF, WinUI3, WebView2, Electron, Tauri** |
+| Claude Code | tài liệu trong repo ghi thẳng `claude mcp add --transport stdio cua-driver -- cua-driver mcp`, có cả chế độ `--claude-code-computer-use-compat` |
+| Khoá LLM riêng | **không cần** (khác `cua-mcp-server` và `cua-agent`, hai cái đó đòi khoá riêng, **không dùng**) |
+| Chế độ quyền | `CUA_DRIVER_PERMISSION_MODE` nhận `standard` / `bounded` / `unrestricted` |
+
+**Kiểm chứng trên chính máy này** bằng `cua-driver doctor`:
+
+```
+[ok] binary: cua-driver 0.28.2 (x86_64-windows)
+[ok] interactive session: session 1 has an attached interactive desktop
+[ok] UI Automation: CoCreateInstance(CUIAutomation) succeeded
+[ok] EnumWindows visible: 8 windows
+```
+
+`claude mcp list` báo `cua-driver ✓ Connected` ngay lần đầu. Windows-MCP thì `tools fetch failed
+— Request timed out` ở lần thử đầu.
+
+## Vì sao bỏ Windows-MCP
+
+1. Issue **#416 đang mở**: chụp nhầm màn hình trên hệ GPU lai. Máy này là Radeon tích hợp cộng
+   RTX 4060, khớp chính xác.
+2. Ba issue crash đang mở (#412, #401, #332).
+3. Telemetry PostHog bật mặc định.
+4. 34.700 dòng, không audit nổi.
+5. Chạy hai server điều khiển desktop cùng lúc nhân đôi cả chi phí schema lẫn bề mặt rủi ro.
+
+## Cấu hình đã chốt trong `.mcp.json`
+
+```json
+{ "mcpServers": { "cua-driver": {
+    "type": "stdio", "command": "cua-driver", "args": ["mcp"],
+    "env": { "CUA_DRIVER_PERMISSION_MODE": "standard", "CUA_DRIVER_TELEMETRY": "disabled" } } } }
+```
+
+Telemetry cũng đã tắt ở mức cài đặt bằng `cua-driver telemetry disable` (nó bật mặc định).
+
+## Còn phải kiểm sau khi khởi động lại Claude Code
+
+Tool MCP chỉ nạp lúc khởi động phiên, nên chưa gọi được. Việc đầu tiên của phiên mới:
+
+1. Chụp màn hình 2 và xác nhận thấy đúng nội dung màn ở offset `(3840,0)`.
+2. Gõ một chuỗi tiếng Việt có dấu và kiểm chữ không bị bộ gõ làm hỏng.
+3. Đọc cây UIAutomation của một cửa sổ WinForms.
+
+Ba phép thử đó quyết định có giữ `cua-driver` hay lùi về `peekwin`.
+
+## Hạn chế đã biết của `cua-driver`
+
+- 57 tool, chi phí schema cao hơn hẳn Windows-MCP (11 tool). Chấp nhận đổi lấy độ phủ.
+- Một số cử chỉ ở chế độ nền trên Windows trả về `background_unavailable` / `background_occluded`.
+- Ranh giới UIPI với cửa sổ chạy quyền Administrator **chưa được chứng minh**; mã lỗi
+  `background_uipi_blocked` có tồn tại nhưng không có fixture chuẩn.
+- Phiên bản Windows tối thiểu: **chưa xác minh**.

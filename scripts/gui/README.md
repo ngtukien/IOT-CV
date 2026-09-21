@@ -6,20 +6,21 @@ bước mà shell và script không với tới được, và cũng là chỗ ng
 
 ## Quan hệ với MCP server điều khiển Windows
 
-Từ 21/09/2026 dự án có thêm `windows-mcp` đăng ký trong `.mcp.json`. Hai thứ **bổ sung cho
-nhau, không thay thế nhau**:
+Từ 21/09/2026 dự án có thêm `cua-driver` đăng ký trong `.mcp.json` (trycua/cua, 25.268 sao,
+MIT, có crate Windows riêng, CI kiểm 122/122 thao tác gồm WPF, WinForms, Electron, WebView2).
+Hai thứ **bổ sung cho nhau, không thay thế nhau**:
 
-| | `gui.ps1` | `windows-mcp` |
+| | `gui.ps1` | `cua-driver` |
 |---|---|---|
 | Cách gọi | shell, Claude phải tự soạn đúng cú pháp | tool MCP có schema, không soạn sai được |
 | Ref phần tử giữa các lần gọi | không giữ, duyệt lại cây mỗi lần | có |
 | Trích DOM trình duyệt | không | có |
-| Audit được toàn bộ | được, 380 dòng | không, 34.700 dòng |
+| Audit được toàn bộ | được, 380 dòng | không |
 | Phụ thuộc mạng | không | có (PyPI) |
 | Bị cập nhật ngầm | không | có |
 
-`gui.ps1` là **đường lui**. Windows-MCP có ba issue crash đang mở (#412, #401, #332), nên khi
-nó chết giữa chừng thì `gui.ps1` vẫn chạy. Không xoá file này.
+`gui.ps1` là **đường lui**. Một MCP server bên ngoài có thể crash, đổi API, hoặc bị chặn bởi
+ranh giới UIPI khi cửa sổ đích chạy quyền Administrator. Khi đó `gui.ps1` vẫn chạy. Không xoá.
 
 So sánh đầy đủ 21 MCP server và lý do chọn: `plans/reports/260921-research-windows-computer-use-mcp.md`.
 
