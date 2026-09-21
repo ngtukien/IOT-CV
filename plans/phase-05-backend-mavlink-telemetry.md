@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 01 (repo đã tái cấu trúc, uv + Python 3.11), Phase 02 (WSL2 + SITL chạy được) | ~10 giờ | Không |
+| chưa bắt đầu | Phase 01 (repo đã tái cấu trúc, uv + Python 3.13), Phase 02 (WSL2 + SITL chạy được) | ~10 giờ | Không |
 
 ## Mục tiêu
 
@@ -24,7 +24,7 @@ Xong phase này: mở `ws://127.0.0.1:8000/ws` bằng một script dòng lệnh 
 **Phải chạy được:**
 
 - SITL trong WSL2 (`sim_vehicle.py -v ArduCopter`) — thành quả Phase 02.
-- `uv` + Python 3.11 pin ở gốc repo — thành quả Phase 01.
+- `uv` + Python 3.13 pin ở gốc repo — thành quả Phase 01.
 - Mission Planner trên Windows (dùng làm GCS đối chứng).
 
 ### Hiện trạng code (prior art — đã rà, KHÔNG phải greenfield)

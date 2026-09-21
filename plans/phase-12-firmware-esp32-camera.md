@@ -24,7 +24,7 @@ chờ**: viết cho cả hai nhánh.
 - `docs/hop-dong-mjpeg.md` (Phase 07) — hợp đồng header MJPEG bắt buộc: `X-Frame-Id`, `X-Timestamp-Ms`, `X-Jpeg-Quality`, `X-Framesize`.
 - `firmware/ardupilot/params/01-base.param` (Phase 11) — để khớp `SERIAL2_BAUD,115`.
 - `plans/QUYET-DINH-CHUA-CHOT.md` — Quyết định 1 (camera).
-- Đã cài ở Phase 00: VS Code + PlatformIO, Python 3.11, esptool.
+- Đã cài ở Phase 00: VS Code + PlatformIO, Python 3.13, esptool.
 - Kết nối internet để tải firmware DroneBridge và toolchain PlatformIO (lần đầu ~1 GB).
 
 ## File và thư mục sở hữu
@@ -411,7 +411,7 @@ Cảm biến gửi liên tục khung 9 byte: `0x59 0x59` mở đầu, 2 byte kho
 tín hiệu, 2 byte nhiệt độ, 1 byte checksum.
 
 ```powershell
-py -3.11 -m pip install pyserial
+py -3.13 -m pip install pyserial
 ```
 
 `scripts/bench_tfmini.py`:
@@ -419,7 +419,7 @@ py -3.11 -m pip install pyserial
 ```python
 """Doc TFmini Plus qua USB-TTL de kiem tra cam bien truoc khi cam vao bo bay.
 
-Chay:  py -3.11 scripts/bench_tfmini.py COM5
+Chay:  py -3.13 scripts/bench_tfmini.py COM5
 
 Ket qua dung: dong chu chay lien tuc ~100 dong/giay, cot ok tang deu,
 cot bad gan nhu dung yen. Che tay truoc ong kinh -> dist tut xuong vai chuc cm.
@@ -499,7 +499,7 @@ Khong co den do = cam bien chet, doi tra ngay.
 **Kết quả mong đợi (bây giờ, chưa có cảm biến):**
 
 ```powershell
-py -3.11 scripts\bench_tfmini.py COM99
+py -3.13 scripts\bench_tfmini.py COM99
 ```
 → báo lỗi mở cổng (`could not open port`), **không** báo lỗi cú pháp Python. Tức script chạy được
 tới chỗ mở cổng.
@@ -534,7 +534,7 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
 - [ ] `pio run -e xiao_esp32s3` → `SUCCESS`, **hoặc** board id đã được sửa theo `pio boards` và ghi chú "chưa xác minh" đã được cập nhật kèm ngày.
 - [ ] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`.
 - [ ] `firmware/camera/README.md` có nghi thức nạp ESP32-CAM (`IO0 → GND`) và cảnh báo nguồn.
-- [ ] `py -3.11 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp.
+- [ ] `py -3.13 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp.
 - [ ] Hotspot laptop bật được ở 2,4 GHz; SSID/mật khẩu đã vào `secrets.h`; IP laptop đã ghi vào `docs/so-tay/12-hotspot-laptop.md`.
 - [ ] `Get-NetFirewallRule -DisplayName "IOTCV*"` trả về rule UDP 14550.
 - [ ] `docs/so-tay/12-esp32-cho-nguoi-moi.md` giải thích đủ 8 khái niệm ở 12.8.

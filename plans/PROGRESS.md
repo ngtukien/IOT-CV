@@ -35,15 +35,16 @@ Plan: plans/phase-00-cai-cong-cu-pc.md
 
 Ngày bắt đầu: ______ · Ngày xong: ______
 
-- [ ] `py --list` hiện cả `3.13` và `3.11`.
+- [ ] `py --list` hiện `3.13`.
 - [ ] `node --version` in v24.x, `pnpm --version` in 11.x, `uv --version` in 0.12.x.
+- [ ] `pwsh -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được.
 - [ ] `docker info --format "{{.ServerVersion}}"` in ra số phiên bản.
 - [ ] `wsl --list --verbose` hiện `Ubuntu` VERSION = `2`; `df -h /` trong WSL còn > 15 GB.
 - [ ] Mission Planner mở được, hiện màn hình `FLIGHT DATA`.
 - [ ] MAVProxy đã cài (shortcut Start Menu hoặc `mavproxy.exe --version`).
 - [ ] STM32CubeProgrammer mở được.
 - [ ] `code --version` chạy; PlatformIO IDE có trong danh sách extension.
-- [ ] `esptool version` in v5.x; `py -3.11 -m pip show pymavlink` in 2.4.x.
+- [ ] `esptool version` in `v5.x`; `py -3.13 -m pip show pymavlink` in `Version: 2.4.x`.
 - [ ] Đã ghi số phiên bản thực tế vào Ghi chú dưới đây.
 
 Ghi chú: 
@@ -62,7 +63,7 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] `git log --follow --oneline firmware/ardupilot/params/README.md` hiện lịch sử có từ trước khi đổi chỗ (chứng minh đã `git mv`).
 - [ ] `(Get-ChildItem docs\so-tay\*.md).Count` in `29`.
 - [ ] `README.md` mới ≤ 60 dòng; `docs/archive/plan-nhap-92-giai-doan.md` và `docs/archive/so-tay-lap-f450.html` tồn tại.
-- [ ] Ba file `requirements*.txt` đã xoá; `pyproject.toml` (gốc) có khối `[project]` **không có** `[project.optional-dependencies] ml`; `ml/pyproject.toml` tồn tại, là dự án `uv` riêng, **không có** `torch`; `.python-version` chứa `3.11`.
+- [ ] Ba file `requirements*.txt` đã xoá; `pyproject.toml` (gốc) có khối `[project]` **không có** `[project.optional-dependencies] ml`; `ml/pyproject.toml` tồn tại, là dự án `uv` riêng, **không có** `torch`; `.python-version` chứa `3.13`.
 - [ ] `docker compose ps` hiện `iotcv-mosquitto` đang `running`.
 - [ ] CI trên GitHub xanh cả 3 job (`lint`, `test`, `frontend`).
 - [ ] `plans/PROGRESS.md` mục Phase 01 đã tick, ghi số phiên bản npm thực tế, và đã commit.
@@ -274,7 +275,7 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] `pio run -e xiao_esp32s3` → `SUCCESS`, **hoặc** board id đã được sửa theo `pio boards` và ghi chú "chưa xác minh" đã được cập nhật kèm ngày.
 - [ ] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`.
 - [ ] `firmware/camera/README.md` có nghi thức nạp ESP32-CAM (`IO0 → GND`) và cảnh báo nguồn.
-- [ ] `py -3.11 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp.
+- [ ] `py -3.13 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp.
 - [ ] Hotspot laptop bật được ở 2,4 GHz; SSID/mật khẩu đã vào `secrets.h`; IP laptop đã ghi vào `docs/so-tay/12-hotspot-laptop.md`.
 - [ ] `Get-NetFirewallRule -DisplayName "IOTCV*"` trả về rule UDP 14550.
 - [ ] `docs/so-tay/12-esp32-cho-nguoi-moi.md` giải thích đủ 8 khái niệm ở 12.8.
@@ -587,7 +588,7 @@ Plan: plans/ai/ai-phase-01-chuan-bi.md
 Ngày bắt đầu: ______ · Ngày xong: ______
 
 - [ ] `python ml\scripts\check_gpu.py` thoát mã 0, in `2.14.0+cu130` và `NVIDIA GeForce RTX 4060 Laptop GPU`, và phép nhân ma trận trên GPU chạy xong.
-- [ ] `ml/pyproject.toml` ghim `albumentations==2.0.8` và `opencv-python>=4.10,<5`; `ml/.venv` là Python **3.11**, tách khỏi `.venv` của backend (cùng phiên bản, khác dự án `uv`).
+- [ ] `ml/pyproject.toml` ghim `albumentations==2.0.8` và `opencv-python>=4.10,<5`; `ml/.venv` là Python **3.13**, tách khỏi `.venv` của backend (cùng phiên bản, khác dự án `uv`).
 - [ ] `ml/results/dataset_stats.json` tồn tại, `instances_person > 0` cho cả ba split, và **20 ảnh trong `ml/results/convert_check/` có hộp trùm lên người** (kiểm bằng mắt, ghi lại trong `smoke_report.md`).
 - [ ] `ml/data/README.md` nằm trong git và ghi đủ giấy phép của VisDrone (không có LICENSE), HERIDAL (CC BY), albumentations (MIT, lý do ghim).
 - [ ] `python -m pytest ml\tests -v` toàn bộ pass, **trong đó có test bao trùm bbox của rolling shutter**, và bộ test này **không import torch**.

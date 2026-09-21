@@ -119,9 +119,9 @@ ml/scripts/extract_frames.py             (điền thân)
 
 ### A1.1 Môi trường ML riêng, torch cu130, kiểm tra GPU thật
 
-**Làm gì.** Tạo một môi trường Python **tách khỏi backend**, dù **cùng phiên bản 3.11** với backend (`plans/reports/260921-review-plan-consistency.md` mục A — một interpreter duy nhất cho cả dự án). Lý do tách vẫn còn nguyên dù cùng phiên bản: torch + CUDA runtime nặng ~6 GB, trộn vào env của backend thì mỗi lần CI backend `uv sync` phải kéo 6 GB vô ích cho một thứ nó không cần.
+**Làm gì.** Tạo một môi trường Python **tách khỏi backend**, dù **cùng phiên bản 3.13** với backend (`plans/reports/260921-review-plan-consistency.md` mục A — một interpreter duy nhất cho cả dự án). Lý do tách vẫn còn nguyên dù cùng phiên bản: torch + CUDA runtime nặng ~6 GB, trộn vào env của backend thì mỗi lần CI backend `uv sync` phải kéo 6 GB vô ích cho một thứ nó không cần.
 
-`ml/` là một **dự án `uv` riêng**, khung `ml/pyproject.toml` đã được **Phase 01** tạo sẵn (§01.6) — Python `3.11`, ghim đúng `albumentations==2.0.8`, `opencv-python>=4.10,<5`, chưa có `torch`. **3.11 nằm trong giao của mọi ràng buộc:** wheel `torch cu130` hỗ trợ 3.10–3.15, `tensorrt` bản pip hỗ trợ 3.8–3.13 (AI Phase 2 cần) — giao của hai khoảng đó là 3.10–3.13, và 3.11 vừa khớp phiên bản backend đang dùng nên không cần cài thêm một interpreter khác trên máy.
+`ml/` là một **dự án `uv` riêng**, khung `ml/pyproject.toml` đã được **Phase 01** tạo sẵn (§01.6) — Python `3.13`, ghim đúng `albumentations==2.0.8`, `opencv-python>=4.10,<5`, chưa có `torch`. **3.13 nằm trong giao của các ràng buộc, nhưng ở mép trên:** wheel `torch cu130` hỗ trợ 3.10–3.15, `tensorrt` bản pip hỗ trợ 3.8–3.13 (AI Phase 2 cần) — giao của hai khoảng đó là 3.10–3.13, và 3.13 là **cận trên** của giao đó, không nằm giữa khoảng. 3.13 vẫn khớp phiên bản backend đang dùng nên không cần cài thêm một interpreter khác trên máy, nhưng hệ quả là: nếu `tensorrt` không có wheel khớp CUDA 13 trên 3.13 thì AI Phase 2 lùi về `.pt` với `half=True` (đã có sẵn phương án dự phòng ở A2), **không phải** đổi phiên bản Python của cả dự án.
 
 **Label Studio và DVC KHÔNG cài vào `ml/.venv`** — cài bằng `uv tool install` để chúng có env riêng. Label Studio kéo theo Django và hàng chục gói web; trộn với torch là mời xung đột dependency mà không được lợi gì.
 
@@ -139,7 +139,7 @@ nvidia-smi
 
 # 2. Vào dự án uv riêng của ml/, ghim đúng Python (khớp pyproject.toml Phase 01 đã tạo)
 Set-Location ml
-uv python pin 3.11
+uv python pin 3.13
 uv venv
 .\.venv\Scripts\Activate.ps1
 
@@ -175,7 +175,7 @@ Script **thoát với mã 1** nếu bất kỳ kiểm tra nào hỏng (luật "l
 **Nếu lỗi:**
 
 - `torch.cuda.is_available() == False` và version có `+cpu`: đã cài sai thứ tự. `deactivate`, xoá `ml\.venv`, làm lại từ bước 2.
-- `Could not find a version that satisfies torch`: gõ nhầm URL chỉ mục, hoặc Python 3.11 chưa có trên máy → `uv python install 3.11` rồi làm lại.
+- `Could not find a version that satisfies torch`: gõ nhầm URL chỉ mục, hoặc Python 3.13 chưa có trên máy → `uv python install 3.13` rồi làm lại.
 - `OSError: [WinError 126] ... fbgemm.dll`: thiếu Visual C++ Redistributable → cài `vc_redist.x64.exe` của Microsoft rồi thử lại.
 - `Activate.ps1 cannot be loaded`: chạy lại bước 0.
 
@@ -880,7 +880,7 @@ Chạy luôn `evaluate.py` trên weights 1-epoch. **Điểm số sẽ rất tệ
 ## Cổng pass
 
 - [ ] `python ml\scripts\check_gpu.py` thoát mã 0, in `2.14.0+cu130` và `NVIDIA GeForce RTX 4060 Laptop GPU`, và phép nhân ma trận trên GPU chạy xong.
-- [ ] `ml/pyproject.toml` ghim `albumentations==2.0.8` và `opencv-python>=4.10,<5`; `ml/.venv` là Python **3.11**, tách khỏi `.venv` của backend (cùng phiên bản, khác dự án `uv`).
+- [ ] `ml/pyproject.toml` ghim `albumentations==2.0.8` và `opencv-python>=4.10,<5`; `ml/.venv` là Python **3.13**, tách khỏi `.venv` của backend (cùng phiên bản, khác dự án `uv`).
 - [ ] `ml/results/dataset_stats.json` tồn tại, `instances_person > 0` cho cả ba split, và **20 ảnh trong `ml/results/convert_check/` có hộp trùm lên người** (kiểm bằng mắt, ghi lại trong `smoke_report.md`).
 - [ ] `ml/data/README.md` nằm trong git và ghi đủ giấy phép của VisDrone (không có LICENSE), HERIDAL (CC BY), albumentations (MIT, lý do ghim).
 - [ ] `python -m pytest ml\tests -v` toàn bộ pass, **trong đó có test bao trùm bbox của rolling shutter**, và bộ test này **không import torch**.
