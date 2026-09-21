@@ -11,10 +11,13 @@
 #                   --no-wsl2-network, vì sim_vehicle.py tự phát hiện WSL2 và
 #                   tự phát UDP về IP Windows. Thừa hoặc thiếu cờ này là nguyên
 #                   nhân phổ biến nhất của "Mission Planner không thấy gì".
-#   SITL_EXTRA    : cờ thêm cho Phase 04 — gắn cảm biến mô phỏng vào một cổng
-#                   serial, dạng "-A --serialN=sim:<tên>". Dự án dùng TFMini Plus
-#                   (rangefinder MỘT hướng, không phải lidar 360°) trên SERIAL5,
-#                   vì UART5 của board này chỉ có chân RX mà TFMini chỉ phát.
+#   SITL_EXTRA    : cờ thêm cho Phase 04 — gắn cảm biến mô phỏng vào cổng serial,
+#                   dạng "-A --serialN=sim:<tên>". Dự án dùng Benewake TFmini Plus
+#                   (rangefinder MỘT hướng) trên SERIAL3, xem
+#                   firmware/ardupilot/params/obstacle-avoidance-tfminiplus-serial3.param
+#                   — file đó là nguồn sự thật cho việc chia cổng, không phải hwdef,
+#                   vì DEFAULT_SERIAL3_PROTOCOL trong hwdef chỉ là mặc định của
+#                   tham số và bản build của dự án đã gỡ hẳn MSP/OSD/VTX.
 #                   Tên sim: cụ thể chốt ở Phase 04, chưa kiểm nên chưa ghi ra đây.
 #
 # Cờ truyền thẳng trên dòng lệnh cũng được nối vào cuối.
