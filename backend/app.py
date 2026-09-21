@@ -90,6 +90,6 @@ async def ws_telemetry(websocket: WebSocket) -> None:
 
 
 # Mount cuối cùng để không che các route /api và /ws ở trên.
-_FRONTEND_DIR = config.PROJECT_ROOT / "frontend"
+_FRONTEND_DIR = config.PROJECT_ROOT / "frontend" / "dist"
 if _FRONTEND_DIR.is_dir():
     app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")

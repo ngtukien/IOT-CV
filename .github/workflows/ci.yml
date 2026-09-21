@@ -14,45 +14,70 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# KHÔNG thêm `paths:` filter vào workflow này. Ba job dưới đây là required check;
+# GitHub báo một required check bị bỏ qua vì `paths` là "Expected — Waiting"
+# VĨNH VIỄN, tức là PR không bao giờ merge được nữa.
+#
+# `timeout-minutes` bắt buộc ở mọi job: mặc định của GitHub là 6 GIỜ.
+#
+# Chỉ chạy Python 3.13 — `requires-python` trong pyproject.toml đã khoá
+# ">=3.13,<3.14", nên ma trận 3.11/3.12 cũ vừa thừa vừa mâu thuẫn.
+#
+# MỌI action ghim theo FULL COMMIT SHA, không phải tag. Tag có thể bị đẩy sang
+# commit khác lúc nào cũng được — ghim SHA thì bản chạy hôm nay và bản chạy sáu
+# tháng nữa là một. Comment phía sau ghi tag tương ứng để người đọc biết đó là
+# bản nào; muốn nâng thì đổi cả hai. SHA lấy từ
+# `gh api repos/<repo>/git/ref/tags/<tag>` ngày 21/09/2026.
+#
+# LƯU Ý `astral-sh/setup-uv`: repo đó CÓ release v10.1.0 nhưng CHỈ duy trì tag
+# trôi tới v7, nên `@v10` là ref không tồn tại và job chết ngay ở bước setup.
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.13"
-          cache: pip
-      - name: Install ruff
-        run: pip install ruff
-      - name: Ruff check
-        run: ruff check .
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      # --locked: uv.lock phải khớp pyproject.toml, lệch thì fail thay vì âm thầm
+      #   giải lại. Đây là cổng thật, không phải chiều lòng linter.
+      # --no-build: chỉ cài wheel dựng sẵn, không chạy setup script của sdist nào.
+      # `uv run --no-sync` ở các bước sau: sync đã xong ngay trên, nên để `uv run`
+      #   tự giải lại phụ thuộc vừa thừa vừa mở lại đúng cái cửa mà --locked/--no-build
+      #   vừa đóng.
+      - run: uv sync --extra dev --locked --no-build
+      - run: uv run --no-sync --no-build ruff check .
 
   test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # Dự án ghim 3.13 (plans/phase-00 §"Vì sao Python 3.13"). Ma trận cũ chạy
-        # 3.11 + 3.12 nên mâu thuẫn với chính quyết định đó, và đã vỡ thật:
-        # numpy 2.5.3 yêu cầu >=3.12 -> job 3.11 chết ở bước cài (PR #21).
-        python-version: ["3.13"]
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      - run: uv sync --extra dev --locked --no-build
+      # Job này KHÔNG build frontend, nên `frontend/dist` vắng mặt và
+      # `test_frontend_duoc_serve` tự skip (pytest.mark.skipif). Đó là chủ đích,
+      # không phải test bị bỏ quên: Phase 10 kiểm chứng thật bằng Playwright.
+      - run: uv run --no-sync --no-build pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install dependencies
-        # Chi cai core + dev. ML stack (torch/ultralytics) khong can cho unit test.
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-      - name: Pytest
-        # Repo mới setup có thể chưa có test — không fail CI vì lý do đó.
-        run: |
-          if [ -d backend/tests ]; then
-            pytest
-          else
-            echo "Chưa có backend/tests — bỏ qua bước test."
-          fi
+          # Action này KHÔNG tự đoán được bản pnpm. Nó đọc khoá `packageManager`
+          # trong package.json, mà mặc định tìm file đó ở GỐC repo — ở đây
+          # package.json nằm trong frontend/.
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm lint
+        working-directory: frontend
+      - run: pnpm build
+        working-directory: frontend

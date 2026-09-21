@@ -14,6 +14,7 @@ __pycache__/
 build/
 dist/
 .venv/
+.venv-*/
 venv/
 venv-*/
 env/
@@ -35,6 +36,11 @@ htmlcov/
 # ---------------------------------------------------------------------------
 ml/datasets/*
 !ml/datasets/.gitkeep
+# DVC (AI Phase 1, A1.8) phien ban-hoa ml/datasets/ bang con tro .dvc. Dong
+# "ml/datasets/*" o tren loai ca con tro lan file .gitignore rieng cua DVC, nen
+# phai mo lai hai thu do — chung la METADATA, khong phai du lieu.
+!ml/datasets/*.dvc
+!ml/datasets/.gitignore
 ml/weights/*
 !ml/weights/.gitkeep
 ml/results/*
@@ -82,3 +88,19 @@ Thumbs.db
 .agents
 .playwright-mcp
 tmp
+
+# ---------------------------------------------------------------------------
+# Firmware ArduPilot: nhi phan tai ve / build ra -> KHONG commit.
+# Tai lai bat cu luc nao tu custom.ardupilot.org bang dung file
+# firmware/ardupilot/custombuild/*.yaml
+# ---------------------------------------------------------------------------
+firmware/ardupilot/**/*.hex
+firmware/ardupilot/**/*.apj
+firmware/ardupilot/**/*.elf
+firmware/ardupilot/**/arducopter
+copter-speedybeef4v5-d450a747.tar.gz
+
+# build.log cua custom build PHAI duoc commit: no la bang chung feature da build
+# dung y (PRX_*, OAPATHPLANNER, TFMINIPLUS...). Dong "!" nay PHAI nam SAU dong
+# "*.log" o phia tren, neu khong git van bo qua file.
+!firmware/ardupilot/**/build.log

@@ -1,3 +1,34 @@
+[project]
+name = "iot-cv"
+version = "0.1.0"
+description = "UAV IoT + Computer Vision - web GCS va pipeline AI"
+# Hai lop ghim Python, moi lop mot viec: `.python-version` (uv doc, da commit)
+# CHON dung ban; dong duoi day CHAN khi ai do chay nham ban khac.
+requires-python = ">=3.13,<3.14"
+# San phien ban lay theo BAN CAO NHAT giua plan va requirements*.txt cu (dependabot
+# PR #21 da bump len). Ha san xuong so trong plan se cho phep giai ra ban cu hon
+# ban CI tung kiem — do la hoi quy, khong phai don dep.
+dependencies = [
+    "pymavlink>=2.4.49",
+    "fastapi>=0.141.1",
+    "uvicorn[standard]>=0.53.0",
+    "websockets>=17.1",
+    "paho-mqtt>=2.1",
+    "numpy>=2.5.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "httpx>=0.28.1",
+    "ruff>=0.16.8",
+]
+
+# Day la ung dung, khong phai thu vien de publish -> uv khong can build no.
+[tool.uv]
+package = false
+
 [tool.ruff]
 line-length = 100
 target-version = "py313"
