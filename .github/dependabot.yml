@@ -10,7 +10,10 @@ updates:
     labels:
       - "type/chore"
     # opencv-python ghim <5 có chủ đích (xem plans/reports/260921-research-web-gcs-stack.md).
-    # albumentations ghim ==2.0.8 vì bản sau đổi sang giấy phép AGPL.
+    # albumentations chặn nhảy major/minor: 2.0.0 (08/01/2025) là bản phá vỡ API — xoá
+    # always_apply và get_params_dependent_on_targets, đổi ngữ nghĩa tham số GaussNoise.
+    # Kiểm chứng trên PyPI 21/09/2026: 2.0.8 là bản mới nhất và vẫn là MIT.
+    # Lần chú thích trước ghi "bản sau đổi sang AGPL" -- đó là thông tin sai, đã bỏ.
     ignore:
       - dependency-name: "opencv-python"
         versions: [">=5.0.0"]
