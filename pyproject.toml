@@ -38,6 +38,12 @@ line-length = 100
 target-version = "py313"
 # ardupilot/ là source firmware upstream 2 GB — tuyệt đối không lint vào đó.
 extend-exclude = ["ardupilot", "logs", "ml/datasets", "ml/weights", ".venv", "venv-ardupilot"]
+# ruff >= 0.16 format ca khoi ```python TRONG file Markdown. Voi repo nay do la
+# hai nhieu hon loi: cac doan trong plans/ va docs/ la VI DU MINH HOA cho nguoi
+# doc, khong phai ma nguon — khong ai chay, khong ai import chung. Ruff muon
+# bung chung thanh danh sach doc dai loe ngoe, lam tai lieu kho doc hon ma
+# khong bat duoc bat ky loi nao. Loai ra la bo tieng on, khong phai tat den bao.
+exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
