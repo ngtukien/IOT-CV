@@ -1,8 +1,8 @@
 # Core backend: MAVLink + web GCS + MQTT.
 # Đủ để chạy GIAI ĐOẠN 5 -> 15 với SITL, không cần cài ML stack.
-pymavlink>=2.4.42
-fastapi>=0.115
-uvicorn[standard]>=0.32
-websockets>=13.0
+pymavlink>=2.4.49
+fastapi>=0.141.1
+uvicorn[standard]>=0.53.0
+websockets>=17.1
 paho-mqtt>=2.1
-numpy>=1.26
+numpy>=2.5.3
