@@ -9,11 +9,17 @@ updates:
     open-pull-requests-limit: 1
     labels:
       - "type/chore"
+    groups:
+      # Gom tất cả thành MỘT pull request. Không gom thì dependabot mở một PR, chờ merge,
+      # rồi mở PR tiếp theo -- với chục gói thì thành chục vòng review cho cùng một việc.
+      python:
+        patterns: ["*"]
     # opencv-python ghim <5 có chủ đích (xem plans/reports/260921-research-web-gcs-stack.md).
-    # albumentations chặn nhảy major/minor: 2.0.0 (08/01/2025) là bản phá vỡ API — xoá
-    # always_apply và get_params_dependent_on_targets, đổi ngữ nghĩa tham số GaussNoise.
-    # Kiểm chứng trên PyPI 21/09/2026: 2.0.8 là bản mới nhất và vẫn là MIT.
-    # Lần chú thích trước ghi "bản sau đổi sang AGPL" -- đó là thông tin sai, đã bỏ.
+    # albumentations dừng ở 2.0.8 và đó là bản CUỐI của gói này, không phải tạm thời.
+    # Kiểm chứng PyPI 21/09/2026: albumentations 2.0.8 (MIT) phát hành 27/05/2025, không có
+    # bản nào sau. Bản kế nhiệm là gói KHÁC TÊN, albumentationsx 2.4.10, license_expression
+    # AGPL-3.0-only, vẫn ra bản mới (14/09/2026). Chặn major/minor để bot không kéo dự án
+    # qua ranh giới giấy phép đó. Xem plans/ai/ai-phase-04-bao-cao-xla.md dòng 276.
     ignore:
       - dependency-name: "opencv-python"
         versions: [">=5.0.0"]
@@ -27,6 +33,11 @@ updates:
     open-pull-requests-limit: 1
     labels:
       - "type/chore"
+    groups:
+      # Gom tất cả thành MỘT pull request. Không gom thì dependabot mở một PR, chờ merge,
+      # rồi mở PR tiếp theo -- với chục gói thì thành chục vòng review cho cùng một việc.
+      python:
+        patterns: ["*"]
     ignore:
       - dependency-name: "opencv-python"
         versions: [">=5.0.0"]
@@ -43,6 +54,9 @@ updates:
     open-pull-requests-limit: 1
     labels:
       - "type/chore"
+    groups:
+      npm:
+        patterns: ["*"]
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -51,3 +65,6 @@ updates:
     open-pull-requests-limit: 1
     labels:
       - "type/chore"
+    groups:
+      actions:
+        patterns: ["*"]
