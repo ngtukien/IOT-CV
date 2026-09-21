@@ -23,7 +23,7 @@ không phải làm gì nếu buông hết cần.
 | `LOITER` | Đứng yên một chỗ trên không, tự chống gió. Cần GPS tốt | `mode loiter`, buông cần, drone đứng im trên Map |
 | `GUIDED` | Máy tính ra lệnh "bay tới toạ độ này". **Đây là mode website của bạn sẽ dùng** | `mode guided`, `takeoff 20`, rồi chuột phải trên Map → `Fly To` |
 | `AUTO` | Chạy trọn một danh sách waypoint đã nạp sẵn xuống drone | Vẽ mission trong Mission Planner rồi `mode auto` |
-| `RTL` | Tự leo lên `RTL_ALT` rồi bay về điểm cất cánh và hạ | `mode rtl` |
+| `RTL` | Tự leo lên `RTL_ALT_M` rồi bay về điểm cất cánh và hạ | `mode rtl` |
 | `LAND` | Hạ ngay tại chỗ đang đứng, không bay đi đâu | `mode land` |
 
 ## 2. GUIDED khác AUTO thế nào, và vì sao điều đó quyết định thiết kế website
@@ -173,3 +173,103 @@ về vị trí trung lập. Bốn kênh dùng nhiều nhất:
 Lỗi hay gặp nhất của người mới: đẩy một kênh (ví dụ `rc 2 1400` để bay tới) rồi
 **quên trả về giữa**. Drone sẽ tiếp tục bay theo hướng đó mãi cho tới khi bạn gõ
 `rc 2 1500`, hoặc chuyển sang `LOITER` để nó tự phanh lại.
+
+## 10. Bộ script tự động trong `scripts/sitl/`
+
+Phần cơ học lặp đi lặp lại do script chạy. Bạn vẫn nên tự bay một lần cho biết
+cảm giác, nhưng không cần bay hai mươi lần để lấy số liệu.
+
+Chạy **trong WSL**, bằng đúng python của venv (nó mới có `pymavlink`):
+
+```bash
+cd /mnt/d/Coding/IOT-CV
+~/venv-ardupilot/bin/python3 scripts/sitl/run_mode_chain.py      # 7 mode
+~/venv-ardupilot/bin/python3 scripts/sitl/run_rtl_alt.py         # RTL_ALT_M 15 vs 50
+~/venv-ardupilot/bin/python3 scripts/sitl/run_mission_auto.py    # mission 5 waypoint
+~/venv-ardupilot/bin/python3 scripts/sitl/run_mission_low_alt.py # waypoint thấp 3 m
+~/venv-ardupilot/bin/python3 scripts/sitl/run_log_dump.py        # .BIN -> CSV
+```
+
+Mỗi script tự mở một phiên SITL riêng rồi tự tắt. Chúng **từ chối chạy** nếu đã
+có SITL nào đang sống, để không giẫm lên phiên bạn đang mở tay bằng Mission
+Planner. Nên chạy **lần lượt**, không chạy song song.
+
+Mỗi script in một khối `## KET QUA` dạng bảng, và kết bằng `KET QUA: PASS` hoặc
+`KET QUA: FAIL`. Mã thoát khác 0 khi hỏng — nghĩa là cắm được vào CI sau này.
+
+### Ba chỗ tài liệu cũ nói sai, đo thật mới biết
+
+Đây là phần đáng đọc nhất của mục này. Cả ba đều là loại sai *im lặng*: làm theo
+thì hỏng, mà thông báo lỗi không chỉ vào nguyên nhân.
+
+**1. `RTL_ALT` không còn tồn tại.** Tài liệu cũ (và rất nhiều hướng dẫn trên
+mạng) bảo đặt `RTL_ALT` bằng centimet, ví dụ `5000` cho 50 m. Trên ArduCopter
+4.7.1 tham số đó **đã bị xoá**. Liệt kê cả 1370 tham số của flight controller,
+nhóm `RTL*` chỉ còn:
+
+```text
+RTL_ALT_M = 15.0        <- thay cho RTL_ALT, đơn vị MÉT
+RTL_ALT_FINAL_M · RTL_CLIMB_MIN_M · RTL_SPEED_MS
+RTL_ALT_TYPE · RTL_CONE_SLOPE · RTL_LOIT_TIME · RTL_OPTIONS
+```
+
+ArduPilot 4.7 chuyển sang hậu tố đơn vị SI tường minh (`_M` = mét, `_MS` = m/s).
+Đặt `RTL_ALT` trên firmware này thì flight controller **không báo lỗi gì cả** —
+nó chỉ im lặng không bao giờ gửi xác nhận, và script ngồi chờ tới hết giờ.
+
+**2. `RTL_ALT_M` là độ cao TỐI THIỂU, không phải độ cao bắt buộc.** Đo được:
+cất cánh 20 m rồi gọi RTL — với `RTL_ALT_M = 15` đỉnh đạt **20,0 m**, tức là máy
+bay **không leo** thêm; với `RTL_ALT_M = 50` đỉnh đạt **50,0 m**, tức nó phải leo
+trước khi về. Chênh nhau 30,0 m.
+
+> Phép đo này là một giá trị **lớn nhất**, nên nó chỉ chứng minh được *"không
+> leo"*. Nó **không** chứng minh được máy bay giữ nguyên 20 m suốt đường về —
+> một cú tụt xuống 15 m giữa chừng rồi lên lại cũng cho cùng con số đỉnh 20,0 m.
+> Muốn nói được điều đó thì phải đo giá trị **nhỏ nhất** trong đoạn bay về.
+
+Ý nghĩa thực tế: đặt `RTL_ALT_M` thấp không *bắt* máy bay bay thấp — nó chỉ bỏ
+ràng buộc phải leo. Lưu ý thêm: kết luận này đo ở cách home 60 m; bay về từ gần
+home thì `RTL_CONE_SLOPE` xen vào và hình dạng đường về khác hẳn.
+
+**3. RTL KHÔNG chuyển mode sang `LAND`.** Nhiều tài liệu (kể cả plan gốc của dự
+án này) viết: sau `mode rtl`, theo dõi mode tự chuyển sang `LAND` rồi
+`DISARMED`. Sai. Đo thật: mode **vẫn là `RTL`** suốt quá trình hạ cho tới lúc
+disarm. RTL tự hạ bên trong chính nó. Chờ `LAND` là chờ mãi — script đầu tiên
+của tôi treo trọn 180 giây ở đúng chỗ này. Thứ thật sự quan sát được:
+
+```text
+STATUSTEXT: SIM Hit ground at 0.50 m/s
+STATUSTEXT: Disarming motors
+```
+
+Muốn thử mode `LAND` thì phải gọi `mode land` riêng.
+
+### Một quy ước mission dễ vấp
+
+**Item số 0 của mission là ô HOME, không phải một lệnh.** Nếu bạn đặt
+`NAV_TAKEOFF` làm item đầu tiên, nó bị nuốt vào ô home và mission coi như không
+có lệnh cất cánh. Vào `AUTO` từ dưới đất sẽ bị từ chối:
+
+```text
+Auto: Missing Takeoff Cmd
+Mode change to Auto failed: init failed
+```
+
+Nên một mission "5 waypoint" thật ra nạp xuống **6 item**: 1 ô home + 5 lệnh.
+
+Điều làm lỗi này khó tìm: nó **chỉ xảy ra khi vào AUTO từ dưới đất**. Nếu máy
+bay đã ở trên không (cất cánh bằng GUIDED trước) thì ArduPilot bỏ qua kiểm tra
+takeoff và AUTO vào bình thường — nên cùng một mission sai có thể lúc chạy được
+lúc không, tuỳ bạn vào AUTO khi nào.
+
+### Trước khi đổi sang mode cần vị trí, phải chờ EKF
+
+`GUIDED`, `AUTO`, `RTL`, `LOITER`, `POSHOLD` đều cần máy bay biết mình đang ở
+đâu. Gọi `mode guided` ngay sau khi SITL khởi động thì lệnh **thành công** —
+heartbeat báo đúng `GUIDED` — nhưng vài giây sau EKF vẫn chưa có lời giải vị trí
+và ArduPilot **tự rơi về `STABILIZE`**. Không có lỗi nào được báo ở chỗ đổi mode;
+hỏng chỉ lộ ra mãi sau, ở `takeoff`, dưới dạng một chữ `MAV_RESULT_FAILED` trơ
+trọi không nói lý do.
+
+`harness.wait_ready()` chờ đủ hai điều kiện trước khi cho đi tiếp: EKF có lời
+giải vị trí tuyệt đối, và GPS đạt 3D fix với ít nhất 6 vệ tinh.

@@ -40,7 +40,34 @@ ARDUPILOT_DIR = Path(os.environ.get("ARDUPILOT_DIR", os.path.expanduser("~/ardup
 SIM_VEHICLE = ARDUPILOT_DIR / "Tools" / "autotest" / "sim_vehicle.py"
 VEHICLE_DIR = ARDUPILOT_DIR / "ArduCopter"
 VENV_PYTHON = os.environ.get("SITL_PYTHON", os.path.expanduser("~/venv-ardupilot/bin/python3"))
+SITL_BINARY = ARDUPILOT_DIR / "build" / "sitl" / "bin" / "arducopter"
 LOGS_DIR = REPO_ROOT / "logs" / "sitl"
+
+# Nơi mỗi runner dựng thư mục làm việc riêng cho phiên SITL của nó.
+#
+# KHÔNG dùng /tmp: đó là thư mục ai cũng ghi được, nên một đường dẫn đoán trước
+# được như `/tmp/sitl-mode-chain` có thể bị người dùng khác trên cùng máy chèn
+# symlink vào (SonarCloud python:S5443). Thư mục dưới $HOME thuộc về một người.
+#
+# Cũng KHÔNG đặt trong repo: repo nằm trên ổ Windows gắn qua 9p, mà SITL ghi log
+# rất dày — để đó là tự làm chậm mô phỏng. `~/.cache` là ext4 gốc của WSL.
+RUN_DIR_BASE = Path(os.environ.get("SITL_RUN_DIR", os.path.expanduser("~/.cache/iot-cv-sitl")))
+
+
+def run_dir(ten: str) -> Path:
+    """Thư mục làm việc riêng cho một runner. Tạo sẵn với quyền chỉ chủ sở hữu."""
+    d = RUN_DIR_BASE / ten
+    d.mkdir(parents=True, exist_ok=True, mode=0o700)
+    return d
+
+
+# Cờ EKF_STATUS_REPORT.flags — đồng bộ với backend/mavlink/telemetry.py, nơi
+# các giá trị này được xác định bằng đo A/B trên SITL chứ không tra tài liệu.
+_EKF_ATTITUDE = 1
+_EKF_VELOCITY_HORIZ = 2
+_EKF_POS_HORIZ_ABS = 16
+_EKF_CONST_POS_MODE = 128
+_EKF_CAN_CO = _EKF_ATTITUDE | _EKF_VELOCITY_HORIZ | _EKF_POS_HORIZ_ABS
 
 MODE_ID_TO_NAME = mavutil.mode_mapping_acm  # {0: "STABILIZE", 4: "GUIDED", ...}
 MODE_NAME_TO_ID = {name: mode_id for mode_id, name in MODE_ID_TO_NAME.items()}
@@ -100,6 +127,17 @@ def _check_binaries() -> None:
         raise SitlError(
             f"Không thấy python venv tại {VENV_PYTHON}. Đặt biến môi trường "
             "SITL_PYTHON trỏ đúng /path/to/venv/bin/python3 có pymavlink."
+        )
+    if not SITL_BINARY.is_file():
+        raise SitlError(
+            f"Chưa có binary SITL tại {SITL_BINARY}.\n"
+            "Harness chạy với --no-rebuild (xem chú thích ở start()), nên nó KHÔNG "
+            "tự build. Build một lần bằng ĐÚNG python của venv:\n"
+            f"  cd {VEHICLE_DIR} && {VENV_PYTHON} {ARDUPILOT_DIR}/modules/waf/waf-light "
+            "configure --board sitl && \\\n"
+            f"  {VENV_PYTHON} {ARDUPILOT_DIR}/modules/waf/waf-light build --target "
+            "bin/arducopter\n"
+            "Phải là python venv: waf cần `empy`, mà empy chỉ có trong venv."
         )
 
 
@@ -171,6 +209,23 @@ class SitlInstance:
             "ArduCopter",
             "--no-mavproxy",
             "--no-wsl2-network",
+            # --no-rebuild BẮT BUỘC, hai lý do:
+            #
+            # 1. Harness là bộ chạy thử, không phải bộ build. Mỗi runner tự mở
+            #    một phiên SITL; để sim_vehicle.py build lại mỗi lần là cộng vài
+            #    phút cho mỗi runner, không đổi lại được gì.
+            # 2. Build tại đây THẤT BẠI trên máy này, và lỗi rất khó lần:
+            #    sim_vehicle.py chạy bằng python của venv, nhưng nó gọi waf qua
+            #    `waf-light` với shebang `#!/usr/bin/env python3` -> rơi về python
+            #    HỆ THỐNG, nơi KHÔNG có `empy`. Build chết với
+            #    "you need to install empy", còn sim_vehicle.py chỉ báo
+            #    "Build failed" rồi thoát 1 — không nhắc gì tới python nào.
+            #    Tệ hơn: nó chạy `configure` TRƯỚC khi build hỏng, tức là một lần
+            #    chạy thử hỏng cũng đủ động vào cấu hình build đang tốt.
+            #
+            # Đổi lại: binary phải có sẵn. `_check_binaries()` canh việc đó và in
+            # ra đúng lệnh build (bằng python venv) khi thiếu.
+            "--no-rebuild",
             f"--speedup={self.speedup}",
             f"--use-dir={self.use_dir}",
         ]
@@ -191,7 +246,16 @@ class SitlInstance:
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
-        self._connect()
+        # Python KHÔNG gọi `__exit__` khi `__enter__` ném, mà `_connect()` là
+        # câu lệnh cuối của `start()` và nó ném sau 90 s chờ. Không có khối này
+        # thì một lần connect hỏng để lại SITL SỐNG, và runner kế tiếp bị
+        # `refuse_if_conflict()` từ chối — hiện ra thành một lỗi thứ hai trông
+        # như không liên quan.
+        try:
+            self._connect()
+        except BaseException:
+            self.stop()
+            raise
 
     def _connect(self) -> None:
         deadline = time.monotonic() + self.connect_timeout_s
@@ -244,18 +308,39 @@ class SitlInstance:
             except subprocess.TimeoutExpired:
                 with contextlib.suppress(ProcessLookupError):
                     os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+                # Gặt xác, nếu không thì để lại zombie.
+                with contextlib.suppress(subprocess.TimeoutExpired):
+                    self.proc.wait(timeout=3)
         # Lưới an toàn thứ hai: sim_vehicle.py chạy arducopter qua một trình bọc
         # xterm (-hold -iconic) mà thực nghiệm 21/09/2026 cho thấy KHÔNG cùng
         # process group với sim_vehicle.py -- SIGTERM vào riêng sim_vehicle.py
         # để lại xterm + arducopter sống. Diệt thẳng theo tên tiến trình; an
         # toàn vì refuse_if_conflict() đã đảm bảo không có phiên nào khác chạy
         # trước khi ta start().
-        for _ in range(5):
-            r1 = subprocess.run(["pkill", "-9", "-f", "bin/arducopter"], check=False)
-            r2 = subprocess.run(["pkill", "-9", "-f", "xterm.*-name ArduCopter"], check=False)
-            if r1.returncode != 0 and r2.returncode != 0:
-                break
-            time.sleep(0.3)
+        # Khớp theo `--use-dir=<thư mục CỦA PHIÊN NÀY>` chứ không theo
+        # "bin/arducopter" trần. Mẫu trần giết mọi tiến trình có chuỗi đó trong
+        # dòng lệnh — kể cả SITL người dùng vừa mở tay ở cửa sổ khác, hay một
+        # `less`/editor đang mở đúng đường dẫn đó. `refuse_if_conflict()` chỉ
+        # bảo đảm điều đó lúc start(), còn đây là vài phút sau.
+        mau = f"--use-dir={self.use_dir}"
+        # SIGTERM TRƯỚC, rồi mới SIGKILL: ArduCopter cần cơ hội flush và đóng
+        # log DataFlash. Giết thẳng bằng -9 là cắt cụt đuôi file .BIN mà
+        # run_log_dump.py sinh ra để đọc.
+        for tin_hieu in ("-TERM", "-KILL"):
+            subprocess.run(["pkill", tin_hieu, "-f", mau], check=False)
+            subprocess.run(["pkill", tin_hieu, "-f", f"xterm.*{self.use_dir}"], check=False)
+            for _ in range(10):
+                if (
+                    subprocess.run(
+                        ["pgrep", "-f", mau], capture_output=True, check=False
+                    ).returncode
+                    != 0
+                ):
+                    break
+                time.sleep(0.3)
+            else:
+                continue
+            break
         if self._log_file is not None:
             self._log_file.close()
         leftover = _running_sitl_pids()
@@ -290,6 +375,48 @@ class SitlInstance:
             return msg
 
     # -- mode / arm / takeoff -------------------------------------------
+
+    def wait_ready(self, *, timeout: float = 180.0, gps_min_sats: int = 6) -> None:
+        """Chờ EKF có lời giải vị trí tuyệt đối VÀ GPS 3D fix.
+
+        PHẢI gọi trước khi sang bất kỳ mode nào cần vị trí (GUIDED, AUTO, RTL,
+        LOITER, POSHOLD). Bỏ bước này là cái bẫy đã sập ngay lần chạy thật đầu
+        tiên của harness (22/09/2026): `set_mode("GUIDED")` ngay sau khi nối
+        thì THÀNH CÔNG — heartbeat báo đúng GUIDED — nhưng vài giây sau EKF chưa
+        có lời giải nên ArduPilot tự rơi về STABILIZE. Không có lỗi nào được
+        ném ở chỗ đổi mode; hỏng chỉ lộ ra mãi sau, ở `takeoff()`, dưới dạng
+        một chữ `MAV_RESULT_FAILED` trơ trọi.
+
+        Ngưỡng cờ EKF lấy từ SỐ ĐO thật, không đoán (xem
+        `backend/mavlink/telemetry.py::_ekf_ok_tu_flags`): khoẻ = 0x033F,
+        mất GPS = 0x00A7 kèm CONST_POS_MODE bật.
+        """
+        deadline = time.monotonic() + timeout
+        ekf_ok = False
+        gps_ok = False
+        cuoi = "chưa nhận được gói nào"
+
+        while time.monotonic() < deadline:
+            msg = self.recv_match(
+                "EKF_STATUS_REPORT", timeout=min(5.0, deadline - time.monotonic())
+            )
+            if msg is not None:
+                flags = msg.flags
+                ekf_ok = (flags & _EKF_CAN_CO) == _EKF_CAN_CO and not (flags & _EKF_CONST_POS_MODE)
+                cuoi = f"EKF flags=0x{flags:04X}"
+
+            gps = self.master.messages.get("GPS_RAW_INT")
+            if gps is not None:
+                gps_ok = gps.fix_type >= 3 and gps.satellites_visible >= gps_min_sats
+                cuoi += f", GPS fix={gps.fix_type} sats={gps.satellites_visible}"
+
+            if ekf_ok and gps_ok:
+                return
+
+        raise SitlError(
+            f"SITL không sẵn sàng sau {timeout:.0f}s (ekf_ok={ekf_ok} gps_ok={gps_ok}). "
+            f"Trạng thái cuối: {cuoi}. STATUSTEXT gần nhất: {self.statustext_log[-5:]}"
+        )
 
     def set_mode(self, mode_name: str, *, timeout: float = 15.0) -> None:
         if mode_name not in MODE_NAME_TO_ID:
@@ -360,6 +487,53 @@ class SitlInstance:
             f"STATUSTEXT gần nhất: {self.statustext_log[-5:]}"
         )
 
+    def start_auto_mission(self, *, timeout: float = 90.0) -> None:
+        """Khởi động một mission AUTO TỪ MẶT ĐẤT.
+
+        ╔══════════════════════════════════════════════════════════════════╗
+        ║  Ba cách SAI, đo thật 22/09/2026 trên ArduCopter 4.7.1           ║
+        ║                                                                  ║
+        ║  1. `MAV_CMD_MISSION_START` (id 300) khi đã armed + ở AUTO trả    ║
+        ║     `COMMAND_ACK result=2` = MAV_RESULT_DENIED. Mission vẫn hiện ║
+        ║     `Mission: 1 Takeoff` (do vào AUTO), nhưng máy bay KHÔNG nhấc ║
+        ║     lên, rồi `Disarming motors` sau ~10 s: `DISARM_DELAY = 10.0` ║
+        ║     thắng, vì nó nằm dưới đất với ga bằng 0.                     ║
+        ║                                                                  ║
+        ║  2. Giả lập nâng ga bằng RC override sau khi arm — chạy đua với  ║
+        ║     đồng hồ tự-disarm, và mong manh.                             ║
+        ║                                                                  ║
+        ║  3. Arm THẲNG trong AUTO — bị từ chối `MAV_RESULT_FAILED`.       ║
+        ║     ArduCopter mặc định KHÔNG cho arm ở AUTO.                    ║
+        ║                                                                  ║
+        ║  Cách ĐÚNG là một tham số, không phải mẹo: `AUTO_OPTIONS`        ║
+        ║  (mặc định 0, đã kiểm là có tồn tại trên firmware này)           ║
+        ║      bit 0 = cho phép ARM trong AUTO                             ║
+        ║      bit 1 = cho phép CẤT CÁNH mà không cần nâng ga              ║
+        ║  Đặt 3 là bật cả hai.                                            ║
+        ║                                                                  ║
+        ║  Triệu chứng khi làm sai: mission nạp đúng, đọc lại đúng, vào    ║
+        ║  AUTO đúng, mà `MISSION_ITEM_REACHED` không bao giờ tới và độ    ║
+        ║  cao đỉnh là 0,0 m.                                              ║
+        ╚══════════════════════════════════════════════════════════════════╝
+
+        Chỉ hợp lệ trên SITL và trên bàn thử. Với drone THẬT, `AUTO_OPTIONS`
+        bit 1 nghĩa là máy bay có thể tự nhấc lên mà không ai chạm cần ga —
+        xem `SAFETY.md` trước khi đặt nó lên phần cứng thật.
+        """
+        self.set_param("AUTO_OPTIONS", 3)
+        self.set_mode("AUTO")
+        self.arm()
+
+        het = time.monotonic() + timeout
+        while time.monotonic() < het:
+            if self.get_position(timeout=3.0)["alt_rel_m"] > 1.0:
+                return
+            time.sleep(0.3)
+        raise SitlError(
+            f"Mission AUTO không nhấc máy bay lên sau {timeout:.0f}s. "
+            f"STATUSTEXT gần nhất: {self.statustext_log[-6:]}"
+        )
+
     def wait_disarmed(self, *, timeout: float = 120.0) -> None:
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
@@ -371,6 +545,16 @@ class SitlInstance:
         raise SitlError(f"Chưa DISARMED sau {timeout}s -- có thể mission/RTL bị kẹt.")
 
     def takeoff(self, alt_m: float, *, timeout: float = 60.0) -> None:
+        # Kiểm điều kiện TRƯỚC khi gửi. ArduPilot từ chối NAV_TAKEOFF ngoài
+        # GUIDED/AUTO bằng đúng một chữ `MAV_RESULT_FAILED` — không nói lý do,
+        # nên nếu không kiểm ở đây thì người đọc log chỉ thấy "bị từ chối" và
+        # phải tự đoán. Đã mất một lượt gỡ lỗi vì chuyện này (22/09/2026).
+        mode = self.get_mode_name()
+        if mode not in ("GUIDED", "AUTO"):
+            raise SitlError(
+                f"takeoff({alt_m}) cần mode GUIDED hoặc AUTO, hiện đang {mode}. "
+                "Thứ tự đúng: wait_ready() -> set_mode('GUIDED') -> arm() -> takeoff()."
+            )
         self.master.mav.command_long_send(
             self.master.target_system,
             self.master.target_component,
@@ -422,21 +606,39 @@ class SitlInstance:
             raise SitlError("Không đọc được HEARTBEAT để biết mode hiện tại.")
         return MODE_ID_TO_NAME.get(hb.custom_mode, f"UNKNOWN({hb.custom_mode})")
 
-    def set_param(self, name: str, value: float, *, timeout: float = 10.0) -> None:
-        self.master.mav.param_set_send(
-            self.master.target_system,
-            self.master.target_component,
-            name.encode("utf-8"),
-            float(value),
-            mavutil.mavlink.MAV_PARAM_TYPE_REAL32,
-        )
+    def set_param(self, name: str, value: float, *, timeout: float = 45.0) -> None:
+        """Đặt một tham số và ĐỢI FC xác nhận đúng tham số đó.
+
+        Gửi lại định kỳ thay vì gửi một lần rồi ngồi đợi. Lý do đo được
+        (22/09/2026): SITL khởi động với `-w` (xoá EEPROM) sẽ ĐỔ TOÀN BỘ danh
+        sách ~1300 tham số ngay sau khi nối. Vòng đợi cũ chỉ lọc theo
+        `type="PARAM_VALUE"` nên nó vớ phải từng gói một trong cơn lũ đó và hết
+        10 giây trước khi tới lượt `RTL_ALT`. Triệu chứng đánh lừa: xin đọc
+        `RTL_ALT` mà nhận về `BARO1_GND_PRESS`.
+
+        PARAM_SET là thao tác idempotent nên gửi lại vô hại, và nó cũng vá
+        luôn ca gói bị rớt (MAVLink chạy trên UDP, không đảm bảo tới nơi).
+        """
         deadline = time.monotonic() + timeout
+        gui_luc = 0.0
         while time.monotonic() < deadline:
+            if time.monotonic() - gui_luc > 5.0:
+                self.master.mav.param_set_send(
+                    self.master.target_system,
+                    self.master.target_component,
+                    name.encode("utf-8"),
+                    float(value),
+                    mavutil.mavlink.MAV_PARAM_TYPE_REAL32,
+                )
+                gui_luc = time.monotonic()
+
             msg = self.master.recv_match(
-                type="PARAM_VALUE", blocking=True, timeout=deadline - time.monotonic()
+                type="PARAM_VALUE",
+                blocking=True,
+                timeout=min(2.0, max(0.1, deadline - time.monotonic())),
             )
             if msg is None:
-                break
+                continue
             if msg.param_id.rstrip("\x00") == name:
                 if abs(msg.param_value - value) > 1e-3:
                     raise SitlError(
@@ -558,8 +760,12 @@ def upload_mission(sitl: SitlInstance, items: list[dict], *, timeout: float = 30
                 )
             return
         seq = msg.seq
-        if seq in sent or seq >= len(items):
+        if seq >= len(items):
             continue
+        # KHÔNG bỏ qua khi `seq in sent`: FC hỏi lại một item đã gửi nghĩa là
+        # gói đó mất, và đó là hành vi truyền lại bình thường của MAVLink. Bỏ
+        # qua thì upload treo tới hết timeout. Vô hình trên TCP loopback, nhưng
+        # Phase 07 dùng file này làm tham chiếu cho đường truyền thật.
         item = items[seq]
         master.mav.mission_item_int_send(
             master.target_system,
@@ -618,6 +824,14 @@ def download_mission(sitl: SitlInstance, *, timeout: float = 30.0) -> list[dict]
         item_msg = master.recv_match(type="MISSION_ITEM_INT", blocking=True, timeout=remaining)
         if item_msg is None:
             raise SitlError(f"download_mission: không nhận được MISSION_ITEM_INT cho seq={seq}.")
+        # So khớp theo VỊ TRÍ trong danh sách là cách người gọi dùng kết quả
+        # này, nên một gói trả về lệch thứ tự sẽ làm lệch MỌI so sánh phía sau
+        # và hiện ra thành một loạt "sai trường" thay vì một lỗi giao thức.
+        if item_msg.seq != seq:
+            raise SitlError(
+                f"download_mission: xin seq={seq} nhưng FC trả seq={item_msg.seq} "
+                "— gói lệch thứ tự, không so khớp tiếp được."
+            )
         items.append(
             {
                 "seq": item_msg.seq,

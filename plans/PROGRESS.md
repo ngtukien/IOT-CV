@@ -200,13 +200,20 @@ Plan: plans/phase-03-hoc-ardupilot-drone-ao.md
 
 Ngày bắt đầu: ______ · Ngày xong: ______
 
-- [ ] Bay trọn `GUIDED` → `LOITER` → `ALT_HOLD` → `RTL` → `DISARMED`, không crash.
+- [x] Bay trọn `GUIDED` → `LOITER` → `ALT_HOLD` → `RTL` → `DISARMED`, không crash.
+      *(`run_mode_chain.py`: 7/7 mode, hai chuyến, không crash, RTL về home 0,0 m.)*
 - [ ] Chạy được mission 5 waypoint (`TAKEOFF` → 3 `WAYPOINT` → `RTL`) ở `AUTO`; `wp list` khớp Mission Planner.
+      *Phần script XONG (`run_mission_auto.py`: tới đủ waypoint [1,2,3,4,5], đọc lại khớp từng
+      trường). Còn nợ phần người: mở Mission Planner đối chiếu `wp list` bằng mắt.*
 - [ ] Có **3 dòng `PreArm:` khác nhau** chép nguyên văn vào sổ tay, mỗi dòng kèm giải thích tự viết.
 - [ ] Mở được log `.BIN` trên UAV Log Viewer; chỉ ra đồ thị độ cao **và** các lần đổi mode.
+      *Phần script XONG (`run_log_dump.py` rút 1218 mẫu `CTUN` + các lần đổi mode ra CSV).
+      Còn nợ phần người: mở `.BIN` trên plot.ardupilot.org và tự chỉ ra hai thứ đó.*
 - [ ] 9 dòng checklist bài tập ở việc 03.6 tick hết.
 - [ ] Viết được câu trả lời tự luận "GUIDED khác AUTO ở chỗ nào" **trước khi** đọc đáp án.
-- [ ] `logs/sitl/.gitkeep` đã commit; không file `.BIN` nào lọt vào git.
+- [x] `logs/sitl/.gitkeep` đã commit; không file `.BIN` nào lọt vào git.
+      *(Kiểm hai chiều: `git ls-files logs/sitl/` ra đúng `.gitkeep`; `git ls-files | grep .BIN` rỗng;
+      CSV vừa sinh bị `logs/sitl/*` chặn đúng như thiết kế.)*
 
 Ghi chú:
 
@@ -217,9 +224,64 @@ mà Phase 19–20 sẽ cần tới khi cầm drone thật.
 - **Người học tự làm (~1,5 h):** gây và sửa 3 lỗi pre-arm; một lần bay tay
   GUIDED → LOITER → ALT_HOLD → RTL; tự viết câu trả lời GUIDED-khác-AUTO **trước**
   khi đọc đáp án. Hướng dẫn từng bước: `docs/huong-dan/phase-03-viec-cua-ban.html`.
-- **Script tự động (~4,5 h) — CÒN NỢ, CHƯA XONG:** `scripts/sitl/` gồm chuỗi 7 mode,
-  thí nghiệm `RTL_ALT` 1500 so với 5000, mission 5 waypoint chạy AUTO, mission có
-  waypoint `Alt` = 3 m, và dump log `.BIN` ra CSV. Phiên sau phải làm nốt phần này.
+- **Script tự động (~4,5 h) — ĐÃ LÀM, 22/09/2026:** `scripts/sitl/` gồm 5 runner
+  đứng trên `harness.py`. Xem `scripts/sitl/README.md`.
+
+**22/09/2026 — `harness.py` chạy thật lần đầu.** Commit gốc tự ghi "CHUA CHAY THAT
+LAN NAO", và quả thật lần chạy đầu hỏng ngay ở bước khởi động. Bốn lỗi trong
+harness, tất cả đều **im lặng** — làm sai thì hỏng mà thông báo lỗi không chỉ vào
+nguyên nhân:
+
+1. **Thiếu `--no-rebuild`.** `sim_vehicle.py` đi build lại, và build hỏng: nó chạy
+   bằng python venv nhưng gọi waf qua shebang `#!/usr/bin/env python3` → rơi về
+   python **hệ thống** không có `empy`. Tệ hơn, nó chạy `configure` *trước* khi
+   build hỏng, tức một lần chạy thử cũng đủ động vào cấu hình build đang tốt.
+2. **Thiếu hàm chờ EKF sẵn sàng.** `set_mode("GUIDED")` ngay sau khi nối thì
+   *thành công*, rồi vài giây sau EKF chưa có lời giải nên ArduPilot tự rơi về
+   `STABILIZE`. Hỏng chỉ lộ ra mãi sau, ở `takeoff`, dưới dạng một chữ
+   `MAV_RESULT_FAILED` trơ trọi.
+3. **`set_param` không chịu nổi cơn lũ tham số.** SITL khởi động với `-w` đổ toàn
+   bộ ~1370 tham số; vòng chờ chỉ lọc theo kiểu message nên vớ phải gói đầu tiên
+   trong cơn lũ. Triệu chứng đánh lừa: xin đọc `RTL_ALT` mà nhận về
+   `BARO1_GND_PRESS`.
+4. **`takeoff` không kiểm mode.** ArduPilot từ chối `NAV_TAKEOFF` ngoài
+   GUIDED/AUTO bằng đúng một chữ `MAV_RESULT_FAILED`.
+
+**Bốn chỗ tài liệu/plan sai, SITL chứng minh** (đã sửa vào plan 03 và sổ tay 03
+mục 10, kèm bằng chứng):
+
+| Chỗ sai | Sự thật đo được trên ArduCopter 4.7.1 |
+|---|---|
+| Plan §03.2, §03.5: `RTL_ALT`, đơn vị cm, đặt 1500/5000 | `RTL_ALT` **không còn tồn tại**. Liệt kê cả 1370 tham số: nhóm RTL* chỉ còn `RTL_ALT_M` (đơn vị **mét**), `RTL_ALT_FINAL_M`, `RTL_CLIMB_MIN_M`, `RTL_SPEED_MS`. ArduPilot 4.7 chuyển sang hậu tố đơn vị SI. Đặt tên cũ thì FC **không báo lỗi**, chỉ không bao giờ xác nhận |
+| Plan §03.3 dòng 141: sau `mode rtl`, mode tự chuyển sang `LAND` rồi `DISARMED` | Mode **vẫn là `RTL`** suốt lúc hạ cho tới khi disarm. RTL tự hạ trong chính nó. Chờ `LAND` là chờ mãi — đã treo trọn 180 s đúng chỗ này |
+| Quy ước mission | **Item 0 là ô HOME**, không phải lệnh. Đặt `NAV_TAKEOFF` ở index 0 thì vào AUTO từ dưới đất bị từ chối: `Auto: Missing Takeoff Cmd`. Mission "5 waypoint" nạp xuống **6 item**. Khó tìm vì lỗi **chỉ** xảy ra khi vào AUTO từ mặt đất |
+| Khởi động mission AUTO | `MAV_CMD_MISSION_START` trả `MAV_RESULT_DENIED`; arm thẳng trong AUTO bị `MAV_RESULT_FAILED`; máy bay tự disarm sau `DISARM_DELAY = 10` s. Cách đúng là tham số **`AUTO_OPTIONS = 3`** (bit 0 cho arm trong AUTO, bit 1 cho cất cánh không cần nâng ga). ⚠️ **Chỉ dùng trên SITL.** Trên phần cứng thật, bit 1 nghĩa là máy bay tự nhấc lên mà không ai chạm cần ga — đọc `SAFETY.md` trước |
+
+**Kết quả 5 runner, chạy thật trên SITL ArduCopter 4.7.1:**
+
+| Runner | Kết quả |
+|---|---|
+| `run_mode_chain.py` | **PASS** — 7/7 mode; RTL về home **0,0 m** |
+| `run_rtl_alt.py` | **PASS** — đỉnh **20,0 m** (`RTL_ALT_M=15`) vs **50,0 m** (`=50`), chênh **30,0 m** |
+| `run_mission_auto.py` | **PASS** — nạp 6 item (5 lệnh + home), đọc lại **khớp từng trường**, tới đủ waypoint **[1,2,3,4,5]**, đỉnh **25,0 m**, RTL về **0,0 m** |
+| `run_mission_low_alt.py` | **PASS** — FC nhận và bay waypoint 3 m, xuống tới **3,2 m** |
+| `run_log_dump.py` | **PASS** — rút **1218 mẫu** `CTUN` + các lần đổi mode ra CSV |
+
+**Kết luận cho Phase 07 (từ `run_mission_low_alt.py`):** flight controller **nhận
+và bay** waypoint ở 3 m, không hề chặn. Nó **không kiểm hộ độ cao tối thiểu**, nên
+`validate_mission()` ở backend là **bắt buộc**, không phải thừa. `MIN_ALT` của dự
+án là 2 m — thấp hơn nữa phải chặn ở backend.
+
+> **Một phép đo hỏng đã tự bắt được.** Bản đầu lấy mẫu độ cao suốt cả mission, kể
+> cả đoạn RTL hạ cánh cuối, nên đáy luôn ra ~0 m **bất kể** FC có bay xuống
+> waypoint thấp hay không — con số đó không phân biệt được hai khả năng mà nó sinh
+> ra để phân biệt. Đã thu hẹp cửa sổ lấy mẫu về đúng chặng waypoint 2→4, và thêm
+> cận dưới 0,5 m để nếu đáy vẫn ~0 thì runner **từ chối kết luận** thay vì báo bừa.
+
+**Số đo của bài tập §03.5** (chạy `scripts/sitl/run_rtl_alt.py`): cất cánh 20 m rồi
+RTL — `RTL_ALT_M = 15` cho đỉnh **20,0 m** (không leo, vì đang cao hơn ngưỡng);
+`RTL_ALT_M = 50` cho đỉnh **50,0 m**. Chênh **30,0 m**. Kết luận cho sổ tay:
+`RTL_ALT_M` là độ cao **tối thiểu**, không phải bắt buộc.
 
 **Sửa `.gitignore` (bắt buộc, không phải tuỳ chọn):** cổng pass đòi commit
 `logs/sitl/.gitkeep` nhưng luật `logs/*` ở dòng 58 chặn luôn cả thư mục con, nên gate

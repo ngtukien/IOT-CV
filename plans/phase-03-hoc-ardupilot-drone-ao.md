@@ -55,7 +55,7 @@ Trong cửa sổ MAVProxy (cái có dấu nhắc `STABILIZE>`), gõ từng lện
 status
 mode
 param show ARMING_CHECK
-param show RTL_ALT
+param show RTL_ALT_M
 wp list
 ```
 
@@ -63,7 +63,12 @@ Kết quả mong đợi:
 
 - `status` in một khối dữ liệu (mode, arm state, vị trí, pin giả).
 - `mode` in mode hiện tại, ví dụ `STABILIZE`.
-- `param show RTL_ALT` in một dòng dạng `RTL_ALT 1500.0` (đơn vị centimet → 15 mét).
+- `param show RTL_ALT_M` in một dòng dạng `RTL_ALT_M 15.0` (đơn vị **mét**).
+  > **Đã sửa 22/09/2026.** Bản trước ghi `RTL_ALT` đơn vị centimet (`1500.0`).
+  > Liệt kê cả 1370 tham số của ArduCopter 4.7.1 trên SITL: `RTL_ALT` **không
+  > còn tồn tại**. ArduPilot 4.7 đổi sang hậu tố đơn vị SI — nhóm RTL nay là
+  > `RTL_ALT_M`, `RTL_ALT_FINAL_M`, `RTL_CLIMB_MIN_M`, `RTL_SPEED_MS`.
+  > Bằng chứng: `scripts/sitl/run_rtl_alt.py`, chạy được với cả hai tên.
 - `wp list` in `Requesting 0 waypoints` (chưa có mission nào).
 - Mission Planner hiện cùng thông tin trên HUD.
 
@@ -138,15 +143,28 @@ mode rtl
 
 (`rc 1` là kênh roll — nghiêng trái/phải. `rc 2` là kênh pitch — chúi trước/sau. `1500` là giữa, tức buông cần.)
 
-Sau `mode rtl`, theo dõi: mode phải tự chuyển sang `LAND` rồi `DISARMED`.
+Sau `mode rtl`, theo dõi: máy bay tự leo, bay về, hạ, rồi `DISARMED`.
+
+> **Đã sửa 22/09/2026.** Bản trước viết "mode phải tự chuyển sang `LAND` rồi
+> `DISARMED`". Đo thật trên ArduCopter 4.7.1: mode **vẫn là `RTL`** suốt quá
+> trình hạ — RTL tự hạ trong chính nó, không đổi sang `LAND`. Chờ `LAND` là
+> chờ mãi (đã treo hết 180 s). STATUSTEXT quan sát được:
+> `SIM Hit ground at 0.50 m/s` → `Disarming motors`.
+> Muốn thử mode `LAND` thì phải gọi `mode land` riêng.
+> Bằng chứng: `scripts/sitl/run_mode_chain.py`.
 
 Ba param cần hiểu ngay ở bước này. Xem bằng `param show`, đổi bằng `param set`, rồi **bay lại và cảm nhận khác biệt**:
 
-- `RTL_ALT` — RTL leo lên độ cao nào trước khi bay về (đơn vị cm). Đặt thấp quá thì về đụng cây.
+- `RTL_ALT_M` — RTL leo lên độ cao nào trước khi bay về (đơn vị **mét** trên 4.7+;
+  firmware cũ là `RTL_ALT`, cm). Đặt thấp quá thì về đụng cây. Lưu ý: đây là độ
+  cao **tối thiểu**, không phải bắt buộc — đang bay cao hơn thì nó không hạ xuống.
 - `WPNAV_SPEED` — tốc độ bay giữa các waypoint (cm/s).
 - `LAND_SPEED` — tốc độ hạ ở đoạn cuối (cm/s). Nhanh quá thì đập đất.
 
-Bài tập: đổi `RTL_ALT` từ mặc định sang `5000` (50 m), bay lại, **mô tả bằng lời** sự khác biệt quan sát được vào sổ tay.
+Bài tập: đổi `RTL_ALT_M` từ mặc định `15` sang `50`, bay lại, **mô tả bằng lời**
+sự khác biệt quan sát được vào sổ tay. Số đo đối chiếu (chạy
+`scripts/sitl/run_rtl_alt.py`): cất cánh 20 m rồi RTL — ở `15` đỉnh đạt **20,0 m**
+(không leo, vì đã cao hơn ngưỡng); ở `50` đỉnh đạt **50,0 m**. Chênh **30,0 m**.
 
 Kết quả mong đợi: đổi được cả 7 mode; drone trên Map phản ứng đúng mô tả ở cột giữa; `mode rtl` luôn đưa nó về đúng điểm xuất phát.
 
