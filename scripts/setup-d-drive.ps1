@@ -141,11 +141,46 @@ function Move-Tree {
     # robocopy chịu được đường dẫn dài và cây thư mục sâu, tốt hơn Move-Item
     $null = robocopy $From $To /E /MOVE /NFL /NDL /NJH /NJS /R:1 /W:1 /MT:16
     $rc = $LASTEXITCODE
-    if ($rc -lt 8) {
-        Write-Act "$Label đã chuyển xong (robocopy rc=$rc)" 'OK'
+    # robocopy để lại mã thoát trong $LASTEXITCODE; không dọn thì CHÍNH SCRIPT NÀY
+    # thoát với mã đó, và người gọi `script && lệnh_tiếp` sẽ đứt oan.
+    $global:LASTEXITCODE = 0
+
+    # KHÔNG kết luận theo mã thoát. Mã của robocopy là cờ bit, không phải thang
+    # điểm: rc=0 nghĩa là "không chép gì", rc=2 nghĩa là "đích có file thừa".
+    # Cả hai đều < 8 nên điều kiện `$rc -lt 8` cũ báo THÀNH CÔNG trong khi
+    # không một byte nào di chuyển — đã xảy ra thật ngày 21/09/2026, script in
+    # "đã chuyển xong" còn cả 34 file vẫn nằm nguyên trên C.
+    # Kết luận theo KẾT QUẢ: nguồn có rỗng đi không.
+    $leftFiles = @(Get-ChildItem -LiteralPath $From -Recurse -File -ErrorAction SilentlyContinue)
+    $leftMB = if ($leftFiles.Count) { [math]::Round((($leftFiles | Measure-Object -Sum Length).Sum) / 1MB, 2) } else { 0 }
+
+    if ($leftFiles.Count -eq 0) {
+        Remove-Item -LiteralPath $From -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Act "$Label đã chuyển xong, nguồn sạch (robocopy rc=$rc)" 'OK'
+        return
+    }
+
+    # Còn sót. Hai khả năng khác hẳn nhau, phải phân biệt chứ không gộp làm một:
+    # (a) đích đã có bản y hệt -> robocopy bỏ qua vì trùng, /MOVE do đó KHÔNG xoá
+    #     nguồn. Đây là bản sao thừa, xoá được.
+    # (b) file đang bị khoá -> phải đóng phần mềm rồi chạy lại.
+    $dupe = 0
+    foreach ($f in $leftFiles) {
+        $rel = $f.FullName.Substring($From.Length).TrimStart('\')
+        $twin = Join-Path $To $rel
+        if ((Test-Path -LiteralPath $twin) -and ((Get-Item -LiteralPath $twin).Length -eq $f.Length) -and
+            ((Get-FileHash -LiteralPath $twin -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash)) {
+            $dupe++
+        }
+    }
+
+    if ($dupe -eq $leftFiles.Count) {
+        Remove-Item -LiteralPath $From -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Act "$Label - $dupe file còn sót đều đã có bản y hệt (SHA256) trên đích, đã xoá bản thừa ($leftMB MB)" 'OK'
     }
     else {
-        Write-Act "$Label CHUYỂN LỖI (robocopy rc=$rc) - dữ liệu cũ vẫn còn ở $From" 'WARN'
+        $locked = $leftFiles.Count - $dupe
+        Write-Act "$Label CHƯA XONG - còn $($leftFiles.Count) file ($leftMB MB) ở $From, trong đó $locked file KHÔNG có bản trên đích (nhiều khả năng đang bị khoá). Đóng phần mềm đang dùng rồi chạy lại. robocopy rc=$rc" 'WARN'
     }
 }
 
