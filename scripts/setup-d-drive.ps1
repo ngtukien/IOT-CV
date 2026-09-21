@@ -337,22 +337,16 @@ else {
 # Tool mồ côi: cài từ TRƯỚC khi UV_TOOL_DIR từng được đặt, nên vẫn nằm ở vị trí
 # mặc định %APPDATA%\uv\tools. "uv tool list" không còn thấy nó (đang đọc
 # UV_TOOL_DIR mới) dù tool vẫn chạy được bình thường. Chỉ báo cáo, không tự sửa
-# (script không biết lúc chạy MCP server nào đang giữ tool đó).
+# (script không biết lúc chạy MCP server nào đang giữ tool đó). Ví dụ đã gặp:
+# cua-driver 76 MB - MCP server của nó khoá file venv, reinstall giữa chừng sẽ hỏng.
 $defaultUvToolDir = Join-Path $env:APPDATA 'uv\tools'
 if ((Test-Path -LiteralPath $defaultUvToolDir) -and ($defaultUvToolDir -ne $pUvTools)) {
     $orphans = Get-ChildItem -LiteralPath $defaultUvToolDir -Directory -ErrorAction SilentlyContinue
     foreach ($o in $orphans) {
-        Write-Act ("tool mồ côi: '{0}' vẫn nằm ở {1} - lệnh 'uv tool list' không thấy. Sau khi đóng phần mềm đang dùng nó, chạy: uv tool install {0} --reinstall" -f $o.Name, $defaultUvToolDir) 'WARN'
+        # --force là bắt buộc: shim cũ trong ~/.local/bin vẫn còn, thiếu cờ này
+        # uv báo 'Executable already exists' và không làm gì.
+        Write-Act ("tool mồ côi: '{0}' vẫn nằm ở {1} - lệnh 'uv tool list' không thấy (tool vẫn chạy được). Đóng hẳn phần mềm đang giữ nó rồi chạy: uv tool install {0} --reinstall --force" -f $o.Name, $defaultUvToolDir) 'WARN'
     }
-}
-
-# cua-driver: trường hợp đã biết cụ thể - cài trước khi UV_TOOL_DIR từng được
-# đặt (76 MB, còn ở C:\Users\<user>\AppData\Roaming\uv\tools\cua-driver). Tool
-# vẫn chạy tốt, chỉ cần dọn khi rảnh. CHỈ chạy lệnh fix lúc MCP server cua-driver
-# KHÔNG đang chạy (nó khoá file venv, reinstall giữa chừng sẽ hỏng).
-$cuaDriverOldDir = Join-Path $defaultUvToolDir 'cua-driver'
-if (Test-Path -LiteralPath $cuaDriverOldDir) {
-    Write-Act "cua-driver mồ côi tại $cuaDriverOldDir. Khi MCP server cua-driver KHÔNG chạy, sửa bằng: uv tool install cua-driver --reinstall --force" 'WARN'
 }
 
 # ----------------------------------------------------------------------------
