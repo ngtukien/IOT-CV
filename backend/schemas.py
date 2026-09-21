@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic.json_schema import models_json_schema
 
 # Phiên bản hợp đồng. Client gửi `v` khác số này sẽ nhận error
@@ -43,12 +43,23 @@ class Envelope(BaseModel):
     `UPLINK_MODELS` — xem `backend/ws.py`.
     """
 
-    v: int = CONTRACT_VERSION
+    # KHÔNG đặt giá trị mặc định cho `v`. Đây là trường duy nhất có nhiệm vụ
+    # CHẶN LẠI, nên nó phải fail-closed: có mặc định thì client bỏ hẳn `v` đi
+    # vẫn lọt qua như thể nó là v1 — đúng thứ trường này sinh ra để ngăn.
+    v: int
     type: str
     ts: float | None = None
     # Chỉ chiều LÊN mới có `id`; server echo lại ở `ack.ref` / `error.ref`.
     id: str | None = None
+    # `None` được chấp nhận và quy về `{}` — JSON.stringify của trình duyệt hay
+    # gửi `"data": null`. Hợp đồng nói `data` KHÔNG BAO GIỜ null, nên ta chuẩn
+    # hoá tại cửa thay vì bắt mọi handler tự đoán.
     data: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("data", mode="before")
+    @classmethod
+    def _null_thanh_rong(cls, value: Any) -> Any:
+        return {} if value is None else value
 
 
 # ---------------------------------------------------------------------------

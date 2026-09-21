@@ -430,11 +430,11 @@ VISION_ENABLED   = _env_bool("VISION_ENABLED", True)      # tat han khoi vision 
 
 | Trường | Kiểu | Bắt buộc | Ý nghĩa |
 |---|---|---|---|
-| `v` | int | có | Phiên bản hợp đồng, luôn `1`. Khác → `error` `unsupported_version` |
+| `v` | int | có | Phiên bản hợp đồng, luôn `1`. Khác → `error` `unsupported_version`. **Thiếu hẳn → `bad_payload`**: trường này KHÔNG có giá trị mặc định, vì nó là thứ duy nhất có nhiệm vụ chặn lại nên phải fail-closed |
 | `type` | string | có | Một giá trị trong hai bảng dưới |
-| `ts` | float | có | Unix epoch **giây** có phần thập phân (`time.time()`) |
+| `ts` | float | xuống: có · lên: không bắt buộc | Unix epoch **giây** có phần thập phân (`time.time()`). Server luôn gửi; server **bỏ qua** `ts` của client, nên thiếu nó ở chiều lên không bị từ chối — từ chối một lệnh vì thiếu cái dấu thời gian mà ta không đọc thì chỉ hại người dùng |
 | `id` | string | chỉ chiều lên | Mã client tự sinh (`c-1`, `c-2`…). Server echo lại ở `ack.ref` / `error.ref` |
-| `data` | object | có | Không bao giờ `null`; rỗng thì `{}` |
+| `data` | object | có | Không bao giờ `null`; rỗng thì `{}`. Chiều lên, server **chấp nhận** `null` và quy về `{}` — `JSON.stringify` của trình duyệt sinh ra `"data": null` rất dễ, chuẩn hoá tại cửa rẻ hơn bắt mọi handler tự đoán |
 
 **Tương thích tiến:** bên nhận **bỏ qua trong im lặng** `type` lạ ở chiều **xuống** và trường lạ trong `data`. Chiều **lên** thì phải trả `error` — im lặng nuốt một lệnh là nguy hiểm.
 
@@ -446,7 +446,7 @@ VISION_ENABLED   = _env_bool("VISION_ENABLED", True)      # tat han khoi vision 
 | `status` | Khi đổi + 1 lần lúc mở socket | Sự kiện | 05 |
 | `event` | Khi có việc | Sự kiện | 05 |
 | `detection` | 3–5 Hz | Sự kiện | 07 (nguồn giả) · `plans/ai/` (nguồn thật) |
-| `ack` | Đáp mỗi lệnh | Sự kiện | 06 |
+| `ack` | Đáp mỗi lệnh | Sự kiện | 05 (cho `cmd.web_control_enable`) · 06 (phần còn lại) |
 | `error` | Đáp lệnh hỏng | Sự kiện | 05 |
 | `pong` | Đáp `ping` | Sự kiện | 05 |
 
@@ -514,11 +514,17 @@ VISION_ENABLED   = _env_bool("VISION_ENABLED", True)      # tat han khoi vision 
 ```json
 { "level": "warn", "source": "safety", "code": "deadman.zero_velocity",
   "message": "Mat ket noi trinh duyet — da gui velocity 0",
-  "detail": { "reason": "web_disconnected" } }
+  "detail": { "reason": "web_disconnected" },
+  "ts": 1758412345.02 }
 ```
 
 `level` ∈ `info` · `warn` · `error`. `source` ∈ `mavlink` · `safety` · `mission` · `vision` · `backend`.
 `code` là khoá máy đọc (UI lọc/tô màu theo nó); `message` là tiếng Việt cho người đọc.
+
+`ts` ở **trong** `data` là thời điểm sự kiện **xảy ra**, khác `ts` của phong bì
+là thời điểm **gửi đi**. Hai cái này lệch nhau thật: vòng đệm 200 sự kiện được
+phát lại cho mỗi tab mới mở, nên một sự kiện xảy ra lúc 10:00 có thể được gửi
+lúc 10:05. UI phải hiển thị theo `data.ts`, không phải theo phong bì.
 
 #### `detection.data`
 

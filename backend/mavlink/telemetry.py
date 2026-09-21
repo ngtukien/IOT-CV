@@ -250,19 +250,39 @@ class TelemetryReader:
         self._thread = threading.Thread(target=self._run, name="telemetry", daemon=True)
         self._thread.start()
 
-    def stop(self, timeout: float = 3.0) -> None:
+    def stop(self, timeout: float = 15.0) -> None:
+        """Dừng thread đọc.
+
+        `timeout` mặc định phải LỚN HƠN `HEARTBEAT_TIMEOUT_S` (10 s): nếu thread
+        đang nằm trong `wait_heartbeat()` thì nó không thấy cờ stop cho tới khi
+        lần chờ đó hết giờ. Đặt 3 s như bản trước thì `join` LUÔN quá hạn.
+
+        Và chỉ xoá `_thread` khi join THẬT SỰ xong. Xoá bừa thì cái canh trong
+        `start()` mất tác dụng, và một `start()` sau đó sẽ đẻ ra thread thứ hai
+        cùng ghi vào một `TelemetryState`.
+        """
         self._stop.set()
-        if self._thread is not None:
-            self._thread.join(timeout=timeout)
-            self._thread = None
+        thread = self._thread
+        if thread is not None:
+            thread.join(timeout=timeout)
+            if thread.is_alive():
+                log.error(
+                    "Thread telemetry chưa dừng sau %.0fs — GIỮ nguyên tham chiếu để "
+                    "start() không tạo thread thứ hai",
+                    timeout,
+                )
+            else:
+                self._thread = None
         self.connection.close()
         self.state.connected = False
 
     # -- vòng đời link ------------------------------------------------------
     def _run(self) -> None:
         backoff = _BACKOFF_START_S
+        that_bai_lien_tiep = 0
         while not self._stop.is_set():
-            if not self._try_connect():
+            if not self._try_connect(lan_thu=that_bai_lien_tiep):
+                that_bai_lien_tiep += 1
                 # `wait` chứ không `sleep`: stop() phải cắt được ngay, không
                 # bắt người dùng chờ hết 10 giây backoff khi tắt backend.
                 self._stop.wait(backoff)
@@ -270,6 +290,7 @@ class TelemetryReader:
                 continue
 
             backoff = _BACKOFF_START_S
+            that_bai_lien_tiep = 0
             self._read_until_link_dies()
 
             self.state.connected = False
@@ -282,18 +303,29 @@ class TelemetryReader:
                     f"Mất liên lạc với flight controller ({self.connection.endpoint})",
                 )
 
-    def _try_connect(self) -> bool:
+    def _try_connect(self, lan_thu: int = 0) -> bool:
         try:
             self.connection.connect()
         except Exception as exc:  # pymavlink raise nhiều loại tuỳ endpoint  # noqa: BLE001
             log.warning("Chưa kết nối được MAVLink (%s). Sẽ thử lại.", exc)
             self.state.connected = False
-            self.bus.emit(
-                "warn",
-                "mavlink",
-                "link.connect_failed",
-                f"Chưa kết nối được {self.connection.endpoint}: {exc}",
-            )
+            # Đóng socket đã mở dở: `connect()` gán `self.master` TRƯỚC khi chờ
+            # heartbeat, nên ném ở bước chờ là để lại một cổng UDP đã bind, chờ
+            # gc dọn hộ.
+            self.connection.close()
+            # CHỈ phát sự kiện ở lần hỏng ĐẦU. Vòng đệm chỉ có 200 chỗ và tab
+            # mới mở được phát lại 50 cái gần nhất; FC tắt một tiếng là ring
+            # đầy ắp một dòng "connect_failed" giống hệt nhau, đẩy hết
+            # statustext / link.lost / web_control.revoked ra ngoài — đúng thứ
+            # vòng đệm sinh ra để giữ.
+            if lan_thu == 0:
+                self.bus.emit(
+                    "warn",
+                    "mavlink",
+                    "link.connect_failed",
+                    f"Chưa kết nối được {self.connection.endpoint}: {exc}. "
+                    f"Sẽ tự thử lại, không báo thêm cho tới khi nối được.",
+                )
             return False
 
         # wait_heartbeat() đã thành công nhưng message đó không đi qua

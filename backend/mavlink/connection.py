@@ -104,6 +104,9 @@ class MavlinkConnection:
 
         heartbeat = self.master.wait_heartbeat(timeout=wait)
         if heartbeat is None:
+            # Đóng trước khi ném: `self.master` đã bind cổng UDP ở dòng trên,
+            # để nguyên là bỏ lại một cổng đã chiếm cho gc dọn hộ.
+            self.close()
             raise TimeoutError(f"Không nhận được HEARTBEAT từ {self.endpoint} sau {wait:.0f}s")
 
         self.target_system = self.master.target_system

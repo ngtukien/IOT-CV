@@ -9,8 +9,13 @@ Không cần SITL: `conftest.py` đặt TELEMETRY_AUTOSTART=0.
 
 from __future__ import annotations
 
+import json
+import time
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from backend.app import HUB, SAFETY, app
 from backend.schemas import (
@@ -82,28 +87,61 @@ def test_moi_type_trong_hop_dong_parse_duoc():
         UPLINK_MODELS[type_].model_validate(envelope.data)
 
 
-def test_json_schema_co_du_type():
-    schema = contract_json_schema()
+def test_json_schema_moi_ref_tro_vao_dinh_nghia_co_that():
+    """Mọi `$ref` phải trỏ vào một định nghĩa có thật, nếu không Phase 08 sinh
+    TypeScript ra type rỗng mà không báo lỗi gì.
 
-    assert schema["contract_version"] == CONTRACT_VERSION
-    for type_ in UPLINK_MODELS:
-        assert type_ in schema["uplink"], f"thiếu {type_} chiều lên"
-    for type_ in DOWNLINK_MODELS:
-        assert type_ in schema["downlink"], f"thiếu {type_} chiều xuống"
-    # Mọi $ref phải trỏ vào một định nghĩa có thật, nếu không Phase 08 sinh
-    # TypeScript sẽ ra type rỗng mà không báo lỗi.
+    Cố ý KHÔNG khẳng định `"ping" in schema["uplink"]`: hai dict đó là
+    comprehension trên chính `UPLINK_MODELS`/`DOWNLINK_MODELS` mà test sẽ lặp
+    qua, nên khẳng định kiểu đó xanh với mọi nội dung. Việc "file trên đĩa có
+    đủ type không" do test dưới đảm nhiệm.
+    """
+    schema = contract_json_schema()
     defs = schema["$defs"]
+
     for nhom in ("uplink", "downlink"):
         for type_, ref in schema[nhom].items():
             ten = ref["$ref"].removeprefix("#/$defs/")
             assert ten in defs, f"{nhom}.{type_} trỏ vào $defs/{ten} không tồn tại"
 
 
-def test_data_khong_bao_gio_null():
-    """Hợp đồng: `data` rỗng thì là `{}`, không phải `null`."""
-    envelope = Envelope.model_validate({"v": 1, "type": "ping"})
+def test_file_schema_da_commit_khong_bi_cu():
+    """`backend/ws-contract.schema.json` là thứ Phase 08 THẬT SỰ đọc, và nó là
+    file đã commit — tức là nó lệch được so với `schemas.py` mà không ai hay.
 
-    assert envelope.data == {}
+    Đây là khẳng định duy nhất trong bộ test có thể bắt được việc quên chạy lại
+    `uv run python -m backend.schemas`.
+    """
+    duong_dan = Path(__file__).resolve().parents[1] / "ws-contract.schema.json"
+    assert duong_dan.is_file(), "chưa sinh backend/ws-contract.schema.json"
+
+    tren_dia = json.loads(duong_dan.read_text(encoding="utf-8"))
+
+    assert tren_dia["contract_version"] == CONTRACT_VERSION
+    assert set(tren_dia["uplink"]) == set(UPLINK_MODELS), "file schema lệch ở chiều LÊN"
+    assert set(tren_dia["downlink"]) == set(DOWNLINK_MODELS), "file schema lệch ở chiều XUỐNG"
+    assert tren_dia == contract_json_schema(), (
+        "backend/ws-contract.schema.json đã cũ so với schemas.py — "
+        "chạy: uv run python -m backend.schemas > backend/ws-contract.schema.json"
+    )
+
+
+def test_data_khong_bao_gio_null():
+    """Hợp đồng: `data` rỗng thì là `{}`, không phải `null`.
+
+    Kiểm CẢ HAI dạng. Trình duyệt gửi `JSON.stringify({data: null})` ra
+    `"data": null` thật, nên chỉ kiểm dạng thiếu khoá là bỏ sót đúng dạng hay
+    gặp nhất.
+    """
+    assert Envelope.model_validate({"v": 1, "type": "ping"}).data == {}
+    assert Envelope.model_validate({"v": 1, "type": "ping", "data": None}).data == {}
+
+
+def test_thieu_v_thi_bi_tu_choi():
+    """`v` KHÔNG được có giá trị mặc định: đây là trường duy nhất có nhiệm vụ
+    chặn lại, có mặc định thì bỏ hẳn nó đi vẫn lọt như thể là v1."""
+    with pytest.raises(ValidationError):
+        Envelope.model_validate({"type": "ping", "data": {}})
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +149,12 @@ def test_data_khong_bao_gio_null():
 # ---------------------------------------------------------------------------
 def test_mo_socket_nhan_status_ngay():
     with TestClient(app) as client, client.websocket_connect("/ws") as ws:
-        message = nhan_den_khi(ws, "status")
+        # Khẳng định frame ĐẦU TIÊN, không phải "có status ở đâu đó trong 60
+        # frame đầu". Bất biến ở ws.py là status đi TRƯỚC telemetry — tab mới
+        # mở phải biết giới hạn an toàn trước khi vẽ. Dùng nhan_den_khi() ở đây
+        # thì một hồi quy làm status đến sau telemetry vẫn xanh.
+        message = ws.receive_json()
+        assert message["type"] == "status", f"frame đầu là {message['type']}, không phải status"
 
         assert message["v"] == CONTRACT_VERSION
         data = message["data"]
@@ -223,6 +266,100 @@ def test_dong_socket_thi_tra_lai_quyen_lai():
         # Ra khỏi `with` = socket đóng. Đây chính là cơ chế an toàn dead-man.
         assert HUB.web_control_owner is None
         assert SAFETY.web_control_enabled is False
+
+
+def test_frame_nhi_phan_khong_dong_socket():
+    """`ws.send(new Uint8Array(...))` từ trình duyệt. Bản đầu dùng
+    `receive_text()`, ném KeyError('text') và giết luôn socket — trái hẳn
+    quyết định 'message hỏng KHÔNG đóng socket'."""
+    with TestClient(app) as client, client.websocket_connect("/ws") as ws:
+        ws.send_bytes(b"\x00\x01\x02")
+
+        loi = nhan_den_khi(ws, "error")
+        assert loi["data"]["code"] == "bad_payload"
+
+        gui(ws, "ping", id_="c-2")
+        assert nhan_den_khi(ws, "pong") is not None
+
+
+def test_socket_gui_hong_thi_lenh_KHONG_duoc_thuc_thi():
+    """Socket "xác sống": một lần `send_json` hỏng làm client bị gỡ khỏi
+    `_clients`, nhưng `receive_loop` chạy trên đối tượng `ws` thô nên vẫn đọc
+    và vẫn THỰC THI lệnh.
+
+    Hậu quả đo được ở bản đầu: client giành được quyền lái, mọi tab khác nhận
+    `command_denied`, còn chính nó không nhận lại một frame nào — không ack,
+    không error, không telemetry. Đó đúng là "im lặng nuốt một lệnh" mà hợp
+    đồng cấm bằng chữ.
+    """
+    with TestClient(app) as client, client.websocket_connect("/ws") as ws:
+        nhan_den_khi(ws, "telemetry")
+        socket_id = next(reversed(HUB._clients))
+
+        # Đầu độc đường gửi của ĐÚNG socket đó, phía server.
+        HUB._clients[socket_id].ws.send_json = _luon_hong  # type: ignore[method-assign]
+
+        gui(ws, "cmd.web_control_enable", {"enabled": True}, id_="c-1")
+        time.sleep(0.5)
+
+        assert HUB.web_control_owner is None, (
+            f"socket {socket_id} giành được quyền lái dù không nhận nổi một frame "
+            "nào — lệnh đã bị nuốt trong im lặng"
+        )
+
+
+async def _luon_hong(*args, **kwargs):
+    raise RuntimeError("socket chet - co y")
+
+
+def test_thieu_v_tren_socket_bi_tu_choi():
+    with TestClient(app) as client, client.websocket_connect("/ws") as ws:
+        ws.send_json({"type": "ping", "id": "c-1", "data": {}})
+
+        loi = nhan_den_khi(ws, "error")
+        assert loi["data"]["code"] == "bad_payload"
+
+
+def test_vong_telemetry_song_sot_qua_mot_lan_broadcast_loi():
+    """Vòng telemetry là chỗ DUY NHẤT thu hồi quyền lái khi mode rời GUIDED
+    hoặc mất link. Nó chết lặng lẽ = mất cơ chế an toàn mà socket vẫn mở và
+    `/api/health` vẫn 200. Một lỗi trong thân vòng phải được ghi lại rồi đi
+    tiếp, không được giết task.
+
+    Khẳng định trên TRẠNG THÁI TASK chứ không chờ frame kế tiếp. Bản đầu chờ
+    frame, nên khi gỡ bản vá ra thì task chết, không còn frame nào, và test
+    TREO 300 giây rồi bị CI giết thay vì đỏ. Treo gần bằng vô dụng: người đọc
+    log thấy timeout chứ không thấy "cơ chế an toàn đã chết".
+    """
+    with TestClient(app) as client, client.websocket_connect("/ws") as ws:
+        nhan_den_khi(ws, "telemetry")
+
+        task = next(t for t in HUB._tasks if t.get_name() == "ws-telemetry")
+        assert not task.done()
+
+        goc = HUB.broadcast
+        lan_goi = {"n": 0}
+
+        async def broadcast_no_mot_lan(*args, **kwargs):
+            lan_goi["n"] += 1
+            if lan_goi["n"] == 1:
+                raise RuntimeError("thuoc doc - co y")
+            return await goc(*args, **kwargs)
+
+        HUB.broadcast = broadcast_no_mot_lan  # type: ignore[method-assign]
+        try:
+            # Vòng chạy 8 Hz -> 0,6 s là khoảng 5 nhịp, thừa để nổ.
+            time.sleep(0.6)
+            assert lan_goi["n"] >= 1, "vòng telemetry không quay — test không kiểm được gì"
+            assert not task.done(), (
+                "vòng telemetry đã chết vì một lỗi broadcast — mất luôn cơ chế "
+                "thu hồi quyền lái, mà socket vẫn mở nên không ai thấy"
+            )
+        finally:
+            HUB.broadcast = goc  # type: ignore[method-assign]
+
+        # Và nó phải còn bơm thật, không chỉ còn sống trên giấy.
+        assert nhan_den_khi(ws, "telemetry") is not None
 
 
 def test_gui_qua_nhanh_bi_rate_limited():

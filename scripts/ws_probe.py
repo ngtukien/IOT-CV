@@ -30,6 +30,10 @@ import time
 
 DEFAULT_URL = "ws://127.0.0.1:8000/ws"
 
+# Dải nhịp telemetry được coi là đạt, với TELEMETRY_HZ=8 (cổng pass §5.6 bài 3).
+HZ_MIN = 7.5
+HZ_MAX = 8.5
+
 
 def _in(message: dict, pretty: bool) -> None:
     if pretty:
@@ -59,11 +63,18 @@ async def _run(args: argparse.Namespace) -> int:
     except ImportError:  # websockets < 13 để ở chỗ khác
         from websockets.client import connect  # type: ignore[no-redef]
 
+    # WebSocketException cũng phải bắt: backend ĐANG chạy nhưng từ chối nâng cấp
+    # (gõ sai đường dẫn -> rơi vào StaticFiles) ném InvalidStatus/InvalidHandshake,
+    # không phải OSError, nên nếu thiếu thì người dùng nhận traceback trần thay vì
+    # dòng "Backend đã chạy chưa?".
+    from websockets.exceptions import WebSocketException
+
     try:
         socket = await asyncio.wait_for(connect(args.url), timeout=args.timeout)
-    except (TimeoutError, OSError) as exc:
+    except (TimeoutError, OSError, WebSocketException) as exc:
         print(f"FAIL: không nối được {args.url} ({exc})", file=sys.stderr)
         print("Backend đã chạy chưa?  uv run uvicorn backend.app:app", file=sys.stderr)
+        print(f"Đường dẫn đúng là /ws — đang thử: {args.url}", file=sys.stderr)
         return 1
 
     print(f"Đã nối {args.url}")
@@ -124,9 +135,14 @@ def _bao_cao_nhip(moc: list[float], giay: float) -> int:
     print(f"Số message   : {len(moc)} trong {khoang:.1f}s")
     print(f"Nhịp         : {hz:.2f} Hz")
     print(f"Giãn cách    : min {min(cach_nhau):.0f} ms · max {max(cach_nhau):.0f} ms")
+
     # Cổng pass §5.6 bài 3: 7.5-8.5 Hz với TELEMETRY_HZ=8.
-    print(f"Cổng pass 8Hz: {'ĐẠT' if 7.5 <= hz <= 8.5 else 'KHÔNG ĐẠT'} (cần 7.5-8.5 Hz)")
-    return 0
+    # Mã thoát PHẢI theo phán quyết. Bản trước in "KHÔNG ĐẠT" rồi vẫn `return 0`
+    # — một cổng mà việc duy nhất của nó là đỏ, lại không đỏ được, nên backend
+    # chạy 2 Hz hay 40 Hz đều qua trong mọi lần dùng có kịch bản.
+    dat = HZ_MIN <= hz <= HZ_MAX
+    print(f"Cổng pass 8Hz: {'ĐẠT' if dat else 'KHÔNG ĐẠT'} (cần {HZ_MIN}-{HZ_MAX} Hz)")
+    return 0 if dat else 1
 
 
 def main() -> int:

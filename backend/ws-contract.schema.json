@@ -360,7 +360,6 @@
       "description": "Lớp bọc chung cho MỌI message, cả hai chiều.\n\n`data` để kiểu dict chứ không phải union phân biệt theo `type`. Cố ý:\nunion sẽ gộp \"type không tồn tại\" và \"data sai kiểu\" thành cùng một lỗi\nvalidation, trong khi hợp đồng đòi hai mã lỗi KHÁC nhau (`unknown_type` vs\n`bad_payload`). Nên việc kiểm `data` được tách thành bước hai, tra bảng\n`UPLINK_MODELS` — xem `backend/ws.py`.",
       "properties": {
         "v": {
-          "default": 1,
           "title": "V",
           "type": "integer"
         },
@@ -399,6 +398,7 @@
         }
       },
       "required": [
+        "v",
         "type"
       ],
       "title": "Envelope",

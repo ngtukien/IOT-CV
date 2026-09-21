@@ -158,16 +158,31 @@ def test_battery_status_doi_ca_sang_ampe():
 
 def test_battery_status_khong_do_duoc_thi_none():
     """FC báo -1 nghĩa là KHÔNG ĐO ĐƯỢC. Để -1 lọt ra UI thì màn hình sẽ hiện
-    'dòng điện -1 A' — vô nghĩa và khiến người đọc tưởng có số đo."""
+    'dòng điện -1 A' — vô nghĩa và khiến người đọc tưởng có số đo.
+
+    Nạp giá trị THẬT trước rồi mới nạp -1: nếu chỉ nạp -1 vào state mới tinh
+    thì test xanh cả khi xoá sạch nhánh BATTERY_STATUS, vì hai trường đó vốn
+    đã là None.
+    """
     state = TelemetryState()
     update_state(
         state,
-        FakeMessage("BATTERY_STATUS", current_battery=-1, battery_remaining=-1),
+        FakeMessage("BATTERY_STATUS", current_battery=250, battery_remaining=76),
         now=1.0,
+    )
+    assert state.battery_current == 2.5  # có số đo thật trước đã
+
+    update_state(
+        state,
+        FakeMessage("BATTERY_STATUS", current_battery=-1, battery_remaining=-1),
+        now=2.0,
     )
 
     assert state.battery_current is None
     assert state.battery_remaining is None
+    # Message ĐÃ được xử lý, không phải bị bỏ qua — nếu không thì "đổi -1 thành
+    # None" và "rơi mất message" trông giống hệt nhau.
+    assert state.last_update == 2.0
 
 
 def test_vfr_hud_climb_rate():
@@ -180,6 +195,25 @@ def test_vfr_hud_climb_rate():
 
     assert state.ground_speed == 3.5
     assert state.climb_rate == 1.2
+    # Chưa có heading từ nguồn tốt hơn thì VFR_HUD được điền vào.
+    assert state.heading == 90
+
+
+def test_vfr_hud_khong_de_len_heading_cua_global_position():
+    """GLOBAL_POSITION_INT cho heading chính xác hơn VFR_HUD. Bỏ cái canh
+    `if state.heading is None` thì VFR_HUD (5 Hz) sẽ ghi đè liên tục và la bàn
+    mất độ chính xác — im lặng, vì cả hai đều ra một con số trông hợp lý."""
+    state = TelemetryState()
+    update_state(
+        state,
+        FakeMessage("GLOBAL_POSITION_INT", lat=0, lon=0, alt=0, relative_alt=0, hdg=12_500),
+        now=1.0,
+    )
+    assert state.heading == 125
+
+    update_state(state, FakeMessage("VFR_HUD", groundspeed=1.0, climb=0.0, heading=90), now=2.0)
+
+    assert state.heading == 125, "VFR_HUD đã ghi đè heading của GLOBAL_POSITION_INT"
 
 
 def test_yaw_chuan_hoa_ve_0_359():
@@ -202,21 +236,37 @@ def test_home_position_chia_1e7():
     assert abs(state.home_lon - 106.66) < 1e-9
 
 
-def test_ekf_ok_chua_kiem_chung_thi_van_la_none():
-    """Cố ý CHƯA parse — xem chú thích trong telemetry.py nhánh SYS_STATUS.
-    Đoán True tệ hơn không biết: Phase 06 dùng nó để chặn arm."""
+def test_ekf_ok_KnownGap():
+    """PIN KHOẢNG TRỐNG — `ekf_ok` cố ý CHƯA parse (xem nhánh SYS_STATUS trong
+    telemetry.py). Test này chỉ ĐỎ khi có người hiện thực nó.
+
+    ĐỎ ở đây nghĩa là ĐÃ LÀM XONG, không phải hỏng. Khi đó: XOÁ test này và
+    viết test khẳng định giá trị đúng — đừng sửa nó để pin trạng thái mới
+    (`rules/pinned-baseline-test-companion.md`).
+    """
     state = TelemetryState()
     update_state(state, FakeMessage("SYS_STATUS", voltage_battery=11_400), now=1.0)
 
-    assert state.ekf_ok is None
+    assert state.ekf_ok is None, (
+        "ekf_ok đã có giá trị — nếu bit AHRS vừa được kiểm chứng và hiện thực thì "
+        "XOÁ test pin này, đừng đổi nó thành pin của trạng thái mới."
+    )
 
 
 def test_statustext_khong_vao_state():
-    """STATUSTEXT là SỰ KIỆN, không phải trạng thái."""
+    """STATUSTEXT là SỰ KIỆN, không phải trạng thái.
+
+    Nạp một message THẬT trước để chốt là `update_state` đang hoạt động — nếu
+    không, test vẫn xanh cả khi `update_state` thoái hoá thành hàm rỗng cho
+    MỌI loại message.
+    """
     state = TelemetryState()
+    update_state(state, FakeMessage("HEARTBEAT", base_mode=0, custom_mode=4), now=5.0)
+    assert state.last_update == 5.0
+
     update_state(state, FakeMessage("STATUSTEXT", severity=4, text="PreArm: GPS"), now=9.0)
 
-    assert state.last_update is None
+    assert state.last_update == 5.0, "STATUSTEXT đã lọt vào state"
 
 
 def test_statustext_doi_severity_sang_level():
@@ -329,6 +379,46 @@ def test_request_streams_gui_dung_so_lenh_va_dung_id():
     assert args[5] == 100_000  # param2 = 10 Hz -> 100000 us
 
 
+def test_request_streams_mac_dinh_dung_bang_STREAM_RATES():
+    """Đường mặc định (`rates=None`) là đường production thật sự chạy; test chỉ
+    truyền bảng riêng thì nó không bao giờ được thực thi."""
+    conn = MavlinkConnection()
+    conn.master = fake = FakeMAVLink()
+    conn.target_system, conn.target_component = 1, 1
+
+    conn.request_streams()
+
+    assert fake.count("command_long_send") == len(STREAM_RATES)
+    da_xin = {payload["args"][4] for name, payload in fake.sent if name == "command_long_send"}
+    assert da_xin == set(STREAM_RATES)
+
+
+def test_moi_loi_goi_mav_deu_di_qua_send():
+    """LUẬT ở đầu connection.py: mọi `master.mav.*_send()` phải đi qua `send()`.
+
+    `FakeMAVLink` ghi lại y hệt dù gọi thẳng hay qua khoá, nên nó KHÔNG canh
+    được luật này — phải canh bằng cách đọc chính mã nguồn. Không có test này
+    thì thứ duy nhất giữ luật là một comment.
+    """
+    import re
+    from pathlib import Path
+
+    goc = Path(__file__).resolve().parent.parent  # backend/
+    vi_pham: list[str] = []
+    for path in goc.rglob("*.py"):
+        if path.name == "connection.py" or "tests" in path.parts:
+            continue
+        for so_dong, dong in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            sach = dong.split("#", 1)[0]
+            if re.search(r"\.mav\.\w+_send\s*\(", sach):
+                vi_pham.append(f"{path.relative_to(goc)}:{so_dong}: {dong.strip()}")
+
+    assert not vi_pham, (
+        "Gọi thẳng mav.*_send() không qua MavlinkConnection.send() — hai thread "
+        "ghi xen kẽ sẽ làm FC bỏ gói TRONG IM LẶNG:\n" + "\n".join(vi_pham)
+    )
+
+
 def test_stream_rates_co_du_message_hud_can():
     """Thiếu một dòng ở đây là HUD giật mà không ai hiểu vì sao."""
     for msg_id in (0, 1, 24, 30, 33, 74):
@@ -343,6 +433,7 @@ def test_request_message_dung_id_512():
 
     conn.request_message(242)
 
+    assert fake.count("command_long_send") == 1, "xin HOME_POSITION nhiều hơn một lần"
     args = fake.last("command_long_send")["args"]
     assert args[2] == MAV_CMD_REQUEST_MESSAGE
     assert args[4] == 242

@@ -95,13 +95,16 @@ class _TokenBucket:
 class _Client:
     """Những gì hub nhớ về một socket."""
 
-    __slots__ = ("buckets", "last_rate_error", "socket_id", "ws")
+    __slots__ = ("buckets", "dead", "last_rate_error", "socket_id", "ws")
 
     def __init__(self, socket_id: str, ws: WebSocket) -> None:
         self.socket_id = socket_id
         self.ws = ws
         self.buckets: dict[str, _TokenBucket] = {}
         self.last_rate_error = 0.0
+        # Gửi hỏng một lần là socket coi như chết. `receive_loop` kiểm cờ này
+        # để không xử lý tiếp lệnh của một socket mà ta không trả lời được.
+        self.dead = False
 
     def allow(self, type_: str) -> bool:
         rate = UPLINK_RATE_LIMITS.get(type_)
@@ -158,7 +161,9 @@ class WebSocketHub:
         return socket_id
 
     async def disconnect(self, socket_id: str) -> None:
-        self._clients.pop(socket_id, None)
+        client = self._clients.pop(socket_id, None)
+        if client is not None:
+            client.dead = True
         if self.web_control_owner == socket_id:
             # Socket đóng = mất quyền lái. Đây CHÍNH LÀ cơ chế an toàn, không
             # phải dọn dẹp phụ trợ: Phase 06 nối thêm "gửi velocity 0" vào đây.
@@ -184,7 +189,12 @@ class WebSocketHub:
         try:
             await client.ws.send_json(frame(type_, data))
         except Exception:  # noqa: BLE001 — socket chết giữa chừng là chuyện thường
-            self._clients.pop(socket_id, None)
+            # PHẢI đi qua disconnect() chứ không chỉ `pop`. Chỉ pop thì
+            # `receive_loop` vẫn chạy trên socket đó và vẫn THỰC THI lệnh —
+            # đã đo được: một lần gửi hỏng lúc mở socket là đủ để client giành
+            # được quyền lái rồi không nhận lại một frame nào, kể cả ack. Đó
+            # đúng là "im lặng nuốt một lệnh" mà hợp đồng cấm.
+            await self.disconnect(socket_id)
 
     async def broadcast(self, type_: str, data: BaseModel | dict | None = None) -> None:
         if not self._clients:
@@ -258,9 +268,33 @@ class WebSocketHub:
 
         Mọi lỗi nội dung đều trả `error` rồi ĐI TIẾP. Chỉ `WebSocketDisconnect`
         mới thoát vòng.
+
+        Dùng `receive()` chứ KHÔNG dùng `receive_text()`: `receive_text()` của
+        Starlette làm `message["text"]` trần, nên một frame NHỊ PHÂN (browser
+        chỉ cần `ws.send(new Uint8Array(...))`) ném `KeyError: 'text'`, thoát
+        cả vòng và đóng socket — đúng điều quyết định 2 ở đầu file nói là
+        không được xảy ra.
         """
         while True:
-            raw = await ws.receive_text()
+            message = await ws.receive()
+            if message["type"] == "websocket.disconnect":
+                raise WebSocketDisconnect(message.get("code", 1000))
+
+            raw = message.get("text")
+            if raw is None:
+                await self.send_error(
+                    socket_id,
+                    "bad_payload",
+                    "Chỉ nhận frame văn bản JSON, không nhận frame nhị phân",
+                )
+                continue
+
+            # Socket đã chết giữa chừng (một lần gửi hỏng) — không xử lý tiếp
+            # lệnh mà ta không có cách nào trả lời.
+            client = self._clients.get(socket_id)
+            if client is None or client.dead:
+                raise WebSocketDisconnect(1011)
+
             await self._dispatch(socket_id, raw)
 
     async def _dispatch(self, socket_id: str, raw: str) -> None:
@@ -302,7 +336,12 @@ class WebSocketHub:
 
         # 4. Có vượt nhịp không?
         client = self._clients.get(socket_id)
-        if client is not None and not client.allow(envelope.type):
+        if client is None:
+            # Socket biến mất giữa chừng. Fail-closed: KHÔNG chạy lệnh cho một
+            # socket không còn nhận được phản hồi (bản trước bỏ qua luôn cả
+            # giới hạn nhịp ở đây, nên một socket chết spam được thoải mái).
+            return
+        if not client.allow(envelope.type):
             now = time.monotonic()
             if now - client.last_rate_error >= _RATE_ERROR_COOLDOWN_S:
                 client.last_rate_error = now
@@ -380,14 +419,22 @@ class WebSocketHub:
         for task in self._tasks:
             task.cancel()
         for task in self._tasks:
-            with contextlib.suppress(asyncio.CancelledError):
+            # Không chỉ nuốt CancelledError: một task đã chết vì lỗi khác sẽ
+            # ném lại ở đây, tức là ném ra khỏi lifespan `finally` và làm hỏng
+            # cả trình tự tắt. Ghi lại rồi tắt cho trọn.
+            try:  # noqa: SIM105 — cần log, không chỉ suppress
                 await task
+            except asyncio.CancelledError:
+                pass
+            except Exception:  # noqa: BLE001
+                log.exception("Task nền '%s' đã chết từ trước khi tắt", task.get_name())
         self._tasks = []
         # Bỏ mọi thứ gắn với loop vừa đóng, để lần start_background sau dựng
         # lại sạch trên loop mới.
         self._events = None
         self._loop = None
         self._clients.clear()
+        self.web_control_owner = None
         self._last_mode = None
         self._last_link_alive = None
 
@@ -419,15 +466,46 @@ class WebSocketHub:
             return
         while True:
             payload = await queue.get()
-            await self.broadcast("event", payload)
+            try:
+                await self.broadcast("event", payload)
+            except Exception:  # noqa: BLE001 — xem _khong_duoc_chet_lang_le
+                self._khong_duoc_chet_lang_le("event_loop")
 
     async def telemetry_loop(self) -> None:
-        """MỘT vòng cho TẤT CẢ socket. Xem quyết định 1 ở đầu file."""
+        """MỘT vòng cho TẤT CẢ socket. Xem quyết định 1 ở đầu file.
+
+        Vòng này KHÔNG chỉ bơm telemetry: nó là chỗ DUY NHẤT gọi
+        `_reconcile_control_ownership`, tức là chỗ duy nhất thu hồi quyền lái
+        khi mode rời GUIDED hoặc khi mất link. Nó chết = mất cả cơ chế an toàn
+        đó, mà socket vẫn mở nên không ai thấy gì. Vì vậy thân vòng phải bắt
+        mọi lỗi và đi tiếp — xem `_khong_duoc_chet_lang_le`.
+        """
         interval = 1.0 / max(config.TELEMETRY_HZ, 1.0)
         while True:
-            await self._reconcile_control_ownership()
-            await self.broadcast("telemetry", build_telemetry(self.state))
+            try:
+                await self._reconcile_control_ownership()
+                await self.broadcast("telemetry", build_telemetry(self.state))
+            except Exception:  # noqa: BLE001
+                self._khong_duoc_chet_lang_le("telemetry_loop")
             await asyncio.sleep(interval)
+
+    def _khong_duoc_chet_lang_le(self, ten_vong: str) -> None:
+        """Ghi lỗi của một vòng nền và BÁO RA NGOÀI, rồi để vòng chạy tiếp.
+
+        `asyncio.Task` nuốt exception cho tới lúc có ai `await` nó — ở đây là
+        `stop_background()`, tức là lúc tắt tiến trình, có khi hàng giờ sau.
+        Trong khoảng đó `/api/health` vẫn trả 200 và socket vẫn mở: hệ thống
+        chết mà mọi đèn đều xanh. Phát một `event` để UI thấy ngay.
+        """
+        log.exception("Vòng nền '%s' ném lỗi — đã ghi lại và chạy tiếp", ten_vong)
+        with contextlib.suppress(Exception):
+            self.bus.emit(
+                "error",
+                "backend",
+                "loop.error",
+                f"Vòng nền '{ten_vong}' gặp lỗi — đây là bug, xem log backend",
+                {"loop": ten_vong},
+            )
 
     async def _reconcile_control_ownership(self) -> None:
         """Thu hồi quyền lái khi mode rời GUIDED hoặc khi mất link.

@@ -10,7 +10,11 @@ import os
 
 # Đặt TRƯỚC khi bất kỳ test nào import `backend.app`: lifespan đọc biến này để
 # quyết định có gọi READER.start() hay không.
-os.environ.setdefault("TELEMETRY_AUTOSTART", "0")
+#
+# Gán THẲNG chứ không `setdefault`: trên máy hay runner CI nào đã export sẵn
+# TELEMETRY_AUTOSTART=1 thì setdefault là lệnh rỗng, và cả bộ test lặng lẽ mở
+# link MAVLink thật — đúng việc duy nhất file này sinh ra để chặn.
+os.environ["TELEMETRY_AUTOSTART"] = "0"
 
 import pytest  # noqa: E402
 
