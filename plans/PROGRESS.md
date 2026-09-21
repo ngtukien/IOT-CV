@@ -117,6 +117,10 @@ Plan §01.7(b) gắn cờ "chưa xác minh" cho hai số `vite 8.3.0` và `types
 
 **Hai chỗ còn trỏ đường dẫn cũ, CỐ Ý không sửa** vì nằm trong danh sách "Không đụng" của plan §"File và thư mục sở hữu": `CONTRIBUTING.md` (dòng 30 và 71 nhắc `params/`, nay là `firmware/ardupilot/params/`) và `scripts/github/bootstrap_github.py` (dòng 50, mô tả nhãn `type/param` nhắc `params/`). Cả hai chỉ là chữ mô tả, không phải đường dẫn code chạy được. `docs/bao-cao-tong-quan-du-an.md` (dòng ~369) cũng còn cây thư mục cũ với `esp32/` — đó là văn bản báo cáo chụp lại thiết kế cũ, trong đó nhiều file còn chưa tồn tại, nên không sửa. Ai làm phase sau dọn thì dọn một lượt.
 
+**Plan §01.9 khẳng định sai về phiên bản action — vòng CI đầu đỏ cả 3 job.** Plan ghi bốn action đã "kiểm chứng ngày 21/09/2026", nhưng `astral-sh/setup-uv@v10` **không phân giải được**: repo đó *có* release `v10.1.0`, nhưng **chỉ duy trì tag trôi tới `v7`** (`refs/tags/v1`…`v7`), nên `@v10` là một ref không tồn tại. Đã ghim `@v10.1.0` (tag release chính xác). Ba action còn lại — `actions/checkout@v7`, `actions/setup-node@v7`, `pnpm/action-setup@v4` — đều có thật, đã xác nhận từng cái bằng `gh api repos/<repo>/git/ref/tags/<tag>` **trước khi** đẩy lại.
+
+**Plan thiếu một tham số bắt buộc của `pnpm/action-setup`.** Action này không tự đoán được bản pnpm; nó đọc khoá `packageManager` trong `package.json`, mà mặc định tìm file đó ở **gốc repo** — ở đây `package.json` nằm trong `frontend/`. Đã thêm `"packageManager": "pnpm@11.10.0"` vào `frontend/package.json` và `package_json_file: frontend/package.json` vào bước setup. Kiểm lại tại chỗ bằng đúng lệnh CI sẽ chạy (`pnpm install --frozen-lockfile` → exit 0, lockfile không bị `packageManager` làm lệch).
+
 **Ước lượng 6,0 giờ của plan là cho người làm tay.** Phiên này chạy tự động hết khoảng 25 phút, phần lớn thời gian nằm ở `pnpm dlx shadcn init` (tải 310 gói) và ba vòng thử cờ shadcn.
 
 ## Phase 02 — WSL2 + build ArduPilot + SITL

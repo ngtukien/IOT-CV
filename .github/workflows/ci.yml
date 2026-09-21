@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.1.0
       - run: uv sync --extra dev
       - run: uv run ruff check .
 
@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.1.0
       - run: uv sync --extra dev
       # Job này KHÔNG build frontend, nên `frontend/dist` vắng mặt và
       # `test_frontend_duoc_serve` tự skip (pytest.mark.skipif). Đó là chủ đích,
@@ -50,6 +50,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
+        with:
+          # Action nay KHONG tu doan duoc ban pnpm. No doc khoa
+          # `packageManager` trong package.json, ma mac dinh no tim file do o
+          # GOC repo — o day package.json nam trong frontend/.
+          package_json_file: frontend/package.json
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
