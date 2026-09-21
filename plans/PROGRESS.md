@@ -92,7 +92,7 @@ Ngày bắt đầu: 21/09/2026 · Ngày xong: 21/09/2026
 - [x] `README.md` mới ≤ 60 dòng; `docs/archive/plan-nhap-92-giai-doan.md` và `docs/archive/so-tay-lap-f450.html` tồn tại.
 - [x] Ba file `requirements*.txt` đã xoá; `pyproject.toml` (gốc) có khối `[project]` **không có** `[project.optional-dependencies] ml`; `ml/pyproject.toml` tồn tại, là dự án `uv` riêng, **không có** `torch`; `.python-version` chứa `3.13`.
 - [x] `docker compose ps` hiện `iotcv-mosquitto` đang `running`.
-- [ ] CI trên GitHub xanh cả 3 job (`lint`, `test`, `frontend`).
+- [x] CI trên GitHub xanh cả 3 job (`lint`, `test`, `frontend`) — PR #26, run 35583397426. SonarCloud cũng xanh (quality gate `OK`, `new_security_rating` = 1).
 - [x] `plans/PROGRESS.md` mục Phase 01 đã tick, ghi số phiên bản npm thực tế, và đã commit.
 
 Ghi chú:
@@ -122,6 +122,19 @@ Plan §01.7(b) gắn cờ "chưa xác minh" cho hai số `vite 8.3.0` và `types
 **Plan thiếu một tham số bắt buộc của `pnpm/action-setup`.** Action này không tự đoán được bản pnpm; nó đọc khoá `packageManager` trong `package.json`, mà mặc định tìm file đó ở **gốc repo** — ở đây `package.json` nằm trong `frontend/`. Đã thêm `"packageManager": "pnpm@11.10.0"` vào `frontend/package.json` và `package_json_file: frontend/package.json` vào bước setup. Kiểm lại tại chỗ bằng đúng lệnh CI sẽ chạy (`pnpm install --frozen-lockfile` → exit 0, lockfile không bị `packageManager` làm lệch).
 
 **SonarCloud đỏ ở vòng hai dù 3 job CI đã xanh — việc ngoài phạm vi plan, đã xử.** Plan không nhắc tới SonarCloud, và nó cũng không chặn merge (`mergeable=MERGEABLE`), nhưng nó xanh ở cả bốn PR trước (#10, #21, #24, #25) và đỏ ở PR này, nên đúng là Phase 01 gây ra. Chỉ một điều kiện hỏng: `new_security_rating` = 3, ngưỡng 1. Trong 13 issue thì 11 cái MAJOR nằm ở chính `ci.yml` vừa viết (action ghim bằng tag chứ không phải SHA; `uv sync` thiếu `--locked`/`--no-build`), 2 cái MINOR nằm ở `docs/archive/frontend-vanilla/index.html` — file JS cũ không sửa một dòng nào, chỉ vì `git mv` đổi đường dẫn nên Sonar tính là "code mới" của PR.
+
+Mất 4 vòng CI mới xanh, và đường đi đáng ghi vì hai chỗ dễ đoán sai:
+
+| Vòng | Vulnerabilities | Đã làm |
+|---|---|---|
+| 2 | 13 | — |
+| 3 | 8 | ghim full commit SHA · `uv sync --locked --no-build` |
+| 4 | 2 | `uv run --no-sync` · thêm `.sonarcloud.properties` |
+| 5 | **0** | `uv run --no-build` |
+
+**Tên file cấu hình Sonar: `.sonarcloud.properties`, KHÔNG phải `sonar-project.properties`.** Vòng 3 đã có `sonar-project.properties` với đúng khối `sonar.exclusions` mà hai issue trong `docs/archive/frontend-vanilla/index.html` **vẫn còn nguyên**. Vòng 4 thêm `.sonarcloud.properties` cùng nội dung thì chúng biến mất. Automatic Analysis (không có job Sonar trong `ci.yml`) đọc tên thứ hai. Giữ cả hai file để ai chuyển sang CI-based analysis sau này không phải mò lại.
+
+**`uv run` cũng giải phụ thuộc, không chỉ `uv sync`.** Đặt `--locked --no-build` ở mỗi `uv sync` là bịt nửa cửa: bước `uv run ruff check .` ngay sau đó vẫn tự giải lại. Phải là `uv run --no-sync --no-build`. `--no-sync` dọn `S8544` (khoá phiên bản) nhưng **không** dọn `S8541` (`--no-build`) — hai rule độc lập, phải thêm cả hai cờ.
 
 Đáng ghi lại: **sửa riêng 11 cái MAJOR sẽ không đủ.** Security rating lấy theo issue nặng nhất, nên bỏ hết MAJOR thì 2 cái MINOR vẫn kéo rating xuống 2 — vẫn trên ngưỡng 1, vẫn đỏ. Phải làm cả hai vế. Cách đã dùng: ghim cả bốn action theo full commit SHA (lấy bằng `gh api repos/<repo>/git/ref/tags/<tag>`, không đoán), thêm `--locked --no-build` vào `uv sync`, và tạo `sonar-project.properties` loại `docs/archive/**` + `legacy-sketch/**` + `build-d450a747/**` khỏi phân tích. `--locked` không phải để chiều linter: nó bắt `uv.lock` lệch `pyproject.toml` và fail, là một cổng thật mà trước đó không có.
 
