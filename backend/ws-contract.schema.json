@@ -1,0 +1,1044 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IOT-CV WebSocket contract",
+  "description": "Sinh tu backend/schemas.py. KHONG sua tay file nay — sua schemas.py roi chay: uv run python -m backend.schemas",
+  "contract_version": 1,
+  "envelope": {
+    "$ref": "#/$defs/Envelope"
+  },
+  "downlink": {
+    "telemetry": {
+      "$ref": "#/$defs/Telemetry"
+    },
+    "status": {
+      "$ref": "#/$defs/StatusPayload"
+    },
+    "event": {
+      "$ref": "#/$defs/EventPayload"
+    },
+    "detection": {
+      "$ref": "#/$defs/DetectionPayload"
+    },
+    "ack": {
+      "$ref": "#/$defs/AckPayload"
+    },
+    "error": {
+      "$ref": "#/$defs/ErrorPayload"
+    },
+    "pong": {
+      "$ref": "#/$defs/PongPayload"
+    }
+  },
+  "uplink": {
+    "ping": {
+      "$ref": "#/$defs/CmdPing"
+    },
+    "cmd.web_control_enable": {
+      "$ref": "#/$defs/CmdWebControlEnable"
+    },
+    "cmd.mode": {
+      "$ref": "#/$defs/CmdMode"
+    },
+    "cmd.arm": {
+      "$ref": "#/$defs/CmdArm"
+    },
+    "cmd.takeoff": {
+      "$ref": "#/$defs/CmdTakeoff"
+    },
+    "cmd.velocity": {
+      "$ref": "#/$defs/CmdVelocity"
+    },
+    "cmd.hold": {
+      "$ref": "#/$defs/CmdSimple"
+    },
+    "cmd.rtl": {
+      "$ref": "#/$defs/CmdSimple"
+    },
+    "cmd.land": {
+      "$ref": "#/$defs/CmdSimple"
+    },
+    "cmd.mission.upload": {
+      "$ref": "#/$defs/CmdMissionUpload"
+    }
+  },
+  "uplink_rate_limits": {
+    "ping": 2,
+    "cmd.web_control_enable": 5,
+    "cmd.mode": 5,
+    "cmd.arm": 2,
+    "cmd.takeoff": 2,
+    "cmd.velocity": 30,
+    "cmd.hold": 5,
+    "cmd.rtl": 5,
+    "cmd.land": 5,
+    "cmd.mission.upload": 1
+  },
+  "error_codes": [
+    "unknown_type",
+    "unsupported_version",
+    "bad_payload",
+    "not_implemented",
+    "not_connected",
+    "web_control_disabled",
+    "wrong_mode",
+    "command_denied",
+    "validation_failed",
+    "rate_limited",
+    "timeout",
+    "internal"
+  ],
+  "$defs": {
+    "AckPayload": {
+      "description": "`accepted` = backend nhận và thấy hợp lệ. `done` = FC đã xác nhận.\n\nLệnh chậm (mode, arm, takeoff, mission) gửi CẢ HAI. Lệnh nhanh chỉ `done`.\n`cmd.velocity` KHÔNG sinh ack — nó chạy 5-20 Hz, ack sẽ làm ngập socket.",
+      "properties": {
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "accepted",
+            "done"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        }
+      },
+      "required": [
+        "command",
+        "status"
+      ],
+      "title": "AckPayload",
+      "type": "object"
+    },
+    "CameraStatus": {
+      "properties": {
+        "available": {
+          "default": false,
+          "title": "Available",
+          "type": "boolean"
+        },
+        "url": {
+          "default": "/api/video/stream",
+          "title": "Url",
+          "type": "string"
+        },
+        "fake": {
+          "default": true,
+          "title": "Fake",
+          "type": "boolean"
+        }
+      },
+      "title": "CameraStatus",
+      "type": "object"
+    },
+    "CmdArm": {
+      "description": "`false` = disarm. CẤM mọi tham số force — xem SAFETY.md mục 1.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "arm"
+      ],
+      "title": "CmdArm",
+      "type": "object"
+    },
+    "CmdMissionUpload": {
+      "description": "Backend KHÔNG tự chèn takeoff/RTL còn thiếu — báo `validation_failed`\nđể người sửa (Phase 07).",
+      "properties": {
+        "waypoints": {
+          "items": {
+            "$ref": "#/$defs/MissionWaypoint"
+          },
+          "title": "Waypoints",
+          "type": "array"
+        },
+        "auto_start": {
+          "default": false,
+          "title": "Auto Start",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "waypoints"
+      ],
+      "title": "CmdMissionUpload",
+      "type": "object"
+    },
+    "CmdMode": {
+      "properties": {
+        "mode": {
+          "enum": [
+            "GUIDED",
+            "LOITER",
+            "ALT_HOLD",
+            "POSHOLD",
+            "BRAKE",
+            "RTL",
+            "LAND",
+            "AUTO",
+            "STABILIZE"
+          ],
+          "title": "Mode",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "CmdMode",
+      "type": "object"
+    },
+    "CmdPing": {
+      "properties": {},
+      "title": "CmdPing",
+      "type": "object"
+    },
+    "CmdSimple": {
+      "description": "Dùng chung cho `cmd.hold`, `cmd.rtl`, `cmd.land` — không có tham số.",
+      "properties": {},
+      "title": "CmdSimple",
+      "type": "object"
+    },
+    "CmdTakeoff": {
+      "description": "Phải nằm trong [MIN_ALT, MAX_ALT]. Vượt thì trả error, KHÔNG im lặng kẹp\n— kiểm ở Phase 06, nơi có config trong tay.",
+      "properties": {
+        "altitude": {
+          "title": "Altitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "altitude"
+      ],
+      "title": "CmdTakeoff",
+      "type": "object"
+    },
+    "CmdVelocity": {
+      "description": "m/s, body frame. `vz` DƯƠNG = XUỐNG (quy ước NED, đừng đảo).",
+      "properties": {
+        "vx": {
+          "default": 0.0,
+          "title": "Vx",
+          "type": "number"
+        },
+        "vy": {
+          "default": 0.0,
+          "title": "Vy",
+          "type": "number"
+        },
+        "vz": {
+          "default": 0.0,
+          "title": "Vz",
+          "type": "number"
+        },
+        "yaw_rate": {
+          "default": 0.0,
+          "title": "Yaw Rate",
+          "type": "number"
+        }
+      },
+      "title": "CmdVelocity",
+      "type": "object"
+    },
+    "CmdWebControlEnable": {
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "title": "CmdWebControlEnable",
+      "type": "object"
+    },
+    "DetectionBox": {
+      "description": "Toạ độ là PIXEL trong hệ của khung gốc (width×height) — không phải tỉ lệ\n0-1, không phải pixel màn hình. Frontend tự quy đổi.",
+      "properties": {
+        "x1": {
+          "title": "X1",
+          "type": "number"
+        },
+        "y1": {
+          "title": "Y1",
+          "type": "number"
+        },
+        "x2": {
+          "title": "X2",
+          "type": "number"
+        },
+        "y2": {
+          "title": "Y2",
+          "type": "number"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "confidence",
+        "label"
+      ],
+      "title": "DetectionBox",
+      "type": "object"
+    },
+    "DetectionPayload": {
+      "properties": {
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "integer"
+        },
+        "frame_ts": {
+          "title": "Frame Ts",
+          "type": "number"
+        },
+        "width": {
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "title": "Height",
+          "type": "integer"
+        },
+        "boxes": {
+          "items": {
+            "$ref": "#/$defs/DetectionBox"
+          },
+          "title": "Boxes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frame_id",
+        "frame_ts",
+        "width",
+        "height"
+      ],
+      "title": "DetectionPayload",
+      "type": "object"
+    },
+    "Envelope": {
+      "description": "Lớp bọc chung cho MỌI message, cả hai chiều.\n\n`data` để kiểu dict chứ không phải union phân biệt theo `type`. Cố ý:\nunion sẽ gộp \"type không tồn tại\" và \"data sai kiểu\" thành cùng một lỗi\nvalidation, trong khi hợp đồng đòi hai mã lỗi KHÁC nhau (`unknown_type` vs\n`bad_payload`). Nên việc kiểm `data` được tách thành bước hai, tra bảng\n`UPLINK_MODELS` — xem `backend/ws.py`.",
+      "properties": {
+        "v": {
+          "title": "V",
+          "type": "integer"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "ts": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ts"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "data": {
+          "additionalProperties": true,
+          "title": "Data",
+          "type": "object"
+        }
+      },
+      "required": [
+        "v",
+        "type"
+      ],
+      "title": "Envelope",
+      "type": "object"
+    },
+    "ErrorPayload": {
+      "properties": {
+        "ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ref"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "ErrorPayload",
+      "type": "object"
+    },
+    "EventPayload": {
+      "description": "`code` là khoá máy đọc (UI lọc và tô màu theo nó).\n`message` là tiếng Việt cho người đọc.",
+      "properties": {
+        "level": {
+          "default": "info",
+          "enum": [
+            "info",
+            "warn",
+            "error"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "source": {
+          "default": "backend",
+          "enum": [
+            "mavlink",
+            "safety",
+            "mission",
+            "vision",
+            "backend"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "ts": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ts"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "EventPayload",
+      "type": "object"
+    },
+    "LimitsPayload": {
+      "description": "Mọi ngưỡng UI cần. Phase 08/09/10 KHÔNG được hardcode số nào.",
+      "properties": {
+        "max_alt": {
+          "title": "Max Alt",
+          "type": "number"
+        },
+        "min_alt": {
+          "title": "Min Alt",
+          "type": "number"
+        },
+        "max_distance_home": {
+          "title": "Max Distance Home",
+          "type": "number"
+        },
+        "max_waypoints": {
+          "title": "Max Waypoints",
+          "type": "integer"
+        },
+        "max_velocity": {
+          "title": "Max Velocity",
+          "type": "number"
+        },
+        "manual_command_timeout_ms": {
+          "title": "Manual Command Timeout Ms",
+          "type": "integer"
+        },
+        "deadman_tick_ms": {
+          "title": "Deadman Tick Ms",
+          "type": "integer"
+        },
+        "avoid_margin_m": {
+          "title": "Avoid Margin M",
+          "type": "number"
+        },
+        "avoid_dist_max_m": {
+          "title": "Avoid Dist Max M",
+          "type": "number"
+        },
+        "rangefinder_max_m": {
+          "title": "Rangefinder Max M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "max_alt",
+        "min_alt",
+        "max_distance_home",
+        "max_waypoints",
+        "max_velocity",
+        "manual_command_timeout_ms",
+        "deadman_tick_ms",
+        "avoid_margin_m",
+        "avoid_dist_max_m",
+        "rangefinder_max_m"
+      ],
+      "title": "LimitsPayload",
+      "type": "object"
+    },
+    "MissionStatus": {
+      "properties": {
+        "count": {
+          "default": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "uploaded_at": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uploaded At"
+        },
+        "source": {
+          "default": "none",
+          "enum": [
+            "none",
+            "readback",
+            "local"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "title": "MissionStatus",
+      "type": "object"
+    },
+    "MissionWaypoint": {
+      "properties": {
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "lat": {
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "title": "Lon",
+          "type": "number"
+        },
+        "alt": {
+          "title": "Alt",
+          "type": "number"
+        }
+      },
+      "required": [
+        "seq",
+        "lat",
+        "lon",
+        "alt"
+      ],
+      "title": "MissionWaypoint",
+      "type": "object"
+    },
+    "PongPayload": {
+      "properties": {
+        "server_ts": {
+          "title": "Server Ts",
+          "type": "number"
+        }
+      },
+      "required": [
+        "server_ts"
+      ],
+      "title": "PongPayload",
+      "type": "object"
+    },
+    "SafetyStatus": {
+      "description": "Trạng thái quyền lái. Dựng từ `SafetyState` + chủ sở hữu do hub giữ.\n\n`SafetyState` (backend/mavlink/safety.py) không biết socket nào đang giữ\nquyền — đó là việc của `WebSocketHub`. Hai trường `deadman_tripped` và\n`last_zero_velocity_reason` là chỗ trống Phase 06 sẽ điền.",
+      "properties": {
+        "web_control_enabled": {
+          "default": false,
+          "title": "Web Control Enabled",
+          "type": "boolean"
+        },
+        "web_control_owner": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Web Control Owner"
+        },
+        "current_mode": {
+          "default": "UNKNOWN",
+          "title": "Current Mode",
+          "type": "string"
+        },
+        "rc_available": {
+          "default": true,
+          "title": "Rc Available",
+          "type": "boolean"
+        },
+        "deadman_tripped": {
+          "default": false,
+          "title": "Deadman Tripped",
+          "type": "boolean"
+        },
+        "last_zero_velocity_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Zero Velocity Reason"
+        }
+      },
+      "title": "SafetyStatus",
+      "type": "object"
+    },
+    "StatusPayload": {
+      "description": "`status.data` — gửi 1 lần lúc mở socket, và mỗi lần có gì đổi.",
+      "properties": {
+        "backend_version": {
+          "title": "Backend Version",
+          "type": "string"
+        },
+        "endpoint": {
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "connected": {
+          "title": "Connected",
+          "type": "boolean"
+        },
+        "safety": {
+          "$ref": "#/$defs/SafetyStatus"
+        },
+        "limits": {
+          "$ref": "#/$defs/LimitsPayload"
+        },
+        "mission": {
+          "$ref": "#/$defs/MissionStatus"
+        },
+        "camera": {
+          "$ref": "#/$defs/CameraStatus"
+        }
+      },
+      "required": [
+        "backend_version",
+        "endpoint",
+        "connected",
+        "safety",
+        "limits"
+      ],
+      "title": "StatusPayload",
+      "type": "object"
+    },
+    "Telemetry": {
+      "description": "Bản GỬI ĐI — `telemetry.data` trong hợp đồng.",
+      "properties": {
+        "mode": {
+          "default": "UNKNOWN",
+          "title": "Mode",
+          "type": "string"
+        },
+        "armed": {
+          "default": false,
+          "title": "Armed",
+          "type": "boolean"
+        },
+        "lat": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lat"
+        },
+        "lon": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lon"
+        },
+        "relative_alt": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relative Alt"
+        },
+        "absolute_alt": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Absolute Alt"
+        },
+        "heading": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heading"
+        },
+        "ground_speed": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ground Speed"
+        },
+        "climb_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Climb Rate"
+        },
+        "roll": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Roll"
+        },
+        "pitch": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pitch"
+        },
+        "yaw": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Yaw"
+        },
+        "gps_fix_type": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gps Fix Type"
+        },
+        "satellites": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Satellites"
+        },
+        "battery_voltage": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Battery Voltage"
+        },
+        "battery_current": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Battery Current"
+        },
+        "battery_remaining": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Battery Remaining"
+        },
+        "home_lat": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Home Lat"
+        },
+        "home_lon": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Home Lon"
+        },
+        "obstacle_distance": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Obstacle Distance"
+        },
+        "obstacle_sectors": {
+          "description": "8 cung 45°, index 0 = mũi, theo chiều kim đồng hồ",
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Obstacle Sectors",
+          "type": "array"
+        },
+        "rangefinder_healthy": {
+          "default": false,
+          "title": "Rangefinder Healthy",
+          "type": "boolean"
+        },
+        "avoid_state": {
+          "default": "UNKNOWN",
+          "enum": [
+            "OFF",
+            "NEAR",
+            "ACTIVE",
+            "UNKNOWN"
+          ],
+          "title": "Avoid State",
+          "type": "string"
+        },
+        "ekf_ok": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ekf Ok"
+        },
+        "connected": {
+          "default": false,
+          "title": "Connected",
+          "type": "boolean"
+        },
+        "link_age_ms": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Link Age Ms"
+        }
+      },
+      "title": "Telemetry",
+      "type": "object"
+    }
+  }
+}

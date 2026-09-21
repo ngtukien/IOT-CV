@@ -30,8 +30,8 @@ import signal
 import subprocess
 import sys
 import time
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Callable, Iterable
 
 from pymavlink import mavutil
 
@@ -67,7 +67,9 @@ def _enum_name(enum_name: str, value: int) -> str:
 # ---------------------------------------------------------------------------
 
 
-def offset_latlon(lat_deg: float, lon_deg: float, north_m: float, east_m: float) -> tuple[float, float]:
+def offset_latlon(
+    lat_deg: float, lon_deg: float, north_m: float, east_m: float
+) -> tuple[float, float]:
     """Dịch một toạ độ (độ) đi north_m/east_m mét, xấp xỉ phẳng cục bộ."""
     d_lat = (north_m / _EARTH_RADIUS_M) * (180.0 / math.pi)
     d_lon = (east_m / (_EARTH_RADIUS_M * math.cos(math.radians(lat_deg)))) * (180.0 / math.pi)
@@ -149,7 +151,7 @@ class SitlInstance:
         self.statustext_log: list[str] = []
         self._log_file = None
 
-    def __enter__(self) -> "SitlInstance":
+    def __enter__(self) -> SitlInstance:
         self.start()
         return self
 
@@ -177,7 +179,9 @@ class SitlInstance:
         cmd.extend(self.extra_args)
 
         log_path = self.use_dir / "sim_vehicle_stdout.log"
-        self._log_file = open(log_path, "w", encoding="utf-8")
+        # noqa SIM115 có chủ đích: file này phải sống bằng tuổi tiến trình SITL
+        # (nó là stdout của Popen), nên không bọc `with` được. `stop()` đóng nó.
+        self._log_file = open(log_path, "w", encoding="utf-8")  # noqa: SIM115
         print(f"[harness] khởi động: {' '.join(cmd)}", file=sys.stderr)
         print(f"[harness] log sim_vehicle.py: {log_path}", file=sys.stderr)
         self.proc = subprocess.Popen(
@@ -214,8 +218,11 @@ class SitlInstance:
             # VFR_HUD nếu không ai yêu cầu (đã kiểm chứng thực nghiệm 21/09/2026:
             # 0 gói trong 3s khi không request, có gói ngay khi request).
             m.mav.request_data_stream_send(
-                m.target_system, m.target_component,
-                mavutil.mavlink.MAV_DATA_STREAM_ALL, 4, 1,
+                m.target_system,
+                m.target_component,
+                mavutil.mavlink.MAV_DATA_STREAM_ALL,
+                4,
+                1,
             )
             return
         raise SitlError(
@@ -270,7 +277,9 @@ class SitlInstance:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 return None
-            msg = self.master.recv_match(type=types, condition=condition, blocking=True, timeout=remaining)
+            msg = self.master.recv_match(
+                type=types, condition=condition, blocking=True, timeout=remaining
+            )
             if msg is None:
                 return None
             if msg.get_type() == "STATUSTEXT":
@@ -285,13 +294,22 @@ class SitlInstance:
     def set_mode(self, mode_name: str, *, timeout: float = 15.0) -> None:
         if mode_name not in MODE_NAME_TO_ID:
             raise SitlError(
-                f"Mode '{mode_name}' không có trong bảng mode của ArduCopter: {sorted(MODE_NAME_TO_ID)}"
+                f"Mode '{mode_name}' không có trong bảng mode của ArduCopter: "
+                f"{sorted(MODE_NAME_TO_ID)}"
             )
         mode_id = MODE_NAME_TO_ID[mode_name]
         self.master.mav.command_long_send(
-            self.master.target_system, self.master.target_component,
-            mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
-            mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, mode_id, 0, 0, 0, 0, 0,
+            self.master.target_system,
+            self.master.target_component,
+            mavutil.mavlink.MAV_CMD_DO_SET_MODE,
+            0,
+            mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+            mode_id,
+            0,
+            0,
+            0,
+            0,
+            0,
         )
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
@@ -307,12 +325,22 @@ class SitlInstance:
 
     def arm(self, *, timeout: float = 20.0) -> None:
         self.master.mav.command_long_send(
-            self.master.target_system, self.master.target_component,
-            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 0,
-            1, 0, 0, 0, 0, 0, 0,
+            self.master.target_system,
+            self.master.target_component,
+            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
         )
         ack = self.recv_match(
-            "COMMAND_ACK", condition="COMMAND_ACK.command==400", timeout=timeout,
+            "COMMAND_ACK",
+            condition="COMMAND_ACK.command==400",
+            timeout=timeout,
         )
         if ack is not None and ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
             result_name = _enum_name("MAV_RESULT", ack.result)
@@ -344,9 +372,17 @@ class SitlInstance:
 
     def takeoff(self, alt_m: float, *, timeout: float = 60.0) -> None:
         self.master.mav.command_long_send(
-            self.master.target_system, self.master.target_component,
-            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0,
-            0, 0, 0, 0, 0, 0, alt_m,
+            self.master.target_system,
+            self.master.target_component,
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            alt_m,
         )
         ack = self.recv_match("COMMAND_ACK", condition="COMMAND_ACK.command==22", timeout=timeout)
         if ack is not None and ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
@@ -388,23 +424,32 @@ class SitlInstance:
 
     def set_param(self, name: str, value: float, *, timeout: float = 10.0) -> None:
         self.master.mav.param_set_send(
-            self.master.target_system, self.master.target_component,
-            name.encode("utf-8"), float(value), mavutil.mavlink.MAV_PARAM_TYPE_REAL32,
+            self.master.target_system,
+            self.master.target_component,
+            name.encode("utf-8"),
+            float(value),
+            mavutil.mavlink.MAV_PARAM_TYPE_REAL32,
         )
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            msg = self.master.recv_match(type="PARAM_VALUE", blocking=True, timeout=deadline - time.monotonic())
+            msg = self.master.recv_match(
+                type="PARAM_VALUE", blocking=True, timeout=deadline - time.monotonic()
+            )
             if msg is None:
                 break
             if msg.param_id.rstrip("\x00") == name:
                 if abs(msg.param_value - value) > 1e-3:
-                    raise SitlError(f"set_param({name}, {value}) -- FC báo lại giá trị khác: {msg.param_value}")
+                    raise SitlError(
+                        f"set_param({name}, {value}) -- FC báo lại giá trị khác: {msg.param_value}"
+                    )
                 return
         raise SitlError(f"set_param({name}, {value}) không có PARAM_VALUE xác nhận sau {timeout}s.")
 
     # -- bay hình vuông bằng rc override trong LOITER --------------------
 
-    def square_via_rc(self, side_m: float, *, pwm_delta: int = 150, max_leg_s: float = 40.0) -> list[dict]:
+    def square_via_rc(
+        self, side_m: float, *, pwm_delta: int = 150, max_leg_s: float = 40.0
+    ) -> list[dict]:
         """Bay một hình vuông cạnh side_m mét bằng RC_CHANNELS_OVERRIDE khi đang
         ở LOITER, mô phỏng đúng cách người dùng đẩy cần theo việc 03.3 (rc 1 /
         rc 2), nhưng CẮT theo khoảng cách thật đo bằng GLOBAL_POSITION_INT thay
@@ -431,20 +476,38 @@ class SitlInstance:
             rc[channel] = value
             while traveled < side_m and (time.monotonic() - t0) < max_leg_s:
                 self.master.mav.rc_channels_override_send(
-                    self.master.target_system, self.master.target_component,
-                    rc[1], rc[2], rc[3], rc[4], 0, 0, 0, 0,
+                    self.master.target_system,
+                    self.master.target_component,
+                    rc[1],
+                    rc[2],
+                    rc[3],
+                    rc[4],
+                    0,
+                    0,
+                    0,
+                    0,
                 )
                 pos = self.get_position(timeout=3.0)
                 traveled = haversine_m(start["lat"], start["lon"], pos["lat"], pos["lon"])
                 time.sleep(0.3)
             # Trả cần về giữa -- người mới hay quên bước này (phase doc 03.3, lỗi #4).
             self.master.mav.rc_channels_override_send(
-                self.master.target_system, self.master.target_component,
-                1500, 1500, 1500, 1500, 0, 0, 0, 0,
+                self.master.target_system,
+                self.master.target_component,
+                1500,
+                1500,
+                1500,
+                1500,
+                0,
+                0,
+                0,
+                0,
             )
             time.sleep(2.0)  # đợi drone phanh lại ở LOITER trước khi đo chặng kế
             elapsed = time.monotonic() - t0
-            results.append({"chang": label, "khoang_cach_m": round(traveled, 1), "giay": round(elapsed, 1)})
+            results.append(
+                {"chang": label, "khoang_cach_m": round(traveled, 1), "giay": round(elapsed, 1)}
+            )
         return results
 
 
@@ -463,7 +526,9 @@ def upload_mission(sitl: SitlInstance, items: list[dict], *, timeout: float = 30
     """
     master = sitl.master
     master.mav.mission_count_send(
-        master.target_system, master.target_component, len(items),
+        master.target_system,
+        master.target_component,
+        len(items),
         mavutil.mavlink.MAV_MISSION_TYPE_MISSION,
     )
     sent = set()
@@ -477,7 +542,8 @@ def upload_mission(sitl: SitlInstance, items: list[dict], *, timeout: float = 30
             )
         msg = master.recv_match(
             type=["MISSION_REQUEST_INT", "MISSION_REQUEST", "MISSION_ACK"],
-            blocking=True, timeout=remaining,
+            blocking=True,
+            timeout=remaining,
         )
         if msg is None:
             continue
@@ -487,7 +553,8 @@ def upload_mission(sitl: SitlInstance, items: list[dict], *, timeout: float = 30
                 raise SitlError(f"upload_mission: FC từ chối với MISSION_ACK={result_name}")
             if len(sent) < len(items):
                 raise SitlError(
-                    f"upload_mission: nhận MISSION_ACK sớm khi mới gửi {len(sent)}/{len(items)} item."
+                    f"upload_mission: nhận MISSION_ACK sớm khi mới gửi "
+                    f"{len(sent)}/{len(items)} item."
                 )
             return
         seq = msg.seq
@@ -495,14 +562,20 @@ def upload_mission(sitl: SitlInstance, items: list[dict], *, timeout: float = 30
             continue
         item = items[seq]
         master.mav.mission_item_int_send(
-            master.target_system, master.target_component, seq,
+            master.target_system,
+            master.target_component,
+            seq,
             item.get("frame", mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT),
             item["command"],
             1 if seq == 0 else 0,  # current -- chỉ item đầu đánh dấu current theo quy ước upload
             item.get("autocontinue", 1),
-            item.get("param1", 0.0), item.get("param2", 0.0),
-            item.get("param3", 0.0), item.get("param4", 0.0),
-            item.get("x", 0), item.get("y", 0), item.get("z", 0.0),
+            item.get("param1", 0.0),
+            item.get("param2", 0.0),
+            item.get("param3", 0.0),
+            item.get("param4", 0.0),
+            item.get("x", 0),
+            item.get("y", 0),
+            item.get("z", 0.0),
             mavutil.mavlink.MAV_MISSION_TYPE_MISSION,
         )
         sent.add(seq)
@@ -522,7 +595,9 @@ def download_mission(sitl: SitlInstance, *, timeout: float = 30.0) -> list[dict]
     (ta hỏi MISSION_REQUEST_INT từng seq) -> MISSION_ITEM_INT -> MISSION_ACK."""
     master = sitl.master
     master.mav.mission_request_list_send(
-        master.target_system, master.target_component, mavutil.mavlink.MAV_MISSION_TYPE_MISSION,
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_MISSION_TYPE_MISSION,
     )
     deadline = time.monotonic() + timeout
     count_msg = master.recv_match(type="MISSION_COUNT", blocking=True, timeout=timeout)
@@ -535,7 +610,10 @@ def download_mission(sitl: SitlInstance, *, timeout: float = 30.0) -> list[dict]
         if remaining <= 0:
             raise SitlError(f"download_mission: hết giờ ở seq={seq}/{count}.")
         master.mav.mission_request_int_send(
-            master.target_system, master.target_component, seq, mavutil.mavlink.MAV_MISSION_TYPE_MISSION,
+            master.target_system,
+            master.target_component,
+            seq,
+            mavutil.mavlink.MAV_MISSION_TYPE_MISSION,
         )
         item_msg = master.recv_match(type="MISSION_ITEM_INT", blocking=True, timeout=remaining)
         if item_msg is None:
@@ -551,8 +629,10 @@ def download_mission(sitl: SitlInstance, *, timeout: float = 30.0) -> list[dict]
             }
         )
     master.mav.mission_ack_send(
-        master.target_system, master.target_component,
-        mavutil.mavlink.MAV_MISSION_ACCEPTED, mavutil.mavlink.MAV_MISSION_TYPE_MISSION,
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_MISSION_ACCEPTED,
+        mavutil.mavlink.MAV_MISSION_TYPE_MISSION,
     )
     return items
 

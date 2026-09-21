@@ -11,6 +11,10 @@ requires-python = ">=3.13,<3.14"
 dependencies = [
     "pymavlink>=2.4.49",
     "fastapi>=0.141.1",
+    # Khai bao TUONG MINH du fastapi cung keo pydantic ve: backend/schemas.py
+    # import thang `pydantic` va goi `models_json_schema`. Dua vao dependency
+    # gian tiep nghia la mot ban fastapi sau nay doi backend la ta gay.
+    "pydantic>=2.12",
     "uvicorn[standard]>=0.53.0",
     "websockets>=17.1",
     "paho-mqtt>=2.1",
@@ -34,6 +38,12 @@ line-length = 100
 target-version = "py313"
 # ardupilot/ là source firmware upstream 2 GB — tuyệt đối không lint vào đó.
 extend-exclude = ["ardupilot", "logs", "ml/datasets", "ml/weights", ".venv", "venv-ardupilot"]
+# ruff >= 0.16 format ca khoi ```python TRONG file Markdown. Voi repo nay do la
+# hai nhieu hon loi: cac doan trong plans/ va docs/ la VI DU MINH HOA cho nguoi
+# doc, khong phai ma nguon — khong ai chay, khong ai import chung. Ruff muon
+# bung chung thanh danh sach doc dai loe ngoe, lam tai lieu kho doc hon ma
+# khong bat duoc bat ky loi nao. Loai ra la bo tieng on, khong phai tat den bao.
+exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

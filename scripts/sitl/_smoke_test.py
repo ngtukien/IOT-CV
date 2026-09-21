@@ -1,5 +1,6 @@
 import sys
 import time
+
 sys.path.insert(0, "scripts/sitl")
 import harness
 
@@ -12,10 +13,18 @@ with harness.SitlInstance("/tmp/sitl-smoke", speedup=8) as s:
     print("--- doi EKF_STATUS_REPORT trong 20s ---")
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
-        msg = s.master.recv_match(type="EKF_STATUS_REPORT", blocking=True, timeout=deadline - time.monotonic())
+        msg = s.master.recv_match(
+            type="EKF_STATUS_REPORT", blocking=True, timeout=deadline - time.monotonic()
+        )
         if msg is not None:
-            print("EKF_STATUS_REPORT flags=", msg.flags, "velocity_variance=", msg.velocity_variance,
-                  "pos_horiz_variance=", msg.pos_horiz_variance)
+            print(
+                "EKF_STATUS_REPORT flags=",
+                msg.flags,
+                "velocity_variance=",
+                msg.velocity_variance,
+                "pos_horiz_variance=",
+                msg.pos_horiz_variance,
+            )
 
     print("--- thu arm ---")
     try:
@@ -26,7 +35,9 @@ with harness.SitlInstance("/tmp/sitl-smoke", speedup=8) as s:
         print("--- doi them 5s xem co STATUSTEXT nao khac khong ---")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
-            msg = s.master.recv_match(type="STATUSTEXT", blocking=True, timeout=deadline - time.monotonic())
+            msg = s.master.recv_match(
+                type="STATUSTEXT", blocking=True, timeout=deadline - time.monotonic()
+            )
             if msg is not None:
                 print("STATUSTEXT(sau):", msg.severity, msg.text)
         raise
@@ -39,7 +50,9 @@ with harness.SitlInstance("/tmp/sitl-smoke", speedup=8) as s:
         print("takeoff loi:", e)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
-            msg = s.master.recv_match(type="STATUSTEXT", blocking=True, timeout=deadline - time.monotonic())
+            msg = s.master.recv_match(
+                type="STATUSTEXT", blocking=True, timeout=deadline - time.monotonic()
+            )
             if msg is not None:
                 print("STATUSTEXT(takeoff sau loi):", msg.severity, msg.text)
         raise

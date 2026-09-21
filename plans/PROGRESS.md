@@ -252,19 +252,78 @@ Ghi chú:
 
 Plan: plans/phase-05-backend-mavlink-telemetry.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 22/09/2026 · Ngày xong: 22/09/2026
 
-- [ ] `uv run python -m backend.mavlink.connection` in `Heartbeat received: yes`, **đồng thời** Mission Planner vẫn nối được SITL ở cổng khác.
-- [ ] `ws_probe --measure-rate` cho 7.5–8.5 Hz; mọi trường trong bảng `telemetry.data` (trừ nhóm Phase 07) có giá trị thật khi SITL đã có GPS fix.
-- [ ] Tắt SITL → `connected` về `false` + `event` `link.lost` trong ≤ `LINK_TIMEOUT_S`+1 s, backend không crash. Bật lại → tự nối trong ≤ 10 s và `ATTITUDE` trở lại 10 Hz.
-- [ ] Gửi `type` lạ → nhận `error` `unknown_type` và **socket vẫn mở**.
-- [ ] Hai socket cùng xin web control → socket thứ hai nhận `command_denied`.
-- [ ] `backend/ws-contract.schema.json` tồn tại, chứa đủ mọi `type` trong hợp đồng; đã commit.
-- [ ] `uv run ruff check .` + `uv run ruff format --check .` sạch; `uv run pytest` xanh toàn bộ (4 file cũ vẫn xanh).
-- [ ] `app.py` ≤ 80 dòng; `grep -n "ws/telemetry" backend/` không còn kết quả.
-- [ ] Mọi lời gọi `mav.*_send` trong `backend/` đều đi qua `MavlinkConnection.send()` (kiểm bằng `grep -rn "\.mav\." backend/`).
-- [ ] Khối Vision trong `backend/config.py` có đủ `YOLO_DEVICE`, `DETECTION_IMGSZ`, `VISION_ENABLED` (5.7); `_env_bool` tồn tại.
-- [ ] `docs/so-tay/05-backend-mavlink-telemetry.md` đã viết.
+- [x] `uv run python -m backend.mavlink.connection` in `Heartbeat received: yes`, **đồng thời** Mission Planner vẫn nối được SITL ở cổng khác.
+- [x] `ws_probe --measure-rate` cho 7.5–8.5 Hz; mọi trường trong bảng `telemetry.data` (trừ nhóm Phase 07) có giá trị thật khi SITL đã có GPS fix.
+- [x] Tắt SITL → `connected` về `false` + `event` `link.lost` trong ≤ `LINK_TIMEOUT_S`+1 s, backend không crash. Bật lại → tự nối trong ≤ 10 s và `ATTITUDE` trở lại 10 Hz.
+- [x] Gửi `type` lạ → nhận `error` `unknown_type` và **socket vẫn mở**.
+- [x] Hai socket cùng xin web control → socket thứ hai nhận `command_denied`.
+- [x] `backend/ws-contract.schema.json` tồn tại, chứa đủ mọi `type` trong hợp đồng; đã commit.
+- [x] `uv run ruff check .` + `uv run ruff format --check .` sạch; `uv run pytest` xanh toàn bộ (4 file cũ vẫn xanh).
+- [x] `app.py` ≤ 80 dòng; `grep -n "ws/telemetry" backend/` không còn kết quả.
+- [x] Mọi lời gọi `mav.*_send` trong `backend/` đều đi qua `MavlinkConnection.send()` (kiểm bằng `grep -rn "\.mav\." backend/`).
+- [x] Khối Vision trong `backend/config.py` có đủ `YOLO_DEVICE`, `DETECTION_IMGSZ`, `VISION_ENABLED` (5.7); `_env_bool` tồn tại.
+- [x] `docs/so-tay/05-backend-mavlink-telemetry.md` đã viết.
+
+### Số đo thật (SITL ArduCopter 4.7.1, 22/09/2026)
+
+Cấu hình: SITL fan-out ba cổng — `SERIAL0 tcp:5760` (driver pymavlink) ·
+`SERIAL1 udp:14551` (backend) · `SERIAL2 udp:14550` (Mission Planner 1.3.83).
+
+| # | Bài §5.6 | Kết quả đo |
+|---|---|---|
+| 1 | Hai GCS song song 5 phút | **2401 frame / 5,0 phút = 8,00 Hz**, 0 lần `connected=false`, 0 event `link.lost`, khoảng lặng dài nhất **141 ms**. Mission Planner giữ nối 14550 suốt, HUD hiện Altitude 15.00 m cùng lúc |
+| 2 | Telemetry đủ trường | Mọi trường ngoài nhóm Phase 07 đều có giá trị thật: `gps_fix_type=6`, `satellites=10`, `battery_voltage=12.6`, `yaw=354.3`, `home_lat/lon` có (chứng minh `request_message(242)` chạy), `link_age_ms=8` |
+| 3 | Nhịp 7,5–8,5 Hz | **8,00 Hz** (lần đo đầu 7,29 Hz → tìm ra lỗi trôi nhịp, xem dưới) |
+| 4 | Mất link | `link.lost` + `connected=false` đúng hạn; backend **không** crash, telemetry vẫn chảy |
+| 5 | Nối lại | `link.up` tự phát, telemetry chạy tiếp. `request_streams()` đo trên dây: ATTITUDE **0,0 → 10,0 Hz**; mọi nhịp xin đều khớp (HEARTBEAT 1, SYS_STATUS 2, GPS_RAW_INT 2, GLOBAL_POSITION_INT 5, VFR_HUD 5, BATTERY_STATUS 1) |
+| 6 | Sự kiện STATUSTEXT | 31 event; `PreArm: GPS 1: Bad fix` về đúng `source="mavlink"`, `code="statustext"`, `level="error"` |
+
+**Hai lỗi chỉ lộ ra khi chạy thật, không test đơn nào bắt được:**
+
+1. **Nhịp telemetry trôi xuống 7,29 Hz.** Vòng broadcast `sleep(interval)` *sau* khi
+   làm việc, nên chu kỳ = việc + 125 ms (đo được 125–142 ms). Sửa thành ngủ tới
+   **mốc kế** thay vì ngủ đủ một khoảng → 8,00 Hz chẵn. Đáng chú ý: cổng này chỉ
+   phát hiện được sau khi sửa `ws_probe --measure-rate` để nó **trả mã thoát theo
+   phán quyết** — trước đó nó in "KHÔNG ĐẠT" rồi vẫn `exit 0`.
+2. **Nguồn `ekf_ok` mà plan gợi ý là sai.** Xem mục dưới.
+
+### `ekf_ok` — plan gợi ý sai nguồn, đã đo và sửa
+
+Plan §5.2.2 đánh dấu `ekf_ok` là *chưa xác minh* và gợi ý suy từ bit AHRS trong
+`SYS_STATUS.onboard_control_sensors_health`. Chạy đúng thủ tục kiểm chứng §5.2.5
+(A/B: tắt GPS → bật lại) cho thấy gợi ý đó **sai**:
+
+```text
+GPS tắt (EKF hỏng): health = 0x4771FC2F
+GPS bật (EKF khoẻ): health = 0x5771FC2F
+XOR                = 0x10000000  -> PREARM_CHECK, KHÔNG phải AHRS
+```
+
+Bit AHRS `0x20000000` thậm chí **không có** trong `onboard_control_sensors_present`.
+Làm theo plan thì `ekf_ok` luôn `False` và Phase 06 chặn arm nhầm vĩnh viễn — đúng
+cái mà ô rủi ro "để `None`, đừng đoán `True`" đã lo, chỉ khác hướng.
+
+Nguồn đúng là `EKF_STATUS_REPORT` (id 193), đo lặp lại được:
+
+```text
+khoẻ    flags=0x033F  ATTITUDE VEL_H VEL_V POS_H_REL POS_H_ABS POS_V_ABS ...
+hỏng    flags=0x00A7  ATTITUDE VEL_H VEL_V POS_V_ABS CONST_POS_MODE
+bật lại flags=0x033F  (về đúng trạng thái cũ)
+```
+
+`ekf_ok = ATTITUDE & VELOCITY_HORIZ & POS_HORIZ_ABS & !CONST_POS_MODE`. Đã thêm
+193 vào `STREAM_RATES` (2 Hz) — không xin thì FC không gửi và `ekf_ok` ở `None`
+mãi mà không có gì báo. Kiểm chứng sống: WebSocket trả `ekf_ok: true`.
+
+### Ghi cho Phase 07
+
+`SET_MESSAGE_INTERVAL` cho `OBSTACLE_DISTANCE` (330) bị FC trả STATUSTEXT
+`No ap_message for mavlink id (330)` — ArduPilot **không lập lịch được** message
+này; nó do driver proximity tự đẩy khi có cảm biến. `DISTANCE_SENSOR` (132) thì
+xin được, chỉ là SITL này chưa gắn rangefinder nên đo ra 0 Hz. Đừng mất công gỡ
+lỗi "sao xin rồi mà không thấy".
 
 Ghi chú: 
 
