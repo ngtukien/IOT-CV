@@ -215,17 +215,27 @@ Hai chỗ tinh tế: `arducopter` là file ELF **không có đuôi** nên `*.elf
 
 **(c) Kiểm chứng trước khi commit**
 
+⚠️ **Dùng `-q`, KHÔNG dùng `-v`, để đọc exit code.** `git check-ignore -v` trả exit
+**0** khi có *bất kỳ* luật nào khớp — **kể cả luật phủ định `!`**. Nên với `build.log`
+nó in ra dòng `!firmware/ardupilot/**/build.log` và vẫn thoát 0, trông y hệt trường
+hợp file bị chặn. Đo bằng `-v` là một cổng không phân biệt được hai kết quả ngược
+nhau. `-q` mới trả lời đúng câu hỏi "file này có bị ignore không".
+
 ```powershell
-git check-ignore -v firmware/ardupilot/build-d450a747/arducopter_with_bl.hex
+git check-ignore -q firmware/ardupilot/build-d450a747/arducopter_with_bl.hex
 echo "exit=$LASTEXITCODE"
-git check-ignore -v firmware/ardupilot/build-d450a747/build.log
+git check-ignore -q firmware/ardupilot/build-d450a747/build.log
 echo "exit=$LASTEXITCODE"
 ```
 
 Kết quả mong đợi:
 
-- Lệnh đầu: in ra dòng luật đã bắt nó, `exit=0` → **đang bị ignore, đúng ý**.
-- Lệnh sau: **không in gì**, `exit=1` → **không bị ignore, commit được**.
+- Lệnh đầu: `exit=0` → **đang bị ignore, đúng ý**.
+- Lệnh sau: `exit=1` → **không bị ignore, commit được**.
+
+Dùng `-v` khi muốn biết *luật nào* đang khớp (hữu ích lúc gỡ lỗi), nhưng đừng bao
+giờ lấy exit code của nó làm bằng chứng. Bằng chứng cuối cùng vẫn là `git add` rồi
+`git status --short` thấy file hiện ra.
 
 Rồi commit:
 
@@ -336,7 +346,8 @@ Kết quả mong đợi:
 
 - `uv sync --extra dev` tạo `.venv/` và `uv.lock`, in danh sách gói đã cài.
 - `uv run ruff check .` in `All checks passed!`.
-- `uv run pytest` in `4 passed` (hiện có 4 file test trong `backend/tests/`).
+- `uv run pytest` in `35 passed` — `backend/tests/` có **4 file** nhưng **35 test**; đừng nhầm hai con số này.
+  Sau 01.7(d), khi `frontend/dist` chưa build thì là `34 passed, 1 skipped` — cũng là xanh, đúng ý.
 
 Nếu lỗi:
 
@@ -585,8 +596,8 @@ Cuối phase này, tick đủ cụm Phase 01 và commit.
 - [ ] `uv run pytest` in `N passed`, không `failed`, không `error`.
 - [ ] `uv run ruff check .` in `All checks passed!`.
 - [ ] `pnpm build` trong `frontend/` sinh `frontend/dist/index.html`; chạy `uv run uvicorn backend.app:app --port 8000` rồi mở `http://127.0.0.1:8000` thấy trang React, không 404.
-- [ ] `git check-ignore -v firmware/ardupilot/build-d450a747/build.log` trả exit code **1**, và `git log --stat -1` (hoặc `git log --oneline -- .../build.log`) chứng minh file đã vào commit.
-- [ ] `git check-ignore -v firmware/ardupilot/build-d450a747/arducopter_with_bl.hex` trả exit code **0** (đang bị ignore, đúng ý).
+- [ ] `git check-ignore -q firmware/ardupilot/build-d450a747/build.log` trả exit code **1** (**`-q`, không phải `-v`** — `-v` trả 0 khi khớp bất kỳ luật nào, kể cả luật phủ định `!`, nên không phân biệt được hai kết quả ngược nhau), và `git log --stat -1` chứng minh file đã vào commit.
+- [ ] `git check-ignore -q firmware/ardupilot/build-d450a747/arducopter_with_bl.hex` trả exit code **0** (đang bị ignore, đúng ý).
 - [ ] `git log --follow --oneline firmware/ardupilot/params/README.md` hiện lịch sử có từ trước khi đổi chỗ (chứng minh đã `git mv`).
 - [ ] `(Get-ChildItem docs\so-tay\*.md).Count` in `29`.
 - [ ] `README.md` mới ≤ 60 dòng; `docs/archive/plan-nhap-92-giai-doan.md` và `docs/archive/so-tay-lap-f450.html` tồn tại.

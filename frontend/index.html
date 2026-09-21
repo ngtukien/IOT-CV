@@ -1,98 +1,13 @@
-<!DOCTYPE html>
-<html lang="vi">
+<!doctype html>
+<html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>UAV MONITOR</title>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
-    <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
   </head>
   <body>
-    <header class="topbar">
-      <h1>UAV AI CONTROL CENTER</h1>
-      <div class="link-state">
-        <span id="link-dot" class="dot offline"></span>
-        <span id="link-text">DISCONNECTED</span>
-        <span class="endpoint" id="endpoint">-</span>
-      </div>
-    </header>
-
-    <main>
-      <!-- GIAI ĐOẠN 7: website đầu tiên CHỈ là monitor, chưa có control. -->
-      <section class="panel telemetry">
-        <h2>UAV MONITOR</h2>
-        <dl>
-          <dt>Mode</dt><dd id="mode">-</dd>
-          <dt>Armed</dt><dd id="armed">-</dd>
-          <dt>Latitude</dt><dd id="lat">-</dd>
-          <dt>Longitude</dt><dd id="lon">-</dd>
-          <dt>Altitude (rel)</dt><dd id="alt">-</dd>
-          <dt>Heading</dt><dd id="heading">-</dd>
-          <dt>Ground speed</dt><dd id="speed">-</dd>
-          <dt>GPS sats</dt><dd id="sats">-</dd>
-          <dt>Battery</dt><dd id="battery">-</dd>
-        </dl>
-      </section>
-
-      <!-- GIAI ĐOẠN 8: marker cập nhật bằng setLatLng, không tạo marker mới. -->
-      <section class="panel map">
-        <h2>MAP</h2>
-        <div id="map"></div>
-        <p class="hint">
-          Click bản đồ để thêm waypoint vào <em>mission draft</em>. Draft chỉ nằm ở
-          browser cho tới khi bấm UPLOAD MISSION.
-        </p>
-        <ol id="waypoint-list" class="waypoints"></ol>
-        <div class="row">
-          <button id="btn-clear-draft" type="button">Xoá draft</button>
-          <button id="btn-upload" type="button" disabled title="GIAI ĐOẠN 15">
-            UPLOAD MISSION
-          </button>
-        </div>
-      </section>
-
-      <section class="panel camera">
-        <h2>CAMERA</h2>
-        <div id="video" class="video-offline">CAMERA OFFLINE</div>
-        <p class="hint">GIAI ĐOẠN 19 trở đi: stream JPEG 640x480 từ ESP32-CAM.</p>
-      </section>
-
-      <!-- Control bị vô hiệu hoá tới khi GIAI ĐOẠN 9-12 hoàn thành và pass SITL. -->
-      <section class="panel control">
-        <h2>CONTROL</h2>
-        <p class="warning">
-          Chưa bật. Web chỉ được lái sau khi dead-man safety (GIAI ĐOẠN 11) pass
-          đủ 3 test trên SITL.
-        </p>
-        <div class="row">
-          <button type="button" disabled>GUIDED</button>
-          <button type="button" disabled>AUTO</button>
-          <button type="button" disabled>HOLD</button>
-          <button type="button" disabled>RTL</button>
-          <button type="button" disabled>LAND</button>
-        </div>
-        <p class="hint">
-          WASD = tiến/lùi/trái/phải, R/F = lên/xuống. Giới hạn vận tốc:
-          <span id="max-velocity">-</span> m/s.
-        </p>
-      </section>
-
-      <section class="panel events">
-        <h2>EVENT LOG</h2>
-        <ul id="event-log"></ul>
-      </section>
-    </main>
-
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
-    <script type="module" src="app.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

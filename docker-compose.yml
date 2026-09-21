@@ -1,0 +1,19 @@
+# Chi mosquitto chay trong Docker. Backend chay native bang `uv` vi
+# `network_mode: host` khong hoat dong tren Docker Desktop for Windows, ma
+# backend can nghe UDP MAVLink truc tiep
+# (plans/reports/260921-research-web-gcs-stack.md §5).
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: iotcv-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./deploy/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      # NAMED volume, khong de Docker tu tao volume an danh: `docker volume
+      # prune` sau nay se khong xoa nham du lieu that.
+      - mosquitto_data:/mosquitto/data
+
+volumes:
+  mosquitto_data:

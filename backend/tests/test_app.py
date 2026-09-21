@@ -4,9 +4,13 @@ Không dùng `with TestClient(app)` để lifespan không tự mở link MAVLink
 phải độc lập với SITL.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 
+from backend import config
 from backend.app import app
+
+_DIST = config.PROJECT_ROOT / "frontend" / "dist"
 
 client = TestClient(app)
 
@@ -44,8 +48,11 @@ def test_status_tra_ve_trang_thai_safety():
     assert payload["safety"]["web_control_enabled"] is False
 
 
+@pytest.mark.skipif(not _DIST.is_dir(), reason="chua chay pnpm build")
 def test_frontend_duoc_serve():
+    # Chi kiem "co phuc vu duoc file tinh khong". KHONG assert noi dung trang —
+    # trang Vite mac dinh chua co chu "UAV". Phase 10 kiem chung that bang
+    # Playwright tren trang React da dung xong.
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "UAV" in response.text

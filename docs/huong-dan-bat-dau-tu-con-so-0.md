@@ -315,17 +315,17 @@ này.** Quên là mọi thứ sẽ báo "module not found".
 
 - [ ] Đã cài
 
-Với `(.venv)` đang hiện ở đầu dòng:
+Đứng tại thư mục gốc của dự án (`D:\Coding\IOT-CV`). Lệnh này **không** cần bạn
+Activate gì trước — `uv` tự tạo `.venv` và tự cài vào đúng đó:
 
 ```powershell
-pip install --upgrade pip
-pip install -r requirements-dev.txt
+uv sync --extra dev
 ```
 
-Mất 2–5 phút. Kiểm tra:
+Mất 2–5 phút. Kiểm tra (`uv run` tự dùng `.venv` của dự án):
 
 ```powershell
-python -c "import pymavlink, fastapi; print('OK')"
+uv run python -c "import pymavlink, fastapi; print('OK')"
 ```
 
 Phải in ra `OK`.
@@ -539,10 +539,11 @@ Mở **một cửa sổ Ubuntu mới** (đừng tắt cửa sổ SITL):
 
 ```bash
 cd /mnt/d/Coding/IOT-CV
-python3 -m venv .venv-linux
-source .venv-linux/bin/activate
-pip install -r requirements.txt
-python3 -m uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+# BAT BUOC dat UV_PROJECT_ENVIRONMENT: mac dinh uv dung dung thu muc `.venv`,
+# nen neu khong doi ten, lan sync nay se DE LEN venv Windows dang nam cung cho.
+export UV_PROJECT_ENVIRONMENT=.venv-linux
+uv sync --extra dev
+uv run uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
 ```
 
 > `/mnt/d/` là cách Linux nhìn thấy ổ `D:` của Windows. Cùng một thư mục, hai lối

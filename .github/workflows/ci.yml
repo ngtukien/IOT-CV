@@ -14,45 +14,50 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# KHÔNG thêm `paths:` filter vào workflow này. Ba job dưới đây là required check;
+# GitHub báo một required check bị bỏ qua vì `paths` là "Expected — Waiting"
+# VĨNH VIỄN, tức là PR không bao giờ merge được nữa.
+#
+# `timeout-minutes` bắt buộc ở mọi job: mặc định của GitHub là 6 GIỜ.
+#
+# Chỉ chạy Python 3.13 — `requires-python` trong pyproject.toml đã khoá
+# ">=3.13,<3.14", nên ma trận 3.11/3.12 cũ vừa thừa vừa mâu thuẫn.
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.13"
-          cache: pip
-      - name: Install ruff
-        run: pip install ruff
-      - name: Ruff check
-        run: ruff check .
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --extra dev
+      - run: uv run ruff check .
 
   test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # Dự án ghim 3.13 (plans/phase-00 §"Vì sao Python 3.13"). Ma trận cũ chạy
-        # 3.11 + 3.12 nên mâu thuẫn với chính quyết định đó, và đã vỡ thật:
-        # numpy 2.5.3 yêu cầu >=3.12 -> job 3.11 chết ở bước cài (PR #21).
-        python-version: ["3.13"]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --extra dev
+      # Job này KHÔNG build frontend, nên `frontend/dist` vắng mặt và
+      # `test_frontend_duoc_serve` tự skip (pytest.mark.skipif). Đó là chủ đích,
+      # không phải test bị bỏ quên: Phase 10 kiểm chứng thật bằng Playwright.
+      - run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install dependencies
-        # Chi cai core + dev. ML stack (torch/ultralytics) khong can cho unit test.
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-      - name: Pytest
-        # Repo mới setup có thể chưa có test — không fail CI vì lý do đó.
-        run: |
-          if [ -d backend/tests ]; then
-            pytest
-          else
-            echo "Chưa có backend/tests — bỏ qua bước test."
-          fi
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm lint
+        working-directory: frontend
+      - run: pnpm build
+        working-directory: frontend

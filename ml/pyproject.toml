@@ -1,0 +1,30 @@
+[project]
+name = "iot-cv-ml"
+version = "0.1.0"
+description = "Pipeline AI: dataset, suy giam anh, huan luyen, danh gia"
+# Cung mot interpreter 3.13 nhu backend (AI Phase 1 §A1.1), nhung la DU AN uv
+# RIENG de phu thuoc nang (torch, ultralytics, opencv ~6 GB) khong bi keo theo
+# moi lan CI backend chay `uv sync`.
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "ultralytics>=8.4.157",
+    # PIN <5: opencv-python da nhay major 4.x -> 5.0.0.93, chua kiem tra API.
+    # Luat ignore trong dependabot.yml chi ngan BOT DE XUAT, khong ngan pip CAI.
+    "opencv-python>=4.14.0.94,<5",
+    # PIN cung 2.0.8: ban goc MIT da ngung bao tri; albumentationsx la AGPL, tranh.
+    "albumentations==2.0.8",
+    "numpy<3",
+    "pyyaml>=6",
+    "pandas>=3.0.6",
+    "matplotlib>=3.11.2",
+    "tqdm>=4.66",
+    "pycocotools>=2.0.8",
+    "pytest>=8",
+]
+# torch/torchvision KHONG nam trong file nay: phai cai TRUOC bang
+#   uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+# (AI Phase 1, A1.1). De pip tu keo torch theo ultralytics se ra ban CPU va
+# KHONG co canh bao gi.
+
+[tool.uv]
+package = false

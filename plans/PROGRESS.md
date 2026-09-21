@@ -80,22 +80,44 @@ Muốn bản cài chuẩn 100% của ST thì gỡ bằng script trên rồi cài
 
 Plan: plans/phase-01-tai-cau-truc-repo.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 21/09/2026 · Ngày xong: 21/09/2026
 
-- [ ] `uv run pytest` in `N passed`, không `failed`, không `error`.
-- [ ] `uv run ruff check .` in `All checks passed!`.
-- [ ] `pnpm build` trong `frontend/` sinh `frontend/dist/index.html`; chạy `uv run uvicorn backend.app:app --port 8000` rồi mở `http://127.0.0.1:8000` thấy trang React, không 404.
-- [ ] `git check-ignore -v firmware/ardupilot/build-d450a747/build.log` trả exit code **1**, và `git log --stat -1` (hoặc `git log --oneline -- .../build.log`) chứng minh file đã vào commit.
-- [ ] `git check-ignore -v firmware/ardupilot/build-d450a747/arducopter_with_bl.hex` trả exit code **0** (đang bị ignore, đúng ý).
-- [ ] `git log --follow --oneline firmware/ardupilot/params/README.md` hiện lịch sử có từ trước khi đổi chỗ (chứng minh đã `git mv`).
-- [ ] `(Get-ChildItem docs\so-tay\*.md).Count` in `29`.
-- [ ] `README.md` mới ≤ 60 dòng; `docs/archive/plan-nhap-92-giai-doan.md` và `docs/archive/so-tay-lap-f450.html` tồn tại.
-- [ ] Ba file `requirements*.txt` đã xoá; `pyproject.toml` (gốc) có khối `[project]` **không có** `[project.optional-dependencies] ml`; `ml/pyproject.toml` tồn tại, là dự án `uv` riêng, **không có** `torch`; `.python-version` chứa `3.13`.
-- [ ] `docker compose ps` hiện `iotcv-mosquitto` đang `running`.
+- [x] `uv run pytest` in `35 passed`, không `failed`, không `error`.
+- [x] `uv run ruff check .` in `All checks passed!`.
+- [x] `pnpm build` trong `frontend/` sinh `frontend/dist/index.html`; chạy `uv run uvicorn backend.app:app --port 8000` rồi `curl http://127.0.0.1:8000/` trả HTTP 200 kèm bundle React (`/assets/index-*.js`), không 404.
+- [x] `git check-ignore -q firmware/ardupilot/build-d450a747/build.log` trả exit code **1** (**`-q`, không phải `-v`** — xem Ghi chú), và `git log --stat -1` chứng minh file đã vào commit.
+- [x] `git check-ignore -q firmware/ardupilot/build-d450a747/arducopter_with_bl.hex` trả exit code **0** (đang bị ignore, đúng ý).
+- [x] `git log --follow --oneline firmware/ardupilot/params/README.md` hiện lịch sử có từ trước khi đổi chỗ (chứng minh đã `git mv`).
+- [x] `(Get-ChildItem docs\so-tay\*.md).Count` in `29`.
+- [x] `README.md` mới ≤ 60 dòng; `docs/archive/plan-nhap-92-giai-doan.md` và `docs/archive/so-tay-lap-f450.html` tồn tại.
+- [x] Ba file `requirements*.txt` đã xoá; `pyproject.toml` (gốc) có khối `[project]` **không có** `[project.optional-dependencies] ml`; `ml/pyproject.toml` tồn tại, là dự án `uv` riêng, **không có** `torch`; `.python-version` chứa `3.13`.
+- [x] `docker compose ps` hiện `iotcv-mosquitto` đang `running`.
 - [ ] CI trên GitHub xanh cả 3 job (`lint`, `test`, `frontend`).
-- [ ] `plans/PROGRESS.md` mục Phase 01 đã tick, ghi số phiên bản npm thực tế, và đã commit.
+- [x] `plans/PROGRESS.md` mục Phase 01 đã tick, ghi số phiên bản npm thực tế, và đã commit.
 
-Ghi chú: 
+Ghi chú:
+
+**Phiên bản npm THỰC TẾ cài ngày 21/09/2026** (từ `pnpm list --depth 0`, không phải số khai báo trong `package.json`): react 19.3.0 · react-dom 19.3.0 · vite 8.3.0 · typescript **6.0.3** · tailwindcss 4.3.3 · @tailwindcss/vite 4.3.3 · @vitejs/plugin-react 6.1.1 · zustand 5.0.15 · leaflet 1.9.4 · react-leaflet 5.0.0 · oxlint 1.83.0 · shadcn 4.21.0 (preset `radix-nova`, baseColor `neutral`).
+
+Plan §01.7(b) gắn cờ "chưa xác minh" cho hai số `vite 8.3.0` và `typescript 5.103.1`. Kết quả: **`vite 8.3.0` đúng**, **`typescript 5.103.1` sai** — bản thật là 6.0.3. Cờ đặt đúng chỗ, chỉ là một trong hai số trúng.
+
+**Bài học thứ sáu về báo xanh giả — `git check-ignore -v` không phân biệt được hai kết quả ngược nhau.** Cổng pass số 4 và 5 ban đầu viết đo bằng `-v`. `-v` trả exit **0** khi khớp *bất kỳ* luật nào, **kể cả luật phủ định `!`** — nên `build.log` (đúng ý là KHÔNG bị ignore) cũng trả 0, in ra `.gitignore:105:!firmware/ardupilot/**/build.log`, trông y hệt `arducopter_with_bl.hex` (đúng ý là BỊ ignore, cũng trả 0). Một cổng cho cùng exit code ở cả hai đầu thì không canh được gì. Đã sửa cả plan lẫn hai dòng trên sang `-q`, và xác nhận bằng bằng chứng mạnh hơn: `git add firmware/ardupilot/build-d450a747/` chỉ stage đúng 3 file nhẹ (`build.log`, `custombuild.yaml`, `extra_hwdef.dat`), 4 file nhị phân bị chặn.
+
+**Sàn phiên bản Python lấy bản CAO giữa hai nguồn, không chép số trong plan.** Plan §01.6 ghi `numpy>=1.26` / `websockets>=13.0` / `pytest>=8.3` / `ruff>=0.7`, nhưng `requirements*.txt` đã được dependabot (PR #21) nâng lên `2.5.3` / `17.1` / `9.1.1` / `0.16.8`. Chép nguyên plan sẽ hạ sàn xuống dưới bản CI từng kiểm — đó là hồi quy, không phải dọn dẹp. `ml/pyproject.toml` xử lý tương tự (`opencv-python>=4.14.0.94,<5`, `pandas>=3.0.6`, `matplotlib>=3.11.2`).
+
+**Plan nói `uv run pytest` in `4 passed` — sai.** `backend/tests/` có **4 file** nhưng **35 test**. Đã sửa trong plan. Khi `frontend/dist` chưa build thì ra `34 passed, 1 skipped`, cũng là xanh (đã kiểm chứng bằng cách tạm đổi tên `dist` rồi chạy lại, chứ không chỉ tin vào `skipif`).
+
+**Template Vite đã đổi eslint → oxlint.** `pnpm create vite --template react-ts` sinh sẵn `"lint": "oxlint"` và `.oxlintrc.json`, không có `eslint.config.js`. Fallback #2 trong plan §01.9 (bảo thêm `"lint": "eslint ."`) không cần dùng. `pnpm lint` thoát 0, còn một warning `react(only-export-components)` trong `src/components/ui/button.tsx` do shadcn sinh ra, không phải code của mình.
+
+**shadcn init cần cờ khác plan.** `-b` trong bản hiện tại là *base library* (`radix`/`base`/`aria`), không phải base-color; và nó bắt buộc có `-p <preset>`. Lệnh chạy được: `pnpm dlx shadcn@latest init -y -b radix -t vite -p nova --no-monorepo --css-variables`.
+
+**TypeScript 6 bỏ `baseUrl`.** Hướng dẫn shadcn cho Vite bảo thêm `baseUrl` + `paths` vào `tsconfig`, nhưng TS 6.0.3 báo `error TS5101: Option 'baseUrl' is deprecated` và `tsc -b` chết. Với `moduleResolution: bundler`, `paths` tự giải tương đối theo file tsconfig — bỏ hẳn `baseUrl` là đủ, alias `@/*` vẫn chạy (đã build xanh).
+
+**Đã vá một lỗi tiềm ẩn ngoài phạm vi plan:** `docs/huong-dan-bat-dau-tu-con-so-0.md` §5 bảo người đọc chạy backend trong WSL bằng venv riêng tên `.venv-linux`. Chuyển sang `uv sync` mà không đổi gì thì `uv` dùng đúng thư mục `.venv` — tức là **đè lên venv Windows đang nằm cùng chỗ** (`/mnt/d/` và `D:\` là một thư mục). Đã thêm `export UV_PROJECT_ENVIRONMENT=.venv-linux` vào khối lệnh đó, và thêm luật `.venv-*/` vào `.gitignore` (trước đây `.venv-linux` không hề bị ignore, dù guide bảo tạo nó).
+
+**Hai chỗ còn trỏ đường dẫn cũ, CỐ Ý không sửa** vì nằm trong danh sách "Không đụng" của plan §"File và thư mục sở hữu": `CONTRIBUTING.md` (dòng 30 và 71 nhắc `params/`, nay là `firmware/ardupilot/params/`) và `scripts/github/bootstrap_github.py` (dòng 50, mô tả nhãn `type/param` nhắc `params/`). Cả hai chỉ là chữ mô tả, không phải đường dẫn code chạy được. `docs/bao-cao-tong-quan-du-an.md` (dòng ~369) cũng còn cây thư mục cũ với `esp32/` — đó là văn bản báo cáo chụp lại thiết kế cũ, trong đó nhiều file còn chưa tồn tại, nên không sửa. Ai làm phase sau dọn thì dọn một lượt.
+
+**Ước lượng 6,0 giờ của plan là cho người làm tay.** Phiên này chạy tự động hết khoảng 25 phút, phần lớn thời gian nằm ở `pnpm dlx shadcn init` (tải 310 gói) và ba vòng thử cờ shadcn.
 
 ## Phase 02 — WSL2 + build ArduPilot + SITL
 
