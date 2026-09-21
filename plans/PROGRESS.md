@@ -121,6 +121,10 @@ Plan §01.7(b) gắn cờ "chưa xác minh" cho hai số `vite 8.3.0` và `types
 
 **Plan thiếu một tham số bắt buộc của `pnpm/action-setup`.** Action này không tự đoán được bản pnpm; nó đọc khoá `packageManager` trong `package.json`, mà mặc định tìm file đó ở **gốc repo** — ở đây `package.json` nằm trong `frontend/`. Đã thêm `"packageManager": "pnpm@11.10.0"` vào `frontend/package.json` và `package_json_file: frontend/package.json` vào bước setup. Kiểm lại tại chỗ bằng đúng lệnh CI sẽ chạy (`pnpm install --frozen-lockfile` → exit 0, lockfile không bị `packageManager` làm lệch).
 
+**SonarCloud đỏ ở vòng hai dù 3 job CI đã xanh — việc ngoài phạm vi plan, đã xử.** Plan không nhắc tới SonarCloud, và nó cũng không chặn merge (`mergeable=MERGEABLE`), nhưng nó xanh ở cả bốn PR trước (#10, #21, #24, #25) và đỏ ở PR này, nên đúng là Phase 01 gây ra. Chỉ một điều kiện hỏng: `new_security_rating` = 3, ngưỡng 1. Trong 13 issue thì 11 cái MAJOR nằm ở chính `ci.yml` vừa viết (action ghim bằng tag chứ không phải SHA; `uv sync` thiếu `--locked`/`--no-build`), 2 cái MINOR nằm ở `docs/archive/frontend-vanilla/index.html` — file JS cũ không sửa một dòng nào, chỉ vì `git mv` đổi đường dẫn nên Sonar tính là "code mới" của PR.
+
+Đáng ghi lại: **sửa riêng 11 cái MAJOR sẽ không đủ.** Security rating lấy theo issue nặng nhất, nên bỏ hết MAJOR thì 2 cái MINOR vẫn kéo rating xuống 2 — vẫn trên ngưỡng 1, vẫn đỏ. Phải làm cả hai vế. Cách đã dùng: ghim cả bốn action theo full commit SHA (lấy bằng `gh api repos/<repo>/git/ref/tags/<tag>`, không đoán), thêm `--locked --no-build` vào `uv sync`, và tạo `sonar-project.properties` loại `docs/archive/**` + `legacy-sketch/**` + `build-d450a747/**` khỏi phân tích. `--locked` không phải để chiều linter: nó bắt `uv.lock` lệch `pyproject.toml` và fail, là một cổng thật mà trước đó không có.
+
 **Ước lượng 6,0 giờ của plan là cho người làm tay.** Phiên này chạy tự động hết khoảng 25 phút, phần lớn thời gian nằm ở `pnpm dlx shadcn init` (tải 310 gói) và ba vòng thử cờ shadcn.
 
 ## Phase 02 — WSL2 + build ArduPilot + SITL
