@@ -40,7 +40,7 @@ run:
 	uv run uvicorn backend.app:app --reload --host 127.0.0.1 --port 8000
 
 sitl:
-	ARDUPILOT_DIR=$(ARDUPILOT_DIR) ./scripts/run_sitl.sh
+	ARDUPILOT_DIR='$(ARDUPILOT_DIR)' ./scripts/run_sitl.sh
 
 github-bootstrap:
 	uv run python scripts/github/bootstrap_github.py
