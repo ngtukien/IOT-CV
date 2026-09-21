@@ -467,9 +467,18 @@ source ~/.profile
 - [ ] Đã chạy được
 
 ```bash
-cd ~/ardupilot/ArduCopter
-sim_vehicle.py -v ArduCopter --console --map
+cd /mnt/d/Coding/IOT-CV
+./scripts/run_sitl.sh
 ```
+
+Script đó gói sẵn đường dẫn và **cờ mạng đúng** cho máy này. Nếu bạn muốn gõ tay thì phải nhớ thêm cờ:
+
+```bash
+cd ~/ardupilot/ArduCopter
+sim_vehicle.py -v ArduCopter --console --map --no-wsl2-network
+```
+
+⚠️ **`--no-wsl2-network` là bắt buộc trên máy này.** `C:\Users\Nghaiz\.wslconfig` đang đặt `networkingMode=mirrored` (xem `plans/PROGRESS.md` mục Phase 02). Thiếu cờ đó, `sim_vehicle.py` tưởng đang chạy NAT nên phát dữ liệu về gateway mặc định thay vì `127.0.0.1`, và Mission Planner **không thấy gì — không có thông báo lỗi nào**. Ngược lại, nếu bạn gỡ `networkingMode=mirrored` khỏi `.wslconfig` thì phải **bỏ** cờ này đi. Dùng `./scripts/run_sitl.sh` thì không phải nhớ: nó đọc biến `WSL_MIRRORED` và tự in ra nó đang chọn nhánh nào.
 
 **Lần đầu chạy sẽ biên dịch mã nguồn, mất 10–30 phút.** Màn hình chạy hàng nghìn
 dòng chữ — bình thường. Những lần sau chỉ mất khoảng 10 giây.
@@ -524,12 +533,22 @@ Giờ nối code Python của bạn vào drone ảo.
 Trong Ubuntu:
 
 ```bash
-cd ~/ardupilot/ArduCopter
-sim_vehicle.py -v ArduCopter --console --map --out=udp:127.0.0.1:14550
+cd /mnt/d/Coding/IOT-CV
+./scripts/run_sitl.sh
 ```
 
-Phần `--out=udp:127.0.0.1:14550` nghĩa là: ngoài cửa sổ điều khiển của chính nó,
-SITL phát thêm một luồng dữ liệu ra cổng 14550 cho chương trình khác dùng.
+Thực ra **không cần làm gì thêm**: `sim_vehicle.py` đã tự phát sẵn ra cổng `14550`.
+Đo được ngày 21/09/2026, dòng lệnh nó tự dựng là
+`mavproxy.py --out 127.0.0.1:14550 --master tcp:127.0.0.1:5760 …`. Nghĩa là ngoài
+cửa sổ điều khiển của chính nó, SITL còn phát một luồng dữ liệu ra cổng 14550 cho
+chương trình khác dùng — backend của bạn, hoặc Mission Planner.
+
+Muốn gõ tay thì nhớ cờ mạng, đừng bỏ quên như mục 4.3 đã cảnh báo:
+
+```bash
+cd ~/ardupilot/ArduCopter
+sim_vehicle.py -v ArduCopter --console --map --no-wsl2-network --out=udp:127.0.0.1:14550
+```
 
 ### 5.2. Chạy backend (cửa sổ Ubuntu THỨ HAI)
 

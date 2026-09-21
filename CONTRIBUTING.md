@@ -65,8 +65,8 @@ Cả hai phải xanh. CI sẽ chạy lại đúng hai lệnh này.
 
 `.gitignore` đã chặn sẵn, nhưng nhắc lại: không commit dataset (`ml/datasets/`),
 weights (`*.pt`), flight log nhị phân (`*.BIN`, `*.tlog`), ảnh snapshot detection,
-`.env`, và **không commit source ArduPilot** (`ardupilot/` — clone riêng, xem
-[docs/dev-env.md](docs/dev-env.md)).
+`.env`, và **không commit source ArduPilot** (`ardupilot/` — clone vào `~/ardupilot`
+**trong WSL**, xem [plans/phase-02-wsl2-sitl.md](plans/phase-02-wsl2-sitl.md) việc 02.2).
 
 Ngược lại, `params/*.param` **phải** được commit — đó là lịch sử cấu hình flight
 controller theo GIAI ĐOẠN 88.

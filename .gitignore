@@ -1,6 +1,7 @@
 # ---------------------------------------------------------------------------
 # ArduPilot source (dùng làm công cụ SITL, KHÔNG phải code của dự án)
-# Clone riêng theo docs/dev-env.md — không commit vào repo này.
+# Clone vào ~/ardupilot TRONG WSL, xem plans/phase-02-wsl2-sitl.md việc 02.2.
+# Dòng dưới là bảo hiểm phòng ai lỡ clone vào trong repo — giữ lại, đừng xoá.
 # ---------------------------------------------------------------------------
 /ardupilot/
 
