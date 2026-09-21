@@ -45,7 +45,7 @@ jobs:
       #   tự giải lại phụ thuộc vừa thừa vừa mở lại đúng cái cửa mà --locked/--no-build
       #   vừa đóng.
       - run: uv sync --extra dev --locked --no-build
-      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync --no-build ruff check .
 
   test:
     runs-on: ubuntu-latest
@@ -57,7 +57,7 @@ jobs:
       # Job này KHÔNG build frontend, nên `frontend/dist` vắng mặt và
       # `test_frontend_duoc_serve` tự skip (pytest.mark.skipif). Đó là chủ đích,
       # không phải test bị bỏ quên: Phase 10 kiểm chứng thật bằng Playwright.
-      - run: uv run --no-sync pytest
+      - run: uv run --no-sync --no-build pytest
 
   frontend:
     runs-on: ubuntu-latest
