@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sổ Tay Lắp F450</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+:root{
+  --paper:#F1F3F6; --surface:#FFFFFF; --surface-2:#E9EDF2;
+  --ink:#14181D; --ink-soft:#5B6573; --ink-faint:#8A94A3;
+  --rule:#D4DAE2; --rule-strong:#B6BFCB;
+  --amber:#A05B04; --amber-soft:#F7E8D2; --amber-line:#C98A2E;
+  --danger:#A21D13; --danger-soft:#F9E5E2;
+  --pass:#15604A; --pass-soft:#DEEFE7;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:"Barlow Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1216; --surface:#161B21; --surface-2:#1E252D;
+    --ink:#E7ECF3; --ink-soft:#9AA5B4; --ink-faint:#6C7787;
+    --rule:#28313B; --rule-strong:#3E4854;
+    --amber:#F0A64A; --amber-soft:#2C2316; --amber-line:#8A6220;
+    --danger:#FF9184; --danger-soft:#31191A;
+    --pass:#5FD0A0; --pass-soft:#132A24;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1216; --surface:#161B21; --surface-2:#1E252D;
+  --ink:#E7ECF3; --ink-soft:#9AA5B4; --ink-faint:#6C7787;
+  --rule:#28313B; --rule-strong:#3E4854;
+  --amber:#F0A64A; --amber-soft:#2C2316; --amber-line:#8A6220;
+  --danger:#FF9184; --danger-soft:#31191A;
+  --pass:#5FD0A0; --pass-soft:#132A24;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:16px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1040px; margin:0 auto; padding:0 24px 96px}
+.prose{max-width:70ch}
+
+.masthead{border-bottom:2px solid var(--ink); padding:52px 0 26px; margin-bottom:44px}
+.eyebrow{
+  font-family:var(--cond); font-weight:600; text-transform:uppercase;
+  letter-spacing:.14em; font-size:14px; color:var(--amber); margin:0 0 10px;
+}
+h1{
+  font-family:var(--cond); font-weight:700; text-transform:uppercase;
+  font-size:clamp(38px,7vw,66px); line-height:.96; margin:0 0 16px; text-wrap:balance;
+}
+.dek{font-size:18px; color:var(--ink-soft); margin:0 0 26px; max-width:62ch}
+.spec-strip{display:flex; flex-wrap:wrap; gap:8px}
+.spec{
+  font-family:var(--mono); font-size:12.5px; font-weight:400;
+  border:1px solid var(--rule-strong); border-radius:2px;
+  padding:5px 10px; background:var(--surface); color:var(--ink-soft);
+}
+.spec b{color:var(--ink); font-weight:600}
+
+section{margin:0 0 60px}
+h2{
+  font-family:var(--cond); font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; font-size:26px; line-height:1.1;
+  margin:0 0 6px; display:flex; align-items:baseline; gap:12px;
+}
+h2 .num{font-family:var(--mono); font-size:13px; font-weight:600; color:var(--amber); letter-spacing:0}
+.sec-rule{height:1px; background:var(--rule); margin:0 0 24px}
+h3{
+  font-family:var(--cond); font-weight:600; text-transform:uppercase;
+  letter-spacing:.07em; font-size:17px; margin:34px 0 10px; color:var(--ink);
+}
+p{margin:0 0 14px}
+a{color:var(--amber); text-underline-offset:3px}
+code{
+  font-family:var(--mono); font-size:.88em; background:var(--surface-2);
+  padding:1px 5px; border-radius:2px; color:var(--ink);
+}
+strong{font-weight:600}
+
+.tscroll{overflow-x:auto; margin:0 0 10px; border:1px solid var(--rule); background:var(--surface)}
+table{border-collapse:collapse; width:100%; min-width:640px; font-size:14.5px}
+caption{
+  font-family:var(--cond); text-transform:uppercase; letter-spacing:.09em;
+  font-weight:600; font-size:14px; text-align:left; padding:12px 14px 10px;
+  color:var(--ink); background:var(--surface-2); border-bottom:1px solid var(--rule);
+}
+th{
+  font-family:var(--cond); text-transform:uppercase; letter-spacing:.08em;
+  font-weight:600; font-size:13px; text-align:left; color:var(--ink-soft);
+  padding:9px 14px; border-bottom:1px solid var(--rule-strong); white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--rule); vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+.num-col{text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap}
+tfoot td{
+  font-family:var(--mono); font-weight:600; font-variant-numeric:tabular-nums;
+  border-top:2px solid var(--ink); background:var(--surface-2);
+}
+.note{font-size:13.5px; color:var(--ink-soft); margin:0 0 26px; max-width:76ch}
+
+.chip{
+  display:inline-block; font-family:var(--cond); text-transform:uppercase;
+  letter-spacing:.07em; font-weight:600; font-size:12px; line-height:1.5;
+  padding:2px 8px; border-radius:2px; white-space:nowrap;
+}
+.chip-must{background:var(--danger-soft); color:var(--danger)}
+.chip-ask{background:var(--amber-soft); color:var(--amber)}
+.chip-spare{background:var(--surface-2); color:var(--ink-soft)}
+.chip-later{background:var(--pass-soft); color:var(--pass)}
+
+.gate{border-left:4px solid var(--danger); background:var(--danger-soft); padding:16px 20px; margin:22px 0}
+.gate .lbl{
+  font-family:var(--cond); text-transform:uppercase; letter-spacing:.11em;
+  font-weight:700; font-size:13px; color:var(--danger); margin:0 0 6px;
+}
+.gate p{margin:0 0 8px; font-size:15px; color:var(--ink)}
+.gate p:last-child{margin:0}
+.tip{border-left:4px solid var(--amber-line); background:var(--amber-soft); padding:16px 20px; margin:22px 0}
+.tip .lbl{
+  font-family:var(--cond); text-transform:uppercase; letter-spacing:.11em;
+  font-weight:700; font-size:13px; color:var(--amber); margin:0 0 6px;
+}
+.tip p{margin:0; font-size:15px; color:var(--ink)}
+
+.step{display:grid; grid-template-columns:64px 1fr; gap:0 20px; border-top:1px solid var(--rule); padding:22px 0}
+.step:last-of-type{border-bottom:1px solid var(--rule)}
+.step-n{
+  font-family:var(--cond); font-weight:700; font-size:40px; line-height:1;
+  color:var(--amber); font-variant-numeric:tabular-nums;
+}
+.step-time{
+  display:block; font-family:var(--mono); font-size:11.5px;
+  color:var(--ink-faint); margin-top:5px;
+}
+.step h3{margin:0 0 8px}
+.step ul{margin:0; padding-left:20px}
+.step li{margin:0 0 5px}
+.step li::marker{color:var(--ink-faint)}
+
+ul.check{list-style:none; margin:0 0 16px; padding:0; max-width:76ch}
+ul.check li{position:relative; padding-left:30px; margin:0 0 9px}
+ul.check li::before{
+  content:""; position:absolute; left:0; top:6px; width:14px; height:14px;
+  border:1.5px solid var(--rule-strong); border-radius:2px; background:var(--surface);
+}
+ol.proc{padding-left:22px; margin:0 0 16px; max-width:76ch}
+ol.proc li{margin:0 0 8px}
+ol.proc li::marker{font-family:var(--mono); font-size:13px; color:var(--amber); font-weight:600}
+
+figure{margin:0 0 8px}
+.dscroll{overflow-x:auto; border:1px solid var(--rule); background:var(--surface); padding:18px}
+svg{display:block; min-width:720px}
+.box{fill:var(--surface-2); stroke:var(--rule-strong); stroke-width:1.5}
+.box-fc{fill:var(--surface-2); stroke:var(--amber-line); stroke-width:2}
+.blabel{font-family:var(--sans); font-size:13px; font-weight:600; fill:var(--ink)}
+.bsub{font-family:var(--mono); font-size:10.5px; fill:var(--ink-faint)}
+.wpow{stroke:var(--amber-line); stroke-width:3; fill:none}
+.wsig{stroke:var(--rule-strong); stroke-width:1.5; fill:none}
+.wlabel{font-family:var(--mono); font-size:10px; fill:var(--ink-soft)}
+figcaption{font-size:13.5px; color:var(--ink-soft); margin-top:10px; max-width:76ch}
+
+.two{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px}
+.card{border:1px solid var(--rule); background:var(--surface); padding:18px 20px}
+.card h3{margin:0 0 8px}
+.card p{margin:0; font-size:14.5px; color:var(--ink-soft)}
+footer{border-top:2px solid var(--ink); padding-top:20px; margin-top:20px; font-size:13.5px; color:var(--ink-soft)}
+footer p{max-width:76ch}
+
+@media (max-width:560px){
+  .step{grid-template-columns:44px 1fr; gap:0 14px}
+  .step-n{font-size:30px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Đồ án UAV IoT · Giai đoạn phần cứng</p>
+  <h1>Sổ tay lắp F450</h1>
+  <p class="dek">Cấu hình tối ưu cho người lắp drone lần đầu: ít mối hàn nhất, ít linh kiện rời nhất, và mỗi bước đều có cổng kiểm tra trước khi cấp điện.</p>
+  <div class="spec-strip">
+    <span class="spec">Khung <b>F450 chân cao</b></span>
+    <span class="spec">FC/ESC <b>SpeedyBee F405 V5 OX32 55A</b></span>
+    <span class="spec">Motor <b>2212 920KV × 4</b></span>
+    <span class="spec">Cánh <b>1045</b></span>
+    <span class="spec">Pin <b>3S 2200mAh</b></span>
+    <span class="spec">Firmware <b>ArduPilot Copter</b></span>
+    <span class="spec">Target <b>speedybeef4v5</b></span>
+    <span class="spec">Mối hàn <b>~18</b></span>
+  </div>
+</header>
+
+<section>
+  <h2><span class="num">01</span>Vì sao cấu hình này</h2>
+  <div class="sec-rule"></div>
+  <div class="prose">
+    <p><strong>Tháp F405 V5 thay vì FC rời + PDB + 4 ESC rời.</strong> Cách truyền thống của F450 cần khoảng 44 mối hàn trải trên 7 linh kiện rời, cộng việc buộc và bọc gen co 4 con ESC lên càng. Tháp V5 rút xuống <strong>khoảng 18 mối hàn, tất cả trên một bo duy nhất</strong> — trong đó 12 mối là dây motor lên pad có nhãn <code>M1</code>–<code>M4</code>, loại dễ nhất trong cả con drone, và chỉ <strong>4 mối nằm trên đường điện chính</strong> (XT60 và tụ) so với khoảng 12 mối nếu mua lẻ.</p>
+    <p><strong>Nó xóa luôn hai giai đoạn.</strong> Không còn đấu PDB. Không còn hiệu chỉnh ESC, vì tháp chạy DShot chứ không phải PWM analog.</p>
+    <p><strong>Khung F450 thay vì S500.</strong> Payload chỉ khoảng 100g nên F450 dư sức, tỉ số lực đẩy trên khối lượng vẫn quanh 2.9:1. Cái quyết định là thứ khác: F450 có nhiều hướng dẫn tiếng Việt nhất, và càng dự phòng rẻ, bán khắp nơi. Bạn sẽ gãy càng. Nhược điểm duy nhất là chân đáp thấp làm camera nhìn xuống bị vướng, xử lý bằng bộ chân cao 100k, rẻ hơn nhiều so với đổi khung.</p>
+  </div>
+    <div class="tip">
+    <p class="lbl">Standard hay Deluxe — tính lại trước khi đặt</p>
+    <p>Bản <strong>Standard</strong> thiếu ba món bạn vẫn phải mua: smoke stopper (120&ndash;180k), buzzer (30&ndash;50k), bo tập hàn (tùy chọn). Cộng lại khoảng <strong>200&ndash;280k</strong>. Bản <strong>Deluxe</strong> có sẵn cả ba, cùng hãng nên chắc chắn khớp, và thêm 4 power expansion board với Type-C extension module. <strong>Deluxe KHÔNG hàn sẵn thêm bất cứ thứ gì</strong> — tụ và XT60 là món rời ở cả hai bản, phần hàn giống hệt nhau. Đây thuần túy là phép tính giá: chênh dưới khoảng 300k thì lấy Deluxe cho gọn, chênh hơn thì lấy Standard rồi tự mua hai món kia, không thiệt gì về kỹ thuật.</p>
+  </div>
+
+  <h3>Rủi ro cháy — so sánh trung thực</h3>
+  <div class="tscroll">
+    <table>
+      <caption>Nguyên nhân cháy thật, và topology nào chịu tốt hơn</caption>
+      <thead><tr><th>Nguyên nhân</th><th>Hậu quả</th><th>Tháp V5</th><th>FC + PDB + 4 ESC rời</th><th>Thắng</th></tr></thead>
+      <tbody>
+        <tr><td>Đấu ngược cực pin</td><td>Chết ngay FC và ESC</td><td>Tự hàn XT60, 2 mối. Đầu cắm đã gắn dây từ nhà máy nên chỉ sai được ở khâu chọn pad</td><td>Tự hàn XT60 vào PDB, rủi ro y hệt</td><td>Hòa</td></tr>
+        <tr><td>Cầu thiếc chập + và −</td><td>LiPo đổ hơn 100A qua mạch đồng, nổ hoặc bốc hơi</td><td><strong>4 mối</strong> trên đường điện chính</td><td><strong>~12 mối</strong> (8 ESC lên PDB, XT60, tụ)</td><td><strong>Tháp</strong></td></tr>
+        <tr><td>Tụ hóa hàn ngược cực</td><td>Tụ nổ</td><td>Tự hàn</td><td>Tự hàn</td><td>Hòa</td></tr>
+        <tr><td>Mối hàn nguội</td><td>Điện trở cao, nóng khi tải, đứt giữa lúc bay</td><td>18 mối</td><td>~44 mối</td><td><strong>Tháp</strong></td></tr>
+        <tr><td>Chập dây motor</td><td>Chết 1 kênh ESC</td><td>Chết cả bo ESC 4in1, khoảng 1tr, mua rời được</td><td>Chết 1 con ESC, khoảng 100k</td><td><strong>Rời</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note"><strong>Tháp thắng 2, hòa 2, thua 1.</strong> Vẫn nên chọn tháp, vì hai cái nó thắng đều nằm ở <em>số lượng mối hàn</em> — gốc rễ của mọi sự cố còn lại. Nhưng tháp <strong>không</strong> miễn nhiễm với đấu ngược cực: bạn vẫn tự hàn 4 mối nguy hiểm nhất, ở cả bản Standard lẫn Deluxe. Đó là lý do smoke stopper là món bắt buộc chứ không phải nên có.</p>
+
+<div class="tip">
+    <p class="lbl">Đánh đổi đã biết</p>
+    <p>ESC của V5 chạy firmware <strong>OX32 mã nguồn đóng</strong>, mới ra cuối 2024, cộng đồng còn ít kinh nghiệm. Rủi ro thấp với dự án này vì bạn không đua tốc độ và không cần tinh chỉnh ESC — DShot600 mặc định là xong. Kể cả việc đảo chiều motor cũng xử lý bằng cách hoán 2 trong 3 dây, không đụng tới phần mềm.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">02</span>Danh sách linh kiện</h2>
+  <div class="sec-rule"></div>
+  <p class="note">Giá là ước lượng thị trường Việt Nam, <strong>bạn phải tự kiểm tra lại</strong> tại thời điểm mua. Cột trạng thái: <span class="chip chip-must">bắt buộc</span> mua mới · <span class="chip chip-ask">hỏi mượn trước</span> từ khoa, CLB, khóa trên · <span class="chip chip-spare">dự phòng</span> mua ngay để khỏi chờ hàng giữa kỳ · <span class="chip chip-later">payload</span> lắp sau nhưng mua cùng đợt.</p>
+
+  <div class="tscroll">
+    <table>
+      <caption>A · Khung và động lực</caption>
+      <thead><tr><th>Món</th><th>SL</th><th>Trạng thái</th><th class="num-col">Ước tính</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>Khung F450 bản chân đáp cao</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">350–450k</td><td>Bản chân thường thì mua thêm bộ chân cao khoảng 100k</td></tr>
+        <tr><td>Motor 2212 920KV, kèm ốc và adapter cánh</td><td>4</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">500–600k</td><td>Mua combo 4 con cùng lô để đặc tính đồng đều</td></tr>
+        <tr><td>Cánh 1045, 2 CW + 2 CCW</td><td>3 bộ</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">150k</td><td>1 bộ dùng, 2 bộ dự phòng</td></tr>
+        <tr><td>Càng F450 rời</td><td>2</td><td><span class="chip chip-spare">dự phòng</span></td><td class="num-col">80k</td><td>Món gãy đầu tiên khi hạ cánh cứng</td></tr>
+        <tr><td>Motor 2212 rời</td><td>1</td><td><span class="chip chip-spare">dự phòng</span></td><td class="num-col">130k</td><td>Khỏi mất một tuần chờ hàng giữa kỳ</td></tr>
+        <tr><td>Keo khóa ren Loctite 243</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">60k</td><td>Rung động làm ốc motor tự tháo. Không có keo là mất motor giữa không trung</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3">Tạm tính nhóm A</td><td class="num-col">1.27–1.42tr</td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <div class="tscroll">
+    <table>
+      <caption>B · Điện tử bay</caption>
+      <thead><tr><th>Món</th><th>SL</th><th>Trạng thái</th><th class="num-col">Ước tính</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>SpeedyBee F405 V5 OX32 55A stack</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">1.9–2.3tr</td><td>Bản <strong>Standard</strong> gồm: FC, ESC, tụ 1000µF/35V <em>(rời)</em>, dây XT60 120mm <em>(rời)</em>, gen co, ốc và grommet chống rung M2+M3, các cáp SH1.0 gồm cáp 10-pin nối ESC↔FC. <strong>KHÔNG có: bo tập hàn, bộ chống chập, buzzer</strong> — ba món đó chỉ bản Deluxe mới có, phải mua rời ở nhóm F</td></tr>
+        <tr><td>GPS và la bàn M10 <em>(hoặc M8N)</em></td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">350–700k</td><td>M8N thừa đủ cho Loiter, RTL, Auto và rẻ hơn khoảng 350k. <strong>Hỏi shop connector có khớp cổng GPS của V5 không</strong></td></tr>
+        <tr><td>Mast nâng GPS, cao từ 8cm</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">70k</td><td>La bàn cực nhạy nhiễu từ. Đặt sát ESC là compass sai, Loiter trôi</td></tr>
+        <tr><td>Đế chuyển FC 45×45 sang 30.5×30.5mm</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">50k</td><td><strong>Không có món này thì không lắp được.</strong> F450 dùng lỗ 45×45, tháp là 30.5×30.5. Mua sẵn hoặc in 3D</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3">Tạm tính nhóm B</td><td class="num-col">2.37–3.12tr</td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <div class="tscroll">
+    <table>
+      <caption>C · Điều khiển RC — phanh tay duy nhất của bạn, không được bỏ</caption>
+      <thead><tr><th>Món</th><th>SL</th><th>Trạng thái</th><th class="num-col">Ước tính</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>FlySky FS-i6X và receiver iA6B</td><td>1</td><td><span class="chip chip-ask">hỏi mượn trước</span></td><td class="num-col">1.3–1.45tr</td><td>Dùng chế độ i-BUS về FC. Bản FS-i6 6 kênh cũng đủ và rẻ hơn khoảng 400k</td></tr>
+        <tr><td>Pin AA × 4 hoặc adapter 18650</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">50k</td><td></td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3">Tạm tính nhóm C</td><td class="num-col">1.35–1.50tr</td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <div class="tscroll">
+    <table>
+      <caption>D · Nguồn</caption>
+      <thead><tr><th>Món</th><th>SL</th><th>Trạng thái</th><th class="num-col">Ước tính</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>LiPo 3S 2200mAh 30C trở lên, đầu XT60</td><td>2</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">560k</td><td>1 quả cũng bay được. 2 quả để test liên tục không phải chờ sạc</td></tr>
+        <tr><td>Sạc cân bằng IMAX B6 và adapter 12V 5A</td><td>1</td><td><span class="chip chip-ask">hỏi mượn trước</span></td><td class="num-col">450–550k</td><td>Tuyệt đối không sạc LiPo bằng sạc thường</td></tr>
+        <tr><td>Túi chống cháy LiPo</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">80k</td><td>Sạc và cất pin trong túi. Không thương lượng</td></tr>
+        <tr><td>Còi báo pin thấp</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">30k</td><td>Cảnh báo cell tụt dưới ngưỡng khi đang test dưới đất</td></tr>
+        <tr><td>UBEC 5V 3A</td><td>2</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">140k</td><td>Nguồn riêng cho ESP32-CAM và ESP32 bridge. <strong>Không lấy 5V của FC</strong> — sụt áp giữa lúc bay là mất điều khiển</td></tr>
+        <tr><td>Dây silicone 18AWG 1m và gen co</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">80k</td><td>Dây motor F450 dài khoảng 20cm, từ đầu càng về tâm là vừa sát. Thiếu vài cm là mất cả buổi</td></tr>
+        <tr><td>Đầu XT60 đực và cái rời</td><td>4</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">60k</td><td></td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3">Tạm tính nhóm D</td><td class="num-col">1.40–1.50tr</td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <div class="tscroll">
+    <table>
+      <caption>E · Payload — mua cùng đợt, lắp lên khung ngay cả khi chưa dùng tới</caption>
+      <thead><tr><th>Món</th><th>SL</th><th>Trạng thái</th><th class="num-col">Ước tính</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>ESP32-CAM <strong>bản có cổng IPEX</strong> và anten 2.4G</td><td>1</td><td><span class="chip chip-later">payload</span></td><td class="num-col">250k</td><td>Bản anten PCB chỉ ổn định trong khoảng 10m, vô dụng cho drone. Hai bản nhìn gần giống hệt nhau nên phải hỏi rõ</td></tr>
+        <tr><td>ESP32-CAM-MB, đế nạp code</td><td>1</td><td><span class="chip chip-later">payload</span></td><td class="num-col">70k</td><td>Nạp code không cần đấu FTDI thủ công</td></tr>
+        <tr><td>ESP32 DevKit V1</td><td>2</td><td><span class="chip chip-later">payload</span></td><td class="num-col">200k</td><td>1 làm cầu MAVLink, 1 dự phòng</td></tr>
+        <tr><td>microSD 32GB class 10</td><td>1</td><td><span class="chip chip-later">payload</span></td><td class="num-col">100k</td><td></td></tr>
+        <tr><td>Mount camera và damper cao su, in 3D</td><td>1</td><td><span class="chip chip-later">payload</span></td><td class="num-col">100k</td><td>In cùng lượt với đế chuyển FC và mast GPS</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3">Tạm tính nhóm E</td><td class="num-col">720k</td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <div class="tscroll">
+    <table>
+      <caption>F · An toàn và phụ kiện lắp</caption>
+      <thead><tr><th>Món</th><th>SL</th><th>Trạng thái</th><th class="num-col">Ước tính</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>Velcro dán pin, dây rút, băng xốp 3M</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">120k</td><td>Velcro để còn dịch pin tới lui khi cân trọng tâm</td></tr>
+        <tr><td>Kính bảo hộ</td><td>2–3</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">150k</td><td>Cánh 1045 quay ở khoảng 8000 vòng/phút. Đeo mỗi khi có điện vào drone</td></tr>
+        <tr><td>Thiếc hàn và nhựa thông <em>(nếu chưa có)</em></td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">80k</td><td></td></tr>
+        <tr><td>Buzzer 5V có còi chủ động</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">50k</td><td>Bản Standard không kèm. ArduPilot dùng còi để báo trạng thái arm, lỗi pre-arm, mất GPS — không có là bay mù thông tin</td></tr>
+        <tr><td><strong>Smoke stopper</strong> XT60</td><td>1</td><td><span class="chip chip-must">bắt buộc</span></td><td class="num-col">150k</td><td>Ngắt mạch trong 3ms khi chập. Món 150k này đứng giữa bạn và việc mất cả tháp 2 triệu. <strong>Bản standard không tặng kèm — bắt buộc mua rời.</strong> Không mua được thì dùng bóng đèn halogen 12V 55W đấu nối tiếp dây dương (xem mục 03)</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3">Tạm tính nhóm F</td><td class="num-col">550k</td><td></td></tr></tfoot>
+    </table>
+  </div>
+
+  <h3>Tổng và các nút cắt</h3>
+  <div class="tscroll">
+    <table>
+      <caption>Tổng hợp theo kịch bản</caption>
+      <thead><tr><th>Kịch bản</th><th class="num-col">Tổng</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td>Mua mới toàn bộ, GPS M10, 2 pin</td><td class="num-col">7.65–8.80tr</td><td>Vượt ngân sách 6–7tr</td></tr>
+        <tr><td>Mượn được tay RC <em>hoặc</em> sạc</td><td class="num-col">6.20–7.40tr</td><td><strong>Mục tiêu</strong> — đúng ngân sách</td></tr>
+        <tr><td>Mượn được cả tay RC và sạc</td><td class="num-col">5.75–6.85tr</td><td>Dư tiền mua thêm dự phòng</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Nếu vẫn vượt, cắt theo đúng thứ tự này: GPS M8N thay M10 (−350k), mua 1 pin thay 2 (−280k), bỏ motor dự phòng (−130k), FS-i6 thay FS-i6X (−400k). <strong>Không cắt:</strong> smoke stopper, keo khóa ren, túi chống cháy, kính bảo hộ, UBEC riêng, đế chuyển FC. Mỗi món trong nhóm này đều đứng giữa bạn và một con drone hỏng.</p>
+</section>
+
+<section>
+  <h2><span class="num">03</span>Hỏi shop trước khi đặt hàng</h2>
+  <div class="sec-rule"></div>
+  <p class="prose">Bảy câu này quyết định bạn lắp trong ba tiếng hay ba buổi. Nhắn thẳng cho shop, đừng đoán.</p>
+  <ul class="check">
+    <li><strong>Shop hàn sẵn dây motor vào pad ESC giúp em được không, phí bao nhiêu?</strong> Đây là đòn bẩy lớn nhất. Nếu được, phần hàn của bạn về gần bằng không.</li>
+    <li>Tháp V5 có cổng cắm sẵn cho GPS và receiver không? Shop gửi ảnh cận các cổng giúp em.</li>
+    <li>Em mua GPS ở shop luôn — <strong>đầu dây GPS có khớp cổng GPS của V5 không</strong>, hay cần cáp chuyển? Cổng cắm chỉ tiết kiệm thời gian nếu connector khớp.</li>
+    <li><strong>Shop có bán smoke stopper XT60 rời không?</strong> Tháp bản standard không tặng kèm Smart Power Tester — đã xác nhận. Đây là món bắt buộc, không phải tùy chọn.</li>
+    <li>Shop có bán đế chuyển 45×45 sang 30.5×30.5 cho khung F450 không?</li>
+    <li>Khung F450 shop bán có bản chân đáp cao không? Nếu không thì có bộ chân cao rời không?</li>
+    <li>Có bán càng F450 rời và motor 2212 rời để em mua dự phòng không?</li>
+  </ul>
+  <div class="gate">
+    <p class="lbl">Bắt buộc — smoke stopper, vì tháp bản standard không tặng kèm</p>
+    <p>Không có nó, một mối hàn chập sẽ đổ hơn 100A từ LiPo qua mạch đồng và bo bốc hơi trong chưa tới một giây. Có nó, mạch ngắt trong 3ms và bạn chỉ mất 30 giây đi tìm lỗi.</p>
+    <p><strong>Mua sẵn:</strong> tìm &ldquo;smoke stopper XT60&rdquo; hoặc &ldquo;short saver FPV&rdquo;, khoảng 120&ndash;180k.</p>
+    <p><strong>Tự làm nếu không mua được:</strong> đấu <strong>nối tiếp</strong> một bóng đèn halogen 12V 55W (bóng pha ô tô, mua ở tiệm phụ tùng, khoảng 40k) vào dây dương giữa pin và drone. Chập thì bóng sáng rực và dòng bị giới hạn ở khoảng 4.5A thay vì hơn 100A. Bo bình thường thì bóng chỉ lóe rồi tối. Đèn sáng và giữ sáng nghĩa là có chập &mdash; rút ngay.</p>
+  </div>
+
+  <div class="tip">
+    <p class="lbl">Đặt in 3D trước vài ngày</p>
+    <p>Ba món in cùng một lượt: <strong>đế chuyển FC 45 sang 30.5</strong>, <strong>mount camera có damper</strong>, <strong>mast nâng GPS</strong>. Khoảng 100k tổng nếu nhờ dịch vụ hoặc lab của trường. Thiếu đế chuyển là dừng giữa buổi lắp.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">04</span>Sơ đồ đấu nối</h2>
+  <div class="sec-rule"></div>
+  <figure>
+    <div class="dscroll">
+      <svg viewBox="0 0 800 392" role="img" aria-label="Sơ đồ đấu nối: pin LiPo cấp nguồn cho ESC bốn trong một và hai UBEC. ESC nối lên FC bằng cáp ribbon. FC nối tới GPS, receiver, ESP32 bridge và buzzer.">
+        <path class="wpow" d="M126 177 H160 M160 60 V348 M160 60 H210 M160 300 H210 M160 348 H210"/>
+
+        <rect class="box" x="16" y="150" width="110" height="54" rx="2"/>
+        <text class="blabel" x="71" y="173" text-anchor="middle">LiPo 3S</text>
+        <text class="bsub" x="71" y="190" text-anchor="middle">2200mAh · XT60</text>
+
+        <rect class="box" x="210" y="33" width="160" height="54" rx="2"/>
+        <text class="blabel" x="290" y="56" text-anchor="middle">ESC 4in1 55A</text>
+        <text class="bsub" x="290" y="73" text-anchor="middle">tầng dưới · tụ + XT60</text>
+
+        <path class="wpow" d="M370 60 H470"/>
+        <text class="wlabel" x="420" y="52" text-anchor="middle">M1–M4 · 12 mối hàn</text>
+        <rect class="box" x="470" y="33" width="200" height="54" rx="2"/>
+        <text class="blabel" x="570" y="56" text-anchor="middle">4 × Motor 2212</text>
+        <text class="bsub" x="570" y="73" text-anchor="middle">920KV · cánh 1045</text>
+
+        <path class="wsig" d="M290 87 V148"/>
+        <text class="wlabel" x="299" y="122">cáp ribbon 8P — không hàn</text>
+
+        <rect class="box-fc" x="210" y="148" width="160" height="54" rx="2"/>
+        <text class="blabel" x="290" y="171" text-anchor="middle">FC F405 V5</text>
+        <text class="bsub" x="290" y="188" text-anchor="middle">tầng trên · ArduPilot</text>
+
+        <path class="wsig" d="M370 175 H412 M412 113 V248 M412 113 H470 M412 158 H470 M412 203 H470 M412 248 H470"/>
+
+        <rect class="box" x="470" y="97" width="200" height="32" rx="2"/>
+        <text class="blabel" x="482" y="118">GPS M10 + la bàn</text>
+        <rect class="box" x="470" y="142" width="200" height="32" rx="2"/>
+        <text class="blabel" x="482" y="163">Receiver iA6B · i-BUS</text>
+        <rect class="box" x="470" y="187" width="200" height="52" rx="2"/>
+        <text class="blabel" x="482" y="207">ESP32 bridge</text>
+        <text class="bsub" x="482" y="224">UART 3.3V · nguồn từ UBEC 2</text>
+        <rect class="box" x="470" y="232" width="200" height="32" rx="2"/>
+        <text class="blabel" x="482" y="253">Buzzer</text>
+
+        <rect class="box" x="210" y="282" width="160" height="36" rx="2"/>
+        <text class="blabel" x="290" y="305" text-anchor="middle">UBEC 1 · 5V 3A</text>
+        <path class="wpow" d="M370 300 H470"/>
+        <rect class="box" x="470" y="282" width="200" height="36" rx="2"/>
+        <text class="blabel" x="482" y="305">ESP32-CAM + anten</text>
+
+        <rect class="box" x="210" y="330" width="160" height="36" rx="2"/>
+        <text class="blabel" x="290" y="353" text-anchor="middle">UBEC 2 · 5V 3A</text>
+        <path class="wpow" d="M370 348 H436 V228 H470"/>
+
+        <path class="wpow" d="M16 256 H46"/>
+        <text class="wlabel" x="53" y="260">nguồn pin</text>
+        <path class="wsig" d="M16 276 H46"/>
+        <text class="wlabel" x="53" y="280">tín hiệu</text>
+      </svg>
+    </div>
+    <figcaption>FC và ESP32 bridge đều chạy UART mức 3.3V nên nối thẳng, không cần mạch chuyển mức. Nối chéo: chân TX của FC vào chân RX của ESP32 và ngược lại. Bắt buộc chung GND.</figcaption>
+  </figure>
+
+  <h3>Đặt linh kiện ở đâu — quyết định lúc lắp, sửa sau rất khó</h3>
+  <ul class="check">
+    <li><strong>FC</strong> chính giữa khung, trên đế chuyển và grommet cao su. <strong>Mũi tên trên bo phải chỉ về phía trước.</strong> Lắp ngược mũi tên là drone lật ngay khi rời mặt đất.</li>
+    <li><strong>GPS và la bàn</strong> trên mast cao từ 8cm, đặt phía sau, càng xa ESC và dây nguồn càng tốt. Đây là linh kiện nhạy nhiễu nhất trên drone.</li>
+    <li><strong>ESP32-CAM</strong> dưới bụng, nhìn thẳng xuống, gắn qua damper cao su, đặt xa motor.</li>
+    <li><strong>Anten 2.4G của ESP32-CAM và anten receiver</strong> tách xa nhau và không đặt song song. Cả hai đều 2.4GHz và sẽ nhiễu nhau.</li>
+    <li><strong>Pin</strong> dán velcro để còn dịch tới lui khi cân trọng tâm.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="num">05</span>Trình tự lắp trong một buổi</h2>
+  <div class="sec-rule"></div>
+  <p class="prose">Nguyên tắc xuyên suốt: <strong>hàn và kiểm tra hết trên bàn trước, bắt lên khung sau.</strong> Bắt lên khung rồi mới phát hiện sai là phải tháo ra làm lại từ đầu.</p>
+
+  <div class="step">
+    <div><div class="step-n">0</div><span class="step-time">30 phút</span></div>
+    <div>
+      <h3>Chuẩn bị</h3>
+      <ul>
+        <li>Kiểm tra đã có đủ ba món in 3D: đế chuyển FC, mount camera, mast GPS.</li>
+        <li>Lấy bo tập hàn tặng kèm ra, hàn thử 10 mối. Đây là lúc để hỏng, không phải lúc hàn lên tháp hai triệu.</li>
+        <li>Bày linh kiện theo nhóm, chuẩn bị sẵn bộ chống chập nguồn.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step">
+    <div><div class="step-n">1</div><span class="step-time">30 phút</span></div>
+    <div>
+      <h3>Lắp khung</h3>
+      <ul>
+        <li>Bắt 4 càng vào đế dưới. <strong>Nhỏ Loctite 243 lên ren từng con ốc.</strong></li>
+        <li>Chưa bắt đế trên — còn phải luồn dây.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step">
+    <div><div class="step-n">2</div><span class="step-time">20 phút</span></div>
+    <div>
+      <h3>Gắn motor</h3>
+      <ul>
+        <li>4 motor lên đầu càng, Loctite 243 lên ren.</li>
+        <li>Luồn dây motor dọc càng về tâm khung. Thiếu chiều dài thì nối thêm dây 18AWG.</li>
+        <li><strong>Chưa gắn cánh. Cánh chỉ gắn ở bước cuối cùng, sau khi mọi thứ đã pass.</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step">
+    <div><div class="step-n">3</div><span class="step-time">45 phút</span></div>
+    <div>
+      <h3>Hàn ESC — 18 mối, phần khó nhất</h3>
+      <ul>
+        <li>Hàn 3 dây của mỗi motor vào pad <code>M1</code>–<code>M4</code>. Thứ tự 3 dây trong cùng một motor <em>không quan trọng</em> — sai chiều quay sẽ sửa ở bước cấu hình bằng cách hoán 2 dây.</li>
+        <li><strong>Hàn dây XT60.</strong> Đầu cắm đã gắn sẵn dây từ nhà máy nên bản thân đầu cắm không thể sai chiều. Việc của bạn: <strong>dây đỏ vào pad dấu <code>+</code> (hoặc <code>BAT+</code>), dây đen vào pad dấu <code>−</code> (hoặc <code>GND</code>)</strong>. Nhìn lại hai lần trước khi chấm mỏ hàn. Hàn ngược là chết cả tháp.</li>
+        <li><strong>Hàn tụ 1000µF.</strong> Tụ hóa <strong>có cực</strong>: sọc trắng dọc thân là cực âm, chân dài là cực dương. Hàn song song với pad nguồn, đúng cực. Ngược cực là tụ nổ. Bọc gen co (tặng kèm 2 cái) sau khi hàn.</li>
+        <li>Đo bằng đồng hồ vạn năng: <strong>không được thông mạch giữa cực dương và cực âm.</strong> Thông mạch nghĩa là chập, cắm pin vào là cháy bo.</li>
+        <li><strong>Chưa ghép FC lên ESC.</strong> Cổng an toàn 1 phải test bo ESC một mình. Nếu có chập ở pad motor, bạn chỉ mất ESC chứ không mất luôn FC.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="gate">
+    <p class="lbl">Cổng an toàn 1 — cấp điện lần đầu</p>
+    <p>Cắm pin <strong>qua smoke stopper</strong>, không cắm thẳng — nó ngắt mạch trong 3ms và biến một cú chập từ mất 2 triệu thành đèn sáng rồi rút ra. Test <strong>bo ESC một mình</strong>, chưa cắm cáp ribbon lên FC. Đeo kính bảo hộ.</p>
+    <p><strong>PASS:</strong> đèn LED trên tháp sáng bình thường, không khói, sờ bo không nóng.</p>
+    <p><strong>FAIL:</strong> có khói, bo nóng, mùi khét, hoặc đèn không sáng — <strong>rút pin ngay lập tức</strong> và quay lại bước 3 tìm mối hàn chập. Đừng thử lại lần hai khi chưa tìm ra lỗi.</p>
+  </div>
+
+  <div class="step">
+    <div><div class="step-n">4</div><span class="step-time">20 phút</span></div>
+    <div>
+      <h3>Ghép tầng và cắm ngoại vi</h3>
+      <ul>
+        <li>Cắm cáp ribbon 8 chân giữa ESC và FC.</li>
+        <li>Cắm GPS, receiver và buzzer vào các cổng tương ứng.</li>
+        <li>Bắt tháp lên đế chuyển bằng grommet cao su tặng kèm. Grommet là bộ giảm rung, không phải phụ kiện thừa.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step">
+    <div><div class="step-n">5</div><span class="step-time">20 phút</span></div>
+    <div>
+      <h3>Bắt lên khung</h3>
+      <ul>
+        <li>Đế chuyển lên khung, <strong>mũi tên FC hướng về phía trước</strong>.</li>
+        <li>GPS lên mast, mast dựng phía sau.</li>
+        <li>Dán velcro cho pin nhưng chưa cố định chặt — còn phải cân trọng tâm.</li>
+        <li>Bắt đế trên, luồn gọn dây, dùng dây rút cố định.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step">
+    <div><div class="step-n">6</div><span class="step-time">20 phút</span></div>
+    <div>
+      <h3>Gắn payload và cân trọng tâm</h3>
+      <ul>
+        <li>Gắn ESP32-CAM dưới bụng qua damper, ESP32 bridge phía trên, hai UBEC gọn vào khoang giữa.</li>
+        <li>Đặt drone lên hai ngón tay ở điểm giữa hai càng đối diện. Drone phải cân, không nghiêng rõ về phía nào.</li>
+        <li>Lệch thì dịch pin, không dịch FC.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">06</span>Cấu hình ArduPilot</h2>
+  <div class="sec-rule"></div>
+  <p class="prose">Thứ tự dưới đây quan trọng — làm sai thứ tự sẽ phải hiệu chỉnh lại từ đầu. Dùng Mission Planner, không dùng app SpeedyBee.</p>
+  <ol class="proc">
+    <li>Nạp firmware Copter target <code>speedybeef4v5</code>. Vào chế độ DFU nếu Mission Planner không nhận bo.</li>
+    <li>Frame type: <strong>Quad X</strong>.</li>
+    <li>Accelerometer calibration, 6 mặt, đặt trên mặt phẳng thật sự phẳng.</li>
+    <li>Compass calibration. <strong>Làm ngoài trời</strong>, xa xe máy, cột sắt, bàn kim loại. Đây là bước hay hỏng nhất.</li>
+    <li>Radio calibration. Receiver iA6B đặt ở chế độ i-BUS.</li>
+    <li>Map switch: kênh 5 sang Flight Mode (<code>Stabilize</code> / <code>AltHold</code> / <code>Loiter</code>), kênh 6 sang <code>RTL</code>.</li>
+    <li>Battery monitor: đo điện áp pin bằng đồng hồ rồi nhập số thật vào để hiệu chỉnh. Đừng tin số mặc định.</li>
+    <li>Đặt <code>MOT_PWM_TYPE = 6</code> (DShot600) và <code>SERVO_BLH_AUTO = 1</code>.</li>
+    <li><strong>Kiểm tra cánh đã tháo</strong>, rồi chạy Motor Test lần lượt A, B, C, D. Xác nhận đúng motor quay và đúng chiều.</li>
+    <li>Sai chiều quay thì hoán đổi 2 trong 3 dây của motor đó. Không cần phần mềm nào.</li>
+    <li>Failsafe: mất RC thì <code>RTL</code>. Battery failsafe theo ngưỡng vừa hiệu chỉnh. GCS failsafe bật.</li>
+    <li>Chạy tới khi pre-arm check sạch hoàn toàn. Còn cảnh báo là còn vấn đề thật, không phải phiền toái.</li>
+    <li><strong>Hiệu chỉnh ESC: bỏ qua.</strong> DShot không cần bước này.</li>
+  </ol>
+
+  <div class="gate">
+    <p class="lbl">Cổng an toàn 2 — trước khi gắn cánh</p>
+    <p>Tất cả phải đúng, không có ngoại lệ: pre-arm check sạch · GPS bắt từ 10 vệ tinh trở lên và HDOP dưới 1.5 · 4 motor quay đúng vị trí và đúng chiều · failsafe RC đã test thật bằng cách tắt tay điều khiển · trọng tâm cân · mọi ốc motor và càng đã có Loctite.</p>
+  </div>
+
+  <div class="gate">
+    <p class="lbl">Cổng an toàn 3 — lần bay đầu tiên</p>
+    <p>Bãi trống bán kính tối thiểu 20m, không người qua lại, không gió mạnh. Đeo kính bảo hộ. Chế độ <code>Stabilize</code>. Nhấc lên khoảng 50cm, giữ 5 giây, hạ xuống. <strong>Chỉ vậy thôi.</strong></p>
+    <p>Sau đó tải log về đọc trước khi bay lần hai. Rung động, dòng điện, độ lệch attitude — log nói cho bạn biết những gì mắt không nhìn thấy.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">07</span>Lỗi người mới hay mắc</h2>
+  <div class="sec-rule"></div>
+  <div class="two">
+    <div class="card"><h3>Không dùng keo khóa ren</h3><p>Rung động làm ốc motor tự tháo sau vài chuyến bay, rồi motor văng giữa không trung.</p></div>
+    <div class="card"><h3>Đặt GPS sát ESC</h3><p>La bàn đọc sai từ trường. Loiter trôi dạt và RTL bay lệch. Mast cao không phải làm màu.</p></div>
+    <div class="card"><h3>Lấy 5V của FC nuôi ESP32</h3><p>ESP32-CAM rút tới 400mA theo xung. Sụt áp giữa lúc bay là FC reset trên không.</p></div>
+    <div class="card"><h3>Cắm pin thẳng, bỏ qua smoke stopper</h3><p>Một mối hàn chập là mất cả tháp hai triệu trong đúng một giây. Món bảo vệ giá 150k.</p></div>
+    <div class="card"><h3>Tin vào TVS diode của ESC</h3><p>TVS chống xung áp, <em>không</em> chống ngược cực. Đấu ngược pin vẫn chết sạch.</p></div>
+    <div class="card"><h3>Mối hàn xỉn màu, không bóng</h3><p>Mối nguội không cháy trên bàn. Nó nóng lên khi tải rồi đứt giữa lúc đang bay.</p></div>
+    <div class="card"><h3>Gắn cánh quá sớm</h3><p>Gần như mọi tai nạn khi lắp đều xảy ra với cánh đã gắn. Cánh là thứ cuối cùng, luôn luôn.</p></div>
+    <div class="card"><h3>Bỏ qua cảnh báo pre-arm</h3><p>ArduPilot không cảnh báo vô cớ. Mỗi dòng cảnh báo là một cách con drone sẽ hỏng.</p></div>
+    <div class="card"><h3>Lắp mũi tên FC hướng sai</h3><p>Drone lật úp ngay khoảnh khắc rời mặt đất.</p></div>
+    <div class="card"><h3>Bay ngay khi vừa lắp xong</h3><p>Test từng linh kiện trên bàn tốn hai tiếng. Sửa một con drone vỡ tốn hai tuần.</p></div>
+  </div>
+</section>
+
+<footer>
+  <p>Giá cần kiểm tra lại tại thời điểm mua. Firmware target <code>speedybeef4v5</code> đã xác nhận có trong danh sách ArduPilot Copter stable. Trước khi bay ngoài khu vực có kiểm soát, kiểm tra quy định đăng ký phương tiện bay hiện hành và xin phép qua khoa.</p>
+</footer>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,2767 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Linh kiện drone S500</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+:root{
+  --ground:#EDF0EE; --surface:#FFFFFF; --surface2:#F5F8F7; --sunken:#E4E9E7;
+  --ink:#131A17; --ink2:#44514C; --muted:#77857F; --line:#DCE3E0; --line2:#C8D2CE;
+  --accent:#C9481B; --accent-ink:#C9481B; --accent-soft:#FAE9E1;
+  --ok:#1C7A54; --ok-soft:#DFF1E9;
+  --warn:#9B6206; --warn-soft:#F9EFDA;
+  --danger:#B5322C; --danger-soft:#F8E5E3;
+  --shadow:0 1px 2px rgba(19,26,23,.06), 0 6px 20px -12px rgba(19,26,23,.28);
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1412; --surface:#161D1A; --surface2:#1B2421; --sunken:#111815;
+    --ink:#E7EDEA; --ink2:#B0BDB8; --muted:#7F8D88; --line:#26312D; --line2:#33403B;
+    --accent:#FF7C48; --accent-ink:#FF9166; --accent-soft:#2C1911;
+    --ok:#45C48D; --ok-soft:#0F2820;
+    --warn:#DCA33E; --warn-soft:#282013;
+    --danger:#E86B63; --danger-soft:#2B1614;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1412; --surface:#161D1A; --surface2:#1B2421; --sunken:#111815;
+  --ink:#E7EDEA; --ink2:#B0BDB8; --muted:#7F8D88; --line:#26312D; --line2:#33403B;
+  --accent:#FF7C48; --accent-ink:#FF9166; --accent-soft:#2C1911;
+  --ok:#45C48D; --ok-soft:#0F2820;
+  --warn:#DCA33E; --warn-soft:#282013;
+  --danger:#E86B63; --danger-soft:#2B1614;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:900px; margin:0 auto; padding:28px 20px 80px}
+h1,h2,h3{font-family:Archivo, system-ui, sans-serif; text-wrap:balance; margin:0}
+h1{font-size:clamp(28px,5vw,40px); font-weight:800; letter-spacing:-.02em; line-height:1.08}
+h2{font-size:20px; font-weight:700; letter-spacing:-.01em}
+h3{font-size:15px; font-weight:700; letter-spacing:-.005em}
+p{margin:0}
+.mono{font-family:"JetBrains Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+header{display:flex; flex-direction:column; gap:14px; margin-bottom:26px}
+.eyebrow{
+  font-family:Archivo, sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--accent-ink);
+}
+.lede{color:var(--ink2); max-width:62ch}
+
+/* ---------- progress ---------- */
+.meter{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px 18px; display:flex; flex-direction:column; gap:11px; box-shadow:var(--shadow);
+}
+.meter-top{display:flex; justify-content:space-between; align-items:baseline; gap:14px; flex-wrap:wrap}
+.meter-label{font-family:Archivo,sans-serif; font-weight:700; font-size:13px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted)}
+.meter-num{font-family:"JetBrains Mono",monospace; font-size:19px; font-weight:600; font-variant-numeric:tabular-nums}
+.meter-num b{color:var(--ok)}
+.bar{height:7px; border-radius:99px; background:var(--sunken); overflow:hidden}
+.bar>i{display:block; height:100%; width:0%; background:var(--ok); border-radius:99px; transition:width .35s ease}
+.meter-foot{font-size:12.5px; color:var(--muted)}
+
+/* ---------- alerts ---------- */
+.alerts{display:grid; gap:12px; margin:30px 0}
+.alert{
+  display:grid; grid-template-columns:auto 1fr; gap:0 14px;
+  border:1px solid var(--line); border-left:3px solid var(--danger);
+  background:var(--surface); border-radius:var(--radius); padding:14px 16px;
+}
+.alert.warn{border-left-color:var(--warn)}
+.alert.ok{border-left-color:var(--ok)}
+.alert-mark{
+  font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:600;
+  color:var(--danger); background:var(--danger-soft); border-radius:6px;
+  width:26px; height:24px; display:grid; place-items:center; margin-top:1px;
+}
+.alert.warn .alert-mark{color:var(--warn); background:var(--warn-soft)}
+.alert.ok .alert-mark{color:var(--ok); background:var(--ok-soft)}
+.alert h3{margin-bottom:3px}
+.alert p{font-size:14px; color:var(--ink2)}
+
+/* ---------- sections ---------- */
+section{margin:38px 0 0}
+.sec-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:4px}
+.sec-sub{color:var(--muted); font-size:13.5px; margin-bottom:14px; max-width:64ch}
+.pill{
+  font-family:Archivo,sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; padding:3px 8px; border-radius:99px; white-space:nowrap;
+}
+.pill.must{background:var(--danger-soft); color:var(--danger)}
+.pill.soon{background:var(--warn-soft); color:var(--warn)}
+.pill.later{background:var(--ok-soft); color:var(--ok)}
+.pill.have{background:var(--sunken); color:var(--ink2)}
+
+/* ---------- item rows ---------- */
+.list{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--radius); overflow:hidden;
+}
+.row{
+  display:grid; grid-template-columns:auto 1fr auto; gap:4px 14px;
+  padding:14px 16px; border-top:1px solid var(--line); align-items:start;
+}
+.row:first-child{border-top:none}
+.row:has(input:checked){background:var(--surface2)}
+.row:has(input:checked) .r-name{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--line2)}
+
+.tick{
+  appearance:none; width:19px; height:19px; margin:3px 0 0; border-radius:5px;
+  border:1.5px solid var(--line2); background:var(--surface); cursor:pointer;
+  display:grid; place-items:center; flex:none; transition:background .12s, border-color .12s;
+}
+.tick:hover{border-color:var(--ok)}
+.tick:checked{background:var(--ok); border-color:var(--ok)}
+.tick:checked::after{content:"✓"; color:#fff; font-size:12px; font-weight:700; line-height:1}
+.tick:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.r-main{min-width:0}
+.r-name{font-weight:600; font-size:15px; letter-spacing:-.005em}
+.r-qty{color:var(--muted); font-weight:400}
+.r-meta{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px}
+.chip{
+  font-family:"JetBrains Mono",monospace; font-size:11.5px; padding:2.5px 7px;
+  border-radius:5px; background:var(--sunken); color:var(--ink2); white-space:nowrap;
+}
+.chip.key{background:var(--accent-soft); color:var(--accent-ink); font-weight:600}
+.r-note{font-size:13.5px; color:var(--ink2); margin-top:7px; max-width:60ch}
+.r-note b{color:var(--ink); font-weight:600}
+.r-price{
+  font-family:"JetBrains Mono",monospace; font-size:13.5px; font-variant-numeric:tabular-nums;
+  text-align:right; color:var(--ink2); white-space:nowrap; padding-top:2px;
+}
+
+/* ---------- subtotal ---------- */
+.subtotal{
+  display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  padding:12px 16px; background:var(--surface2); border-top:1px solid var(--line);
+  font-size:13px; color:var(--muted);
+}
+.subtotal .mono{font-size:14px; color:var(--ink); font-weight:600}
+
+/* ---------- included box ---------- */
+.included{
+  background:var(--ok-soft); border:1px solid var(--line); border-left:3px solid var(--ok);
+  border-radius:var(--radius); padding:15px 17px; margin-top:12px;
+}
+.included h3{color:var(--ok); margin-bottom:8px}
+.tags{display:flex; flex-wrap:wrap; gap:6px}
+.tag{
+  font-size:12.5px; padding:3px 9px; border-radius:99px;
+  background:var(--surface); border:1px solid var(--line); color:var(--ink2);
+}
+
+/* ---------- diagram ---------- */
+.figure{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:20px; display:grid; gap:18px; grid-template-columns:1fr; box-shadow:var(--shadow);
+}
+@media (min-width:660px){ .figure{grid-template-columns:290px 1fr; align-items:center} }
+.figure svg{width:100%; height:auto; display:block}
+.figure-notes{display:grid; gap:12px}
+.fn{display:grid; grid-template-columns:auto 1fr; gap:11px; align-items:start}
+.fn-dot{width:11px; height:11px; border-radius:3px; margin-top:6px}
+.fn p{font-size:13.5px; color:var(--ink2)}
+.fn strong{color:var(--ink); font-weight:600; display:block; font-size:14px}
+
+/* ---------- totals ---------- */
+.totals{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  overflow:hidden; box-shadow:var(--shadow);
+}
+.trow{display:flex; justify-content:space-between; gap:14px; padding:11px 18px; border-top:1px solid var(--line); font-size:14px}
+.trow:first-child{border-top:none}
+.trow span:first-child{color:var(--ink2)}
+.trow.grand{background:var(--accent-soft); font-weight:700; padding:15px 18px}
+.trow.grand span:first-child{color:var(--accent-ink); font-family:Archivo,sans-serif; letter-spacing:.02em}
+.trow.grand .mono{color:var(--accent-ink); font-size:17px}
+
+/* ---------- ask list ---------- */
+.asks{display:grid; gap:10px}
+.ask{
+  display:grid; grid-template-columns:auto 1fr; gap:12px;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:13px 16px;
+}
+.ask-n{
+  font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:600; color:var(--accent-ink);
+  background:var(--accent-soft); width:24px; height:24px; border-radius:6px; display:grid; place-items:center;
+}
+.ask p{font-size:14px}
+.ask em{font-style:normal; color:var(--muted); display:block; font-size:13px; margin-top:2px}
+
+footer{margin-top:44px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:12.5px}
+footer a{color:var(--accent-ink)}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+@media (max-width:520px){
+  .row{grid-template-columns:auto 1fr; }
+  .r-price{grid-column:2; text-align:left; padding-top:6px}
+}
+
+/* ---------- tabs ---------- */
+.tabs{
+  display:flex; gap:4px; margin:26px 0 0; padding:4px;
+  background:var(--sunken); border:1px solid var(--line); border-radius:12px;
+  position:sticky; top:8px; z-index:20; backdrop-filter:blur(6px);
+}
+.tab{
+  flex:1; appearance:none; border:0; cursor:pointer; background:transparent;
+  font-family:Archivo, sans-serif; font-size:13.5px; font-weight:700; letter-spacing:.01em;
+  color:var(--muted); padding:10px 14px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:background .15s, color .15s;
+}
+.tab:hover{color:var(--ink2)}
+.tab[aria-selected="true"]{background:var(--surface); color:var(--ink); box-shadow:var(--shadow)}
+.tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tab-n{
+  font-family:"JetBrains Mono", monospace; font-size:11px; font-weight:600;
+  padding:1px 7px; border-radius:99px; background:var(--sunken); color:var(--muted);
+}
+.tab[aria-selected="true"] .tab-n{background:var(--accent-soft); color:var(--accent-ink)}
+.panel[hidden]{display:none}
+.panel > section:first-of-type{margin-top:26px}
+section[id]{scroll-margin-top:72px}
+
+/* ---------- muc luc ---------- */
+.toc{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:15px 17px; margin-top:26px; box-shadow:var(--shadow);
+}
+.toc h3{
+  margin-bottom:10px; color:var(--muted); font-size:11px;
+  letter-spacing:.14em; text-transform:uppercase;
+}
+.toc ol{margin:0; padding:0; list-style:none; display:grid; gap:3px}
+.toc li{display:flex; gap:11px; align-items:baseline}
+.toc-n{font-family:"JetBrains Mono", monospace; font-size:11.5px; color:var(--muted); flex:none}
+.toc a{
+  color:var(--ink); text-decoration:none; font-size:14px;
+  border-bottom:1px solid transparent; transition:color .12s, border-color .12s;
+}
+.toc a:hover{color:var(--accent-ink); border-bottom-color:var(--accent)}
+@media (max-width:560px){
+  .tabs{position:static}
+  .tab{font-size:12px; padding:9px 6px; gap:6px}
+  section[id]{scroll-margin-top:14px}
+}
+</style>
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Quadcopter · ArduPilot · Đề tài UAV IoT-CV</p>
+  <h1>Linh kiện drone S500</h1>
+  <p class="lede">Bản dựng khung Holybro S500 480mm với stack SpeedyBee F405 V5. Tab <b>Danh sách mua</b> là bảng đặt hàng — tick từng món khi đã mua, trạng thái lưu trên máy này. Tab <b>Giải thích chi tiết</b> là lý do đằng sau từng lựa chọn — chỉ đọc khi cần.</p>
+
+  <div class="meter">
+    <div class="meter-top">
+      <span class="meter-label">Tiến độ mua sắm</span>
+      <span class="meter-num"><b id="mCount">0</b> / <span id="mTotal">0</span> món · <b id="mSpent">0</b> ₫</span>
+    </div>
+    <div class="bar"><i id="mBar"></i></div>
+    <p class="meter-foot">Ước tính tổng: <span class="mono" id="mAll">0</span> ₫ · giá là mức giữa của khoảng tham khảo, chưa gồm phí ship và thuế</p>
+  </div>
+</header>
+
+
+<nav class="tabs" role="tablist" aria-label="Chế độ xem">
+  <button class="tab" type="button" role="tab" id="tab-checklist" data-tab="checklist"
+          aria-controls="panel-checklist" aria-selected="true">Danh sách mua <span class="tab-n">22</span></button>
+  <button class="tab" type="button" role="tab" id="tab-docs" data-tab="docs"
+          aria-controls="panel-docs" aria-selected="false">Giải thích chi tiết <span class="tab-n">11</span></button>
+</nav>
+
+<div class="panel" id="panel-checklist" role="tabpanel" aria-labelledby="tab-checklist">
+
+<div class="alerts">
+  <div class="alert">
+    <span class="alert-mark">01</span>
+    <div>
+      <h3>Bạn đang thiếu GPS và la bàn</h3>
+      <p>Board F405 V5 <b>không có la bàn tích hợp</b> (tài liệu ArduPilot ghi rõ). Không có GPS kèm la bàn thì không bay được waypoint, không Loiter, không tự về nhà. Toàn bộ phần bay tự động của đề tài phụ thuộc món này.</p>
+    </div>
+  </div>
+  <div class="alert warn">
+    <span class="alert-mark">02</span>
+    <div>
+      <h3>Dây motor gần như chắc chắn quá ngắn</h3>
+      <p>ESC là loại 4-in-1 nằm ở giữa drone, nhưng khung S500 rộng 480mm nên mỗi motor cách tâm khoảng <b>24cm</b>. Dây motor bán kèm thường chỉ 15–20cm. Cần mua dây silicone <b>16AWG</b> để nối dài, khoảng 12 mối hàn. <b>Không dùng 14AWG</b> — đó là cỡ dây cho đường nguồn pin, quá cứng cho dây motor.</p>
+    </div>
+  </div>
+  <div class="alert warn">
+    <span class="alert-mark">03</span>
+    <div>
+      <h3>Phải dùng pin 4S, không phải 3S</h3>
+      <p>Holybro công bố cho bộ S500 V2 dùng đúng motor 2216 920KV này: <b>4S 3000–5000mAh 20C+ đầu XT60</b>. Kế hoạch cũ ghi 3S là cho khung F450 nhỏ hơn. Khung S500 nặng hơn nhiều, dùng 3S sẽ bay yếu và dễ mất kiểm soát khi có gió.</p>
+    </div>
+  </div>
+  <div class="alert ok">
+    <span class="alert-mark">04</span>
+    <div>
+      <h3>ArduPilot hỗ trợ chính thức board này</h3>
+      <p>Đã kiểm tra kho firmware chính thức: có target <b class="mono">speedybeef4v5</b> trong bản Copter stable, kèm cấu hình sẵn cổng GPS ở UART4 và cổng nhận sóng ở UART6. Đây là điều kiện quan trọng nhất và nó đạt.</p>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head"><h2>Đã chọn</h2><span class="pill have">4 món · đã có link</span></div>
+  <p class="sec-sub">Bốn món bạn đã tìm được. Cột giữa là mã sản phẩm và biến thể bắt buộc phải chọn đúng khi đặt hàng.</p>
+
+  <div class="list" data-group="chosen">
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="frame" data-cost="1228792">
+      <div class="r-main">
+        <div class="r-name">Khung Holybro S500 <span class="r-qty">× 1</span></div>
+        <div class="r-meta">
+          <span class="chip">S500 Frame Kit</span>
+          <span class="chip key">Size: 10 Inch 480mm</span>
+        </div>
+        <p class="r-note">Loại <b>chỉ có khung và chân đáp</b>, không kèm motor, ESC hay cánh quạt. Nặng 782g cho bản đầy đủ, nâng được thêm khoảng 1500g tải.</p>
+      </div>
+      <div class="r-price">1.228.792 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="stack" data-cost="2118773">
+      <div class="r-main">
+        <div class="r-name">Stack SpeedyBee F405 V5 OX32 55A <span class="r-qty">× 1</span></div>
+        <div class="r-meta">
+          <span class="chip">RUM211</span>
+          <span class="chip key">Chọn bản Deluxe</span>
+          <span class="chip">3–6S</span>
+        </div>
+        <p class="r-note">Gồm bo điều khiển bay và bo ESC 4-in-1 gộp chung. ESC 55A mỗi kênh, dư sức so với mức cần (motor chỉ ăn khoảng 15A). Lỗ bắt chuẩn 30,5 × 30,5mm. <b>Bản Deluxe rất đáng tiền</b>, xem danh sách phụ kiện kèm bên dưới.</p>
+      </div>
+      <div class="r-price">1.918.493<br>– 2.118.773 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="motors" data-cost="1528381">
+      <div class="r-main">
+        <div class="r-name">Bộ <b>T-Motor AIR GEAR 450 II</b> <span class="r-qty">4 motor + 2 cặp cánh</span></div>
+        <div class="r-meta"><span class="chip key">AIR2216II <b>KV920</b></span><span class="chip key">1332 g mỗi motor</span><span class="chip">64 g</span><span class="chip">4×M3 · 16×19</span><span class="chip">cánh T1045 sợi thuỷ tinh</span></div>
+        <p class="r-note"><b>Đổi từ EMAX MT2216 II sang bộ này.</b> Lỗ bắt, trục ren M6, cân nặng và kích thước gần như trùng khít nên lắp vừa y hệt, nhưng lực đẩy <b>1332 g</b> thay vì 950 g và lúc treo chỉ rút <b>~13 A</b> thay vì ~18 A — bay được <b>~18 phút</b>. <b>Hỏi shop xác nhận bộ 4 chiếc có đủ 2 ren thuận + 2 ren nghịch.</b> Giá ¥389 quy đổi theo tỷ giá 3.929 ₫/¥; <b>2 cặp cánh dự phòng mua thêm chưa có giá</b>, hỏi shop rồi cộng vào.</p>
+      </div>
+      <div class="r-price">¥389<br>≈ 1.528.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="radio" data-cost="1200000">
+      <div class="r-main">
+        <div class="r-name">Bộ điều khiển FlySky FS-i6X <span class="r-qty">× 1</span></div>
+        <div class="r-meta">
+          <span class="chip">FS-i6X · 10 kênh</span>
+          <span class="chip key">Bộ thu: iA6B</span>
+        </div>
+        <p class="r-note">Listing cho chọn nhiều bộ thu (X6B, A8S, iA10B, iA6). <b>Phải chọn đúng iA6B.</b> Khi đấu dây bắt buộc dùng cổng <b>i-BUS</b> nối vào chân R6, vì board V5 không hỗ trợ PPM. <b>Bộ này đã đủ tay phát lẫn bộ thu — đừng mua thêm bộ thu nào khác.</b> Bộ thu ELRS dù cắm vừa chân R6 vẫn <b>không chạy được</b> với tay FlySky, xem mục 11 bên tab giải thích.</p>
+      </div>
+      <div class="r-price">≈ 1.200.000 ₫</div>
+    </label>
+
+    <div class="subtotal"><span>Tạm tính 4 món đã chọn</span><span class="mono">≈ 6.076.000 ₫</span></div>
+  </div>
+
+  <div class="included">
+    <h3>Bản Deluxe đã kèm sẵn những thứ này, đừng mua lại</h3>
+    <div class="tags">
+      <span class="tag">Dây nguồn XT60 120mm</span>
+      <span class="tag">Dây GPS SH1.0 6pin 120mm + đầu rời</span>
+      <span class="tag">Dây GPS 6pin→4pin 120mm + đầu rời</span>
+      <span class="tag">Dây receiver SH1.0 4pin 100mm</span>
+      <span class="tag">Còi báo + dây 100mm</span>
+      <span class="tag">Ốc M3 30mm × 4</span>
+      <span class="tag">Ốc nylon M3 × 5</span>
+      <span class="tag">Đệm silicone chống rung × 5</span>
+      <span class="tag">Vỏ silicone bọc FC và ESC × 10</span>
+      <span class="tag">Tụ 1000uF 35V + gen co × 2</span>
+      <span class="tag">2 dây nối FC↔ESC (25mm, 75mm)</span>
+      <span class="tag">Dây DJI Air Unit 6pin 80mm</span>
+      <span class="tag">Module nối dài cổng Type-C + dây</span>
+      <span class="tag">Bo mở rộng nguồn × 4</span>
+      <span class="tag">Bo tập hàn</span>
+      <span class="tag">Dụng cụ chống ngắn mạch</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Đợt 1 — Linh kiện để cất cánh</h2><span class="pill must">Bắt buộc</span></div>
+  <p class="sec-sub">Không có đủ nhóm này thì drone không rời mặt đất được. Nên đặt cùng một đợt để gộp phí ship.</p>
+
+  <div class="list">
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="prop" data-cost="0">
+      <div class="r-main">
+        <div class="r-name">Cánh quạt 1045 <span class="r-qty">× 8 — đã kèm theo motor</span></div>
+        <div class="r-meta">
+          <span class="chip">10 × 4.5 inch</span>
+          <span class="chip key">không phải mua riêng</span>
+        </div>
+        <p class="r-note">Mỗi vỉ motor EMAX đã kèm 2 cánh, nên 4 motor là có 8 cánh. Đủ dùng và đủ dự phòng. <b>Cánh dự phòng sau này mua trong nước được</b>: motor dùng hệ ốc chóp siết cánh nên cánh 1045 lỗ trơn bán ở Shopee giá 30.000 – 95.000 ₫ một cặp nhiều khả năng lắp vừa. Đo đường kính ren và lỗ cánh trước khi đặt.</p>
+      </div>
+      <div class="r-price">0 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="fcmount" data-cost="100000">
+      <div class="r-main">
+        <div class="r-name">Bát chống rung cho bo bay <span class="r-qty">× 1</span></div>
+        <div class="r-meta"><span class="chip key">30,5 × 30,5 mm</span><span class="chip key">không phải khoan khung</span><span class="chip">4 quả cao su giảm chấn</span></div>
+        <p class="r-note">Khung S500 <b>không có lỗ 30,5</b> vì nó thiết kế cho chuẩn cũ 45 × 45 mm. <b>Đừng khoan thêm lỗ</b> — đế dưới có đường đồng đúc chìm bên trong, khoan trúng là đứt mạch nguồn. Bát này vừa nối được hai chuẩn lỗ vừa cách ly rung động motor khỏi cảm biến gia tốc.</p>
+      </div>
+      <div class="r-price">50.000 – 150.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="lipo" data-cost="800000">
+      <div class="r-main">
+        <div class="r-name">Pin LiPo <b>Ovonic 4S 5300mAh 110C</b> <span class="r-qty">× 1</span></div>
+        <div class="r-meta"><span class="chip key">đã mua</span><span class="chip key">423 g</span><span class="chip">12,5 mAh/g</span><span class="chip">135 × 40 × 30 mm</span><span class="chip">đầu XT60</span></div>
+        <p class="r-note"><b>Đây là viên tốt nhất trong bốn viên đã so</b> — năng lượng trên mỗi gam cao nhất và nhỏ gọn nhất. Drone rút tối đa 58,4 A nên chỉ cần 11C, con số 110C là thừa rất xa nhưng không hại gì. <b>Sạc ở 50 W mất khoảng 1 giờ 45.</b> Nếu sau này mua viên thứ hai thì mua đúng loại này để hai viên giống hệt nhau.</p>
+      </div>
+      <div class="r-price">600.000 – 1.000.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="charger" data-cost="991000">
+      <div class="r-main">
+        <div class="r-name">Sạc cân bằng SkyRC iMAX <b>B6AC V2</b> <span class="r-qty">× 1</span></div>
+        <div class="r-meta"><span class="chip key">bản <b>AC</b> — cắm thẳng ổ điện</span><span class="chip">50W · 1–6 cell</span><span class="chip key">đã kèm dây XT60</span></div>
+        <p class="r-note"><b>Phải đúng bản "AC".</b> Bản thường và hầu hết sạc khác <b>không kèm nguồn</b>, mua về cắm ổ điện không lên. Bản AC có nguồn 100–240V tích hợp, trong hộp đã có sẵn dây sạc đầu XT60 khớp với pin. <b>Nhận hàng phải cào tem kiểm tra mã chính hãng ngay</b> — B6 là món bị làm nhái nhiều nhất, mà mạch cân bằng nhái là nguyên nhân gây cháy pin.</p>
+      </div>
+      <div class="r-price">991.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="wire" data-cost="150000">
+      <div class="r-main">
+        <div class="r-name">Dây silicone <b>16AWG</b> nối dài motor <span class="r-qty">≈ 4,5m</span></div>
+        <div class="r-meta"><span class="chip key">16AWG (không phải 14AWG)</span><span class="chip key">3 màu khác nhau</span><span class="chip">lõi nhiều sợi mảnh</span></div>
+        <p class="r-note">Cần 30cm × 3 dây × 4 motor = 3,6m, mua 4,5m cho dư. <b>Mỗi motor chỉ rút 14,6 A</b> nên 16AWG (chịu 80 A) là thừa sức — 14AWG là cỡ dây cho đường nguồn pin 58,4 A, dùng cho dây motor sẽ quá cứng, khó luồn và làm nứt mối hàn vì truyền rung. <b>Mua 3 màu khác nhau</b>, giá như nhau mà đấu đúng chiều quay cả 4 motor ngay lần đầu.</p>
+      </div>
+      <div class="r-price">≈ 150.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="shrink" data-cost="50000">
+      <div class="r-main">
+        <div class="r-name">Gen co nhiệt bộ nhiều cỡ <span class="r-qty">× 1 bộ</span></div>
+        <div class="r-meta"><span class="chip">2mm – 10mm</span></div>
+        <p class="r-note">Bọc mọi mối hàn dây motor. Hở một mối chạm vào cần khung là cháy ESC.</p>
+      </div>
+      <div class="r-price">≈ 50.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="zip" data-cost="30000">
+      <div class="r-main">
+        <div class="r-name">Dây rút nhựa <span class="r-qty">× 1 bịch</span></div>
+        <div class="r-meta"><span class="chip">2.5 × 100mm</span></div>
+        <p class="r-note">Cố định dây motor dọc cần khung. Dây lủng lẳng sẽ bị cánh quạt chém.</p>
+      </div>
+      <div class="r-price">≈ 30.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="screw" data-cost="50000">
+      <div class="r-main">
+        <div class="r-name">Ốc M3 bắt motor vào cần <span class="r-qty">× 16</span></div>
+        <div class="r-meta"><span class="chip">M3 × 8mm</span><span class="chip key">hỏi khung có kèm không</span></div>
+        <p class="r-note">Khung thường có kèm, nhưng hay thiếu hoặc sai chiều dài. Ốc bắt stack thì bản Deluxe đã có sẵn rồi.</p>
+      </div>
+      <div class="r-price">≈ 50.000 ₫</div>
+    </label>
+
+    <div class="subtotal"><span>Tạm tính đợt 1</span><span class="mono">≈ 2.172.000 ₫</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Đợt 1 — Dụng cụ</h2><span class="pill must">Bắt buộc nếu chưa có</span></div>
+  <p class="sec-sub">Bạn sẽ phải hàn khoảng 20 mối, phần lớn là dây to. Dụng cụ quá yếu là nguyên nhân phổ biến nhất làm hỏng bo mạch.</p>
+
+  <div class="list">
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="iron" data-cost="600000">
+      <div class="r-main">
+        <div class="r-name">Mỏ hàn chỉnh nhiệt + thiếc + nhựa thông</div>
+        <div class="r-meta"><span class="chip key">từ 60W trở lên</span><span class="chip">mũi đục, không dùng mũi nhọn</span></div>
+        <p class="r-note">Mỏ hàn 30W sẽ không đủ nhiệt cho chân nguồn của ESC và dây pin 14AWG, bạn sẽ dí lâu và làm bong mạch. Đây là món đáng đầu tư nhất trong nhóm dụng cụ.</p>
+      </div>
+      <div class="r-price">400.000 – 800.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="dmm" data-cost="150000">
+      <div class="r-main">
+        <div class="r-name">Đồng hồ vạn năng</div>
+        <div class="r-meta"><span class="chip key">cần chức năng đo thông mạch</span></div>
+        <p class="r-note">Dùng để kiểm tra chập giữa dương và âm <b>trước khi cắm pin lần đầu</b>. Bước này cứu bo mạch của bạn, đừng bỏ qua.</p>
+      </div>
+      <div class="r-price">≈ 150.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="hex" data-cost="100000">
+      <div class="r-main">
+        <div class="r-name">Bộ tua vít lục giác</div>
+        <div class="r-meta"><span class="chip">1.5 / 2.0 / 2.5mm</span></div>
+        <p class="r-note">Ốc drone hầu hết là đầu lục giác chìm. Tua vít thường sẽ làm tròn đầu ốc.</p>
+      </div>
+      <div class="r-price">≈ 100.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="bag" data-cost="100000">
+      <div class="r-main">
+        <div class="r-name">Túi chống cháy LiPo</div>
+        <div class="r-meta"><span class="chip key">an toàn</span></div>
+        <p class="r-note"><b>Pin không bán kèm túi này, phải mua riêng.</b> Cell LiPo khi cháy <b>tự sinh ra oxy</b> nên trùm kín hay đổ nước đều không dập được. Túi không ngăn được cháy, nó <b>chặn ngọn lửa lại một chỗ</b> để không lan ra phòng. Bắt buộc dùng khi sạc và khi cất giữ.</p>
+      </div>
+      <div class="r-price">≈ 100.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="checker" data-cost="0">
+      <div class="r-main">
+        <div class="r-name">Đồng hồ đo cell pin <span class="r-qty">chưa cần</span></div>
+        <div class="r-meta"><span class="chip key">bộ sạc B6AC đã làm được</span><span class="chip">1S – 8S</span></div>
+        <p class="r-note"><b>Bỏ khỏi đợt mua này.</b> B6AC V2 có sẵn chức năng <span class="mono">Battery Meter</span> hiện điện áp <b>từng cell</b>, và còn có thêm <span class="mono">Battery Resistance Meter</span> mà đồng hồ rời không làm được. Chỉ đáng mua khi bạn có từ <b>2 viên pin</b> trở lên và bay nhiều lượt xa nhà, vì bộ sạc cần điện lưới.</p>
+      </div>
+      <div class="r-price">0 ₫ <span style="opacity:.65">(để sau)</span></div>
+    </label>
+
+    <div class="subtotal"><span>Tạm tính dụng cụ</span><span class="mono">≈ 950.000 ₫</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Đợt 2 — Bay tự động</h2><span class="pill soon">Cốt lõi của đề tài</span></div>
+  <p class="sec-sub">Chỉ 2 món, nhưng đây là thứ biến drone từ đồ chơi điều khiển tay thành thiết bị nghiên cứu bay theo waypoint.</p>
+
+  <div class="list">
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="gps" data-cost="1650000">
+      <div class="r-main">
+        <div class="r-name">Holybro <b>M10 V2 Standard</b> (10 chân) <span class="r-qty">× 1</span></div>
+        <div class="r-meta"><span class="chip key">la bàn IST8310</span><span class="chip">cáp GH1.25 <b>10 chân</b></span><span class="chip key">mua trong nước</span><span class="chip">moodfpv</span></div>
+        <p class="r-note"><b>Đổi sang bản Standard vì đơn vị nhận hàng Trung Quốc từ chối món này.</b> Cáp 10 chân <b>không sao cả</b> — bản vẽ chính hãng cho thấy 4 chân giữa là <span class="mono">NC</span>, cắt bỏ không mất gì, và dù mua bản nào cũng phải bấm lại đầu sang SH 1,0mm. <b>Hai việc phải hỏi shop trước khi trả tiền:</b> hàng thực tế là V1 hay V2 (ảnh trên trang là vỏ V1), và có kèm cột carbon không.</p>
+      </div>
+      <div class="r-price">1.650.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="mast" data-cost="100000">
+      <div class="r-main">
+        <div class="r-name">Cột nâng GPS <span class="r-qty">× 1</span></div>
+        <div class="r-meta"><span class="chip key">phải hỏi shop</span><span class="chip">ống carbon + 2 đế + ốc</span></div>
+        <p class="r-note">La bàn phải đặt cao và xa dây nguồn, nếu không từ trường sinh ra từ dòng 58A của motor sẽ lấn át từ trường Trái Đất, drone bật Loiter sẽ bay vòng tròn mỗi lúc một rộng. Đây là lỗi kinh điển của người mới. <b>Trước đây gói Alibaba có kèm sẵn, nhưng đã đổi sang mua trong nước nên không chắc nữa.</b> Hỏi moodfpv xem có kèm ống carbon và đế bắt không. Nếu không thì mua riêng, khoảng 100.000 ₫ — <b>không được bỏ qua món này</b>.</p>
+      </div>
+      <div class="r-price">≈ 100.000 ₫</div>
+    </label>
+
+    <div class="subtotal"><span>Tạm tính đợt 2</span><span class="mono">≈ 1.750.000 ₫</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Đợt 3 — Camera và truyền dữ liệu</h2><span class="pill later">Để sau</span></div>
+  <p class="sec-sub">Phần xử lý ảnh và telemetry của đề tài. Chưa cần mua cho đến khi drone bay ổn định.</p>
+
+  <div class="list">
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="cam" data-cost="200000">
+      <div class="r-main">
+        <div class="r-name">ESP32-CAM + module nạp <span class="r-qty">× 1</span></div>
+        <div class="r-meta"><span class="chip">OV2640</span><span class="chip key">nhớ mua kèm mạch nạp</span></div>
+        <p class="r-note">Nguồn ảnh cho phần nhận diện người bằng YOLO.</p>
+      </div>
+      <div class="r-price">≈ 200.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="esp" data-cost="100000">
+      <div class="r-main">
+        <div class="r-name">ESP32 DevKit <span class="r-qty">× 1</span></div>
+        <div class="r-meta"><span class="chip">cầu nối telemetry Wi-Fi</span></div>
+        <p class="r-note">Đọc dữ liệu MAVLink từ bo bay rồi đẩy về laptop qua Wi-Fi.</p>
+      </div>
+      <div class="r-price">≈ 100.000 ₫</div>
+    </label>
+
+    <label class="row">
+      <input type="checkbox" class="tick" data-id="ubec" data-cost="80000">
+      <div class="r-main">
+        <div class="r-name">UBEC 5V 3A <span class="r-qty">× 1</span></div>
+        <div class="r-meta"><span class="chip key">nguồn riêng cho camera</span></div>
+        <p class="r-note">Nguồn 5V của bo bay chỉ có 2,5A cho tất cả thiết bị. Tách riêng nguồn camera để camera không làm bo bay khởi động lại giữa lúc đang bay.</p>
+      </div>
+      <div class="r-price">≈ 80.000 ₫</div>
+    </label>
+
+    <div class="subtotal"><span>Tạm tính đợt 3</span><span class="mono">≈ 380.000 ₫</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Tổng chi phí</h2></div>
+  <div class="totals">
+    <div class="trow"><span>4 món đã chọn</span><span class="mono">≈ 6.076.000 ₫</span></div>
+    <div class="trow"><span>Đợt 1 · linh kiện để cất cánh</span><span class="mono">≈ 2.172.000 ₫</span></div>
+    <div class="trow"><span>Đợt 1 · dụng cụ</span><span class="mono">≈ 950.000 ₫</span></div>
+    <div class="trow"><span>Đợt 2 · bay tự động</span><span class="mono">≈ 1.750.000 ₫</span></div>
+    <div class="trow"><span>Đợt 3 · camera và telemetry</span><span class="mono">≈ 380.000 ₫</span></div>
+    <div class="trow grand"><span>Tổng dự kiến</span><span class="mono">≈ 11.328.000 ₫</span></div>
+  </div>
+  <p class="sec-sub" style="margin-top:12px">Chưa gồm phí ship quốc tế và thuế nhập khẩu. Không còn món lẻ nào đắt bằng stack hay bộ 4 motor. Món tốn nhất còn lại là pin cộng sạc, khoảng 1 đến 1,8 triệu.</p>
+</section>
+
+<section>
+  <div class="sec-head"><h2>Hỏi người bán trước khi đặt</h2></div>
+  <p class="sec-sub">Bốn câu này giải quyết gần hết rủi ro mua nhầm. Nhắn trong khung chat của sàn để có bằng chứng nếu cần khiếu nại.</p>
+  <div class="asks">
+    <div class="ask">
+      <span class="ask-n">1</span>
+      <p>Dây của motor dài bao nhiêu cm, và có sẵn đầu bullet chưa hay là dây trần?<em>Quyết định bạn cần mua bao nhiêu mét dây nối dài.</em></p>
+    </div>
+    <div class="ask">
+      <span class="ask-n">2</span>
+      <p>Đặt 4 motor thì chia được 2 CW và 2 CCW không?<em>Listing bán lẻ từng cái nên mặc định họ có thể gửi cả 4 cùng loại.</em></p>
+    </div>
+    <div class="ask">
+      <span class="ask-n">3</span>
+      <p>Với stack, biến thể nào là bản Deluxe đầy đủ phụ kiện?<em>Ô chọn trên trang chỉ ghi là màu, dễ chọn nhầm sang bản thường.</em></p>
+    </div>
+    <div class="ask">
+      <span class="ask-n">4</span>
+      <p>Khung S500 có kèm ốc bắt motor và dây buộc pin không?<em>Tránh mua thừa, và biết trước nếu thiếu.</em></p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<div class="panel" id="panel-docs" role="tabpanel" aria-labelledby="tab-docs" hidden>
+
+  <nav class="toc" aria-label="Mục lục phần giải thích">
+    <h3>Mục lục</h3>
+    <ol>
+      <li><span class="toc-n">01</span><a href="#doc-1">Hiểu về CW và CCW</a></li>
+      <li><span class="toc-n">02</span><a href="#doc-2">Chọn cánh quạt cho đúng</a></li>
+      <li><span class="toc-n">03</span><a href="#doc-3">Vì sao lại là 1045, và có combo nào khác không</a></li>
+      <li><span class="toc-n">04</span><a href="#doc-4">Chọn GPS cho đúng</a></li>
+      <li><span class="toc-n">05</span><a href="#doc-5">Dây nối dài motor — cỡ dây và màu dây</a></li>
+      <li><span class="toc-n">06</span><a href="#doc-6">Chọn bộ sạc cho đúng</a></li>
+      <li><span class="toc-n">07</span><a href="#doc-7">Gắn bo bay lên khung — đừng khoan</a></li>
+      <li><span class="toc-n">08</span><a href="#doc-8">Chọn pin cho đúng</a></li>
+      <li><span class="toc-n">09</span><a href="#doc-9">An toàn khi bay thử</a></li>
+      <li><span class="toc-n">10</span><a href="#doc-10">Hai rủi ro cần biết trước</a></li>
+      <li><span class="toc-n">11</span><a href="#doc-11">Bộ thu sóng — cái nào dùng được với tay điều khiển của bạn</a></li>
+    </ol>
+  </nav>
+
+<section id="doc-1">
+  <div class="sec-head"><h2>Hiểu về CW và CCW</h2></div>
+  <p class="sec-sub">Đây là chỗ gây nhầm nhất cho người mới. Nắm được nguyên tắc này thì phần còn lại dễ.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 300 300" role="img" aria-label="Sơ đồ chiều quay 4 motor trên khung X, hai cặp chéo nhau quay ngược chiều">
+      <defs>
+        <marker id="ah-a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"></path>
+        </marker>
+        <marker id="ah-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ok)"></path>
+        </marker>
+      </defs>
+
+      <!-- arms -->
+      <g stroke="var(--line2)" stroke-width="9" stroke-linecap="round">
+        <line x1="150" y1="150" x2="72" y2="72"></line>
+        <line x1="150" y1="150" x2="228" y2="72"></line>
+        <line x1="150" y1="150" x2="72" y2="228"></line>
+        <line x1="150" y1="150" x2="228" y2="228"></line>
+      </g>
+      <!-- body -->
+      <rect x="126" y="126" width="48" height="48" rx="9" fill="var(--sunken)" stroke="var(--line2)" stroke-width="2"></rect>
+      <!-- front marker -->
+      <path d="M150 108 L159 122 L141 122 Z" fill="var(--accent)"></path>
+      <text x="150" y="102" text-anchor="middle" fill="var(--accent-ink)" font-family="Archivo, sans-serif" font-size="11" font-weight="700" letter-spacing="1.2">MŨI</text>
+
+      <!-- motor hubs -->
+      <g fill="var(--surface)" stroke="var(--line2)" stroke-width="2">
+        <circle cx="72" cy="72" r="17"></circle>
+        <circle cx="228" cy="72" r="17"></circle>
+        <circle cx="72" cy="228" r="17"></circle>
+        <circle cx="228" cy="228" r="17"></circle>
+      </g>
+
+      <!-- CW pair: front-left (72,72) and rear-right (228,228) -->
+      <g fill="none" stroke="var(--accent)" stroke-width="3.4" stroke-linecap="round" marker-end="url(#ah-a)">
+        <path d="M 91.3 49.0 A 30 30 0 1 1 43.8 61.7"></path>
+        <path d="M 247.3 205.0 A 30 30 0 1 1 199.8 217.7"></path>
+      </g>
+      <!-- CCW pair: front-right (228,72) and rear-left (72,228) -->
+      <g fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" marker-end="url(#ah-b)">
+        <path d="M 199.8 61.7 A 30 30 0 1 0 247.3 49.0"></path>
+        <path d="M 43.8 217.7 A 30 30 0 1 0 91.3 205.0"></path>
+      </g>
+
+      <g font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="600" text-anchor="middle">
+        <text x="72" y="76" fill="var(--accent-ink)">CW</text>
+        <text x="228" y="76" fill="var(--ok)">CCW</text>
+        <text x="72" y="232" fill="var(--ok)">CCW</text>
+        <text x="228" y="232" fill="var(--accent-ink)">CW</text>
+      </g>
+    </svg>
+
+    <div class="figure-notes">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Hai cặp chéo nhau quay ngược chiều</strong>Hai motor nằm trên cùng một đường chéo luôn quay cùng chiều. Nếu cả 4 quay cùng chiều, drone sẽ tự xoay tròn và không bao giờ bay được.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Chiều quay do dây quyết định, không do motor</strong>Motor có 3 dây (đen, đỏ, xanh). Đây là 3 pha điện, không phải âm dương, và không có thứ tự đúng sai. Đảo 2 dây bất kỳ là motor quay ngược lại ngay.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Vậy nhãn CW/CCW trên motor là gì?</strong>Là <b>chiều ren của trục bắt cánh</b>, để cánh tự siết chặt khi quay thay vì tự tháo ra. Bắt nhầm ren thì cánh có thể văng ra giữa lúc bay. Vì thế phải mua 2 cái mỗi loại.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--muted)"></span>
+        <p><strong>Số thứ tự motor thì kiểm tra sau</strong>Board này mặc định dùng thứ tự đánh số kiểu Betaflight X, khác kiểu X tiêu chuẩn. Đừng đoán. Dùng chức năng Motor Test trong Mission Planner để xác định motor nào là số mấy, khi chưa lắp cánh.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="doc-2">
+  <div class="sec-head"><h2>Chọn cánh quạt cho đúng</h2></div>
+  <p class="sec-sub">Cùng ghi "1045" nhưng có hai kiểu lắp hoàn toàn khác nhau. Chọn nhầm là không vặn được vào motor.</p>
+
+  <div class="figure" style="grid-template-columns:1fr">
+    <div class="figure-notes">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Loại đúng — cánh tự khóa (self-locking)</strong>Motor 2216 của bạn có <b>trục ren</b> nhô lên giữa chuông motor. Cánh loại này có ren trong ở tâm, vặn thẳng vào trục đó. Càng quay càng siết chặt, nên không cần ốc hãm và gần như không thể văng ra. Nhận biết: hub dày, có vòng nhựa trắng hoặc đen ở tâm, không kèm vòng đệm rời.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Loại sai — cánh lỗ trơn kèm vỉ vòng đệm</strong>Đây là loại rẻ bạn thấy, khoảng 4.000 – 45.000 ₫ một cánh. Tâm cánh chỉ là lỗ tròn trơn, bán kèm 2 vỉ vòng đệm nhựa để chỉnh cỡ lỗ. Nó dành cho motor A2212 của khung F450, loại có trục trơn rồi bắt thêm đầu kẹp cánh và ốc riêng. <b>Không dùng chung được với motor trục ren.</b></p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Vì sao chất lượng cánh lại quan trọng với đề tài này</strong>"1045" chỉ nói đường kính 10 inch và bước 4,5 inch. Nó không nói gì về vật liệu, độ cứng hay độ cân bằng. Với drone bay tay thì cánh mỏng rẻ vẫn bay được. Nhưng ArduPilot đọc cảm biến gia tốc để giữ độ cao và vị trí, mà <b>rung động là kẻ thù số một</b> của cảm biến đó. Cánh mất cân bằng làm drone giữ độ cao chập chờn và Loiter trôi. Đây là nguyên nhân phổ biến nhất khiến drone tự lắp bay không ổn định.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--accent); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">So sánh 3 phương án motor</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Con số lấy từ thông số nhà sản xuất. Chỉ số quyết định là <b>chiều cao stator</b>: 2216 cao 16mm, 2213 cao 13mm, 2212 cao 12mm. Stator càng cao thì mô-men càng lớn và càng ít nóng.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Motor</th>
+            <th style="padding:7px 10px">Lực đẩy tối đa</th>
+            <th style="padding:7px 10px">Tổng 4 motor</th>
+            <th style="padding:7px 10px">Cánh 1045 dùng với</th>
+            <th style="padding:7px 0">Kết luận</th>
+          </tr>
+        </thead>
+        <tbody class="mono" style="color:var(--ink2)">
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0; color:var(--ink); font-weight:600">EMAX MT2216 II<br>810KV</td>
+            <td style="padding:8px 10px">950 g</td>
+            <td style="padding:8px 10px">3,80 kg</td>
+            <td style="padding:8px 10px">3S và 4S</td>
+            <td style="padding:8px 0; color:var(--ok); font-weight:600">Dùng được</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0; color:var(--ink); font-weight:600">EMAX MT2213<br>935KV</td>
+            <td style="padding:8px 10px">860 g</td>
+            <td style="padding:8px 10px">3,44 kg</td>
+            <td style="padding:8px 10px; color:var(--danger)">chỉ 3S<br>(4S phải đổi 8045)</td>
+            <td style="padding:8px 0; color:var(--danger); font-weight:600">Loại</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0; color:var(--ink); font-weight:600">EMAX MT2212 II<br>900KV</td>
+            <td style="padding:8px 10px">720 g</td>
+            <td style="padding:8px 10px">2,88 kg</td>
+            <td style="padding:8px 10px">8–10 inch</td>
+            <td style="padding:8px 0; color:var(--danger); font-weight:600">Loại</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Drone lắp xong nặng khoảng <b>1,5 – 1,8 kg</b>. Quy tắc là lực đẩy tổng phải gấp ít nhất <b>2 lần</b> trọng lượng, nếu không sẽ không đủ dư sức để gượng lại khi gặp gió. MT2216 II cho tỉ lệ <b>2,3:1</b>, đạt — còn bộ T-Motor AIR2216II đã chốt mua cho <b>2,9:1</b>. MT2212 chỉ <b>1,7:1</b>, không đạt. MT2213 thì kèm cánh 1045 nhưng cặp đó chỉ hợp lệ ở 3S, mà khung S500 lại cần 4S.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Giữ tổng trọng lượng dưới 1,9 kg.</b> Ở 1,9 kg thì tỉ lệ tụt về đúng 2,0:1, tức là chạm sàn an toàn và không còn dư.</p>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Vì sao 810KV không hề yếu hơn 920KV</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">KV <b>không phải</b> là sức mạnh. KV là <b>số vòng quay trên mỗi vôn</b>. Nó giống như <b>số của xe đạp</b>, không phải sức chân. Sức chân ở đây là cỡ stator, mà cả hai motor đều là 2216 nên sức chân như nhau. KV cao là để số nhẹ, quay nhanh nhưng ít lực. KV thấp là để số nặng, quay chậm hơn nhưng khỏe hơn. Cánh 10 inch to và nặng, cần lực chứ không cần vòng quay.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:10px">Bằng chứng nằm ngay trong bảng đo của EMAX, cùng một motor ở cùng điện áp 4S:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Cánh</th>
+            <th style="padding:7px 10px">Vòng/phút</th>
+            <th style="padding:7px 10px">Lực đẩy</th>
+            <th style="padding:7px 0">Dòng</th>
+          </tr>
+        </thead>
+        <tbody class="mono" style="color:var(--ink2)">
+          <tr style="border-bottom:1px solid var(--line)"><td style="padding:7px 10px 7px 0">8045 (8 inch)</td><td style="padding:7px 10px">9.320</td><td style="padding:7px 10px">760 g</td><td style="padding:7px 0">10,5 A</td></tr>
+          <tr style="border-bottom:1px solid var(--line)"><td style="padding:7px 10px 7px 0">9450 (9,4 inch)</td><td style="padding:7px 10px">8.020</td><td style="padding:7px 10px">910 g</td><td style="padding:7px 0">11,8 A</td></tr>
+          <tr><td style="padding:7px 10px 7px 0; color:var(--ink); font-weight:600">1045 (10 inch)</td><td style="padding:7px 10px; color:var(--ink); font-weight:600">7.890</td><td style="padding:7px 10px; color:var(--ok); font-weight:600">950 g</td><td style="padding:7px 0">14,6 A</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px">Hàng quay <b>chậm nhất</b> lại cho lực đẩy <b>lớn nhất</b>. Lực nâng sinh ra từ việc đẩy được nhiều khối không khí, không phải từ vòng quay cao. Đó là lý do KV thấp đi với cánh to.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--accent); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">Lắp ghép: kiểm tra từ bản vẽ kỹ thuật EMAX</h3>
+    <div class="tags">
+      <span class="tag">Lỗ bắt vào cần: <b>4 × M3, khoảng cách 16 × 19 mm</b></span>
+      <span class="tag">Đường kính thân: Ø27,9 mm</span>
+      <span class="tag">Đầu bắt cánh: <b>trục ren M6</b> trên bệ Ø7,9 mm</span>
+      <span class="tag">Cao 42,7 mm <span style="opacity:.7">(kể cả trục ren)</span></span>
+      <span class="tag">Nặng <b>63 g</b> mỗi chiếc</span>
+      <span class="tag">3–4S · cánh 8"–10"</span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px"><b>16 × 19 mm M3 là chuẩn phổ thông của dòng motor 22xx</b>, đúng cỡ lỗ mà cần khung S500 khoan sẵn, vì bản S500 đầy đủ của Holybro cũng lắp motor 2216 cùng lớp. Ốc bắt đã có trong vỉ.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Đính chính phần đầu bắt cánh.</b> Bản vẽ ghi <b>4 lỗ M2,5 trên vòng Ø12</b> là của <b>bản MT2216 thường</b>, không phải bản II. Bản <b>II</b> dùng <b>trục ren M6 liền trên bệ Ø7,9 mm</b>, giữ cánh bằng ốc chóp. Cỡ lỗ cánh 1045 bán lẻ vẫn khác nhau tuỳ hãng, nên <b>tôi vẫn không khẳng định được cánh lẻ có vừa hay không</b>. Điều chắc chắn là <b>cánh EMAX 1045 bán kèm trong gói thì chắc chắn vừa</b>, vì cùng hãng và được chỉ định đích danh trong dòng <span class="mono">Propeller: EMAX1045</span>. Mua cánh dự phòng thì đo trực tiếp trên motor sau khi nhận hàng rồi hãy đặt.</p>
+  </div>
+
+
+  <div class="included" style="border-left-color:var(--ok); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--ok)">Đổi sang T-Motor AIR GEAR 450 II — mạnh hơn, bay lâu hơn, lắp vừa y hệt</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Bộ <span class="mono">AIR GEAR 450 二代</span> dùng motor <b>AIR2216II KV920</b>. Đã đọc bản vẽ kỹ thuật và bảng đo lực đẩy chính hãng trên store.tmotor.com. Kết quả: nó <b>thay thẳng được EMAX mà không phải đổi gì khác</b>, và mạnh hơn rõ rệt.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 8px 7px 0"></th>
+            <th style="padding:7px 8px">EMAX MT2216 II</th>
+            <th style="padding:7px 8px">T-Motor AIR2216II</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0"><b>Lỗ bắt vào cần</b></td>
+            <td style="padding:7px 8px" class="mono">4×M3 · 16×19</td>
+            <td style="padding:7px 8px" class="mono"><b style="color:var(--ok)">4×M3 · 16×19</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0"><b>Trục bắt cánh</b></td>
+            <td style="padding:7px 8px" class="mono">ren M6</td>
+            <td style="padding:7px 8px" class="mono"><b style="color:var(--ok)">ren M6</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0">Cân nặng</td>
+            <td style="padding:7px 8px" class="mono">63 g</td>
+            <td style="padding:7px 8px" class="mono">64 g</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0">Kích thước</td>
+            <td style="padding:7px 8px" class="mono">Ø27,9 × 42,7</td>
+            <td style="padding:7px 8px" class="mono">Ø27,7 × 42,5</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0">KV</td>
+            <td style="padding:7px 8px" class="mono">810</td>
+            <td style="padding:7px 8px" class="mono">920</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 12%, transparent)">
+            <td style="padding:7px 8px 7px 0"><b>Lực đẩy mỗi motor</b></td>
+            <td style="padding:7px 8px" class="mono">950 g <span style="color:var(--muted)">@14,8V</span></td>
+            <td style="padding:7px 8px" class="mono"><b style="color:var(--ok)">1332 g</b> <span style="color:var(--muted)">@16V</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 12%, transparent)">
+            <td style="padding:7px 8px 7px 0"><b>Dòng lúc treo (cả 4)</b></td>
+            <td style="padding:7px 8px" class="mono">~18 A <span style="color:var(--muted)">(ngoại suy)</span></td>
+            <td style="padding:7px 8px" class="mono"><b style="color:var(--ok)">~13 A</b> <span style="color:var(--muted)">(đo thật)</span></td>
+          </tr>
+          <tr>
+            <td style="padding:7px 8px 7px 0">Vật liệu cánh</td>
+            <td style="padding:7px 8px">nhựa</td>
+            <td style="padding:7px 8px"><b>nylon + sợi thuỷ tinh</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Lỗ bắt, trục cánh, cân nặng và kích thước gần như trùng khít.</b> Nghĩa là nó vặn thẳng lên cần khung S500 bằng đúng bộ ốc đó, dùng đúng kiểu ốc chóp đó. Không phải đổi khung, không phải đổi ESC, không phải khoan gì.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Đủ khoẻ không — và bay được bao lâu</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">T-Motor công bố <b>bảng đo thật từng nấc ga</b>, không phải một con số duy nhất như EMAX. Lấy đúng bảng đó tính cho bản dựng của bạn:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Trạng thái</th>
+            <th style="padding:7px 10px">Mỗi motor</th>
+            <th style="padding:7px 10px">Cả drone</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Treo lơ lửng<br><span style="color:var(--muted)">drone 1660 g</span></td>
+            <td style="padding:8px 10px" class="mono">415 g · <b>3,3 A</b><br><span style="color:var(--muted)">ga ~48%</span></td>
+            <td style="padding:8px 10px" class="mono"><b>~13 A</b></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">Ga hết cỡ</td>
+            <td style="padding:8px 10px" class="mono">1332 g · 16,4 A</td>
+            <td style="padding:8px 10px" class="mono">5328 g · 65 A</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tags" style="margin-top:12px">
+      <span class="tag key">Lực đẩy / trọng lượng <b>2,9:1</b></span>
+      <span class="tag key">Gắn camera rồi vẫn <b>2,65:1</b></span>
+      <span class="tag">Ga treo <b>~48%</b> — đúng vùng đẹp</span>
+      <span class="tag key">Bay <b>~18 phút</b></span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Thừa sức bay.</b> Tỉ lệ lực đẩy lên <b>2,9:1</b> (tính dè theo giới hạn 1,2 kg của cánh, không phải 1332 g của motor). Quan trọng hơn: <b>gắn camera vào vẫn còn 2,65:1</b> — cái ngưỡng 2:1 mà tôi lo suốt mấy hôm nay không còn là vấn đề nữa.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Và bay lâu hơn.</b> Treo lơ lửng chỉ rút <b>~13 A</b> thay vì ~18 A, nên với viên 5300mAh dùng 80% thì được khoảng <b>18 phút</b> thay vì 14–15 phút. Lý do: motor khoẻ hơn nên lúc treo nó chạy ở vùng hiệu suất cao (8,1 g/W) thay vì phải gắng sức.</p>
+    <p style="font-size:13px; color:var(--muted); margin-top:9px">So sánh này hơi lệch về phía T-Motor: số của họ là <b>đo thật trên bàn thử</b>, còn số EMAX là tôi <b>ngoại suy</b> từ bảng chỉ có điểm toàn tải. Hướng thì chắc chắn đúng, độ lớn thì có thể sai vài phần trăm.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); margin-top:14px">
+    <h3 style="color:var(--warn)">Bốn điều phải biết trước khi đặt</h3>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>T-Motor là hãng bị làm nhái nhiều nhất</strong>Hàng chính hãng bộ này trên store.tmotor.com là <b>129,99 USD</b> (bản kèm ESC). Bộ trên 1688 là <b>¥389</b> cho 4 motor + 4 cánh, không kèm ESC — rẻ hơn nhiều. Một phần là vì 1688 là chợ bán sỉ nội địa nên vốn đã rẻ hơn giá bán lẻ quốc tế, nhưng <b>tôi không xác minh được đây là hàng thật hay nhái</b>. Shop 4,8 sao, 99% khen, đã bán 800+ là dấu hiệu tốt nhưng không phải bằng chứng.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Hỏi rõ bộ 4 motor có đủ 2 chiều ren không</strong>Trang bán có bán lẻ <span class="mono">正牙CCW</span> và <span class="mono">反牙CW</span> riêng, nghĩa là hai chiều ren vẫn tồn tại. Bộ 4 chiếc <b>phải gồm 2 mỗi loại</b>. Hỏi thẳng shop, đừng đoán.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Đừng giữ ga hết cỡ lâu</strong>Cánh T1045 chính hãng ghi <b>giới hạn lực đẩy 1,2 kg</b> và <b>vòng quay đẹp nhất 6000–7000</b>. Ở ga 100% motor đẩy 1332 g ở 9857 vòng — <b>vượt cả hai mức</b>. Bay bình thường ở ga ~48% thì hoàn toàn trong vùng an toàn, chỉ đừng kéo hết ga kéo dài.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Bộ 4 chiếc không có motor dự phòng</strong>Khác với phương án EMAX mua 5 chiếc. Trang có bán lẻ từng chiếc, nên cân nhắc mua thêm 1 chiếc phòng hờ — nhưng nhớ chọn đúng chiều ren.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Dây motor chỉ dài 150 mm</b> (ghi trên bản vẽ chính hãng). Vẫn phải nối dài bằng dây 16AWG đúng như kế hoạch cũ — phần đó không đổi gì.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Chọn đúng gói "4电机+2对桨" là hợp lý.</b> Gói kèm ESC 20A không cần mua: ESC OX32 trong stack của bạn chịu 55 A mỗi kênh, khoẻ hơn hẳn con AIR 20A. Mua thêm 2 cặp cánh dự phòng cũng đúng — cánh là thứ hỏng nhiều nhất.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--ok)">Bản "II" khác bản thường ở đâu — và nên mua bản nào</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Hai bảng thông số bạn thấy mâu thuẫn nhau vì <b>chúng là hai con motor khác nhau thật</b>, không phải trang bán ghi sai. Đã đối chiếu với hai trang sản phẩm riêng biệt trên web EMAX:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 8px 7px 0"></th>
+            <th style="padding:7px 8px">MT2216 <span style="color:var(--muted)">(thường)</span></th>
+            <th style="padding:7px 8px">MT2216 <b>II</b></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0">KV</td>
+            <td style="padding:7px 8px" class="mono">810</td>
+            <td style="padding:7px 8px" class="mono">810</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0">Lực đẩy tối đa</td>
+            <td style="padding:7px 8px" class="mono">950 g</td>
+            <td style="padding:7px 8px" class="mono">950 g</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0">Cuộn dây · số cell</td>
+            <td style="padding:7px 8px" class="mono">12N14P · 3–4S</td>
+            <td style="padding:7px 8px" class="mono">12N14P · 3–4S</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0">Lỗ bắt vào cần</td>
+            <td style="padding:7px 8px" class="mono">4×M3 · 16×19</td>
+            <td style="padding:7px 8px" class="mono">4×M3 · 16×19</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 12%, transparent)">
+            <td style="padding:7px 8px 7px 0"><b>Cân nặng</b></td>
+            <td style="padding:7px 8px" class="mono">80 g</td>
+            <td style="padding:7px 8px" class="mono"><b style="color:var(--ok)">63 g</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0">Chiều cao</td>
+            <td style="padding:7px 8px" class="mono">33,2 mm</td>
+            <td style="padding:7px 8px" class="mono">42,7 mm <span style="color:var(--muted)">(kể cả trục ren)</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0"><b>Kiểu bắt cánh</b></td>
+            <td style="padding:7px 8px">Đế bắt vít<br><span style="color:var(--muted)">4×M2,5 trên Ø12, kèm miếng chuyển</span></td>
+            <td style="padding:7px 8px">Trục ren liền<br><span style="color:var(--muted)">ren M6 trên bệ Ø7,9 + ốc chóp</span></td>
+          </tr>
+          <tr>
+            <td style="padding:7px 8px 7px 0">Dòng sản phẩm</td>
+            <td style="padding:7px 8px; color:var(--muted)">đời cũ</td>
+            <td style="padding:7px 8px"><b>Cooling Series</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Về điện thì hai con giống hệt nhau.</b> Cùng KV, cùng cuộn dây 12N14P, cùng bảng lực đẩy, cùng 950 g. Bay không khác gì nhau. Lỗ bắt vào cần khung cũng y hệt nên con nào cũng vặn vừa cần S500.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Khác biệt thật nằm ở cân nặng: bản II nhẹ hơn 17 g mỗi chiếc.</b> Nhân bốn là <b>68 g</b> — bằng một phần sáu viên pin. Với một bản dựng đang phải giành giật từng gam cho camera thì đó là lợi thế thật, và nó đẩy tỉ lệ lực đẩy từ 2,2:1 lên <b>2,3:1</b>.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Kết luận: mua bản II.</b> Nhẹ hơn, mới hơn, cùng hiệu năng, cùng cách lắp. Không có lý do nào để chọn bản thường.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Đặt hàng phải chia đôi hai loại ren — đây là chỗ dễ hỏng cả đơn</h3>
+    <p style="font-size:13px; color:var(--muted); margin-bottom:10px">Phần dưới viết cho phương án EMAX mua lẻ 5 chiếc. Với bộ T-Motor 4 chiếc thì shop đã chia sẵn — chỉ cần <b>hỏi xác nhận 2 + 2</b>, không phải tự chia. Nguyên tắc về chiều ren thì vẫn đúng nguyên.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Trang bán cho chọn <span class="mono">正螺纹</span> (ren thuận) và <span class="mono">反螺纹</span> (ren nghịch). Đây <b>không phải chọn màu cho vui</b>:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Ren không quyết định chiều quay, nó quyết định ốc có tự siết hay tự tháo</strong>Chiều quay là do bạn đấu ba dây motor, đảo hai dây bất kỳ là quay ngược. Nhưng <b>ốc chóp giữ cánh thì phải có ren ngược chiều quay</b> để lực quay siết chặt nó vào. Lắp sai ren thì ốc tự nới ra trong lúc bay và <b>cánh văng</b>.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Quadcopter cần đúng 2 mỗi loại</strong>Hai motor quay thuận, hai quay nghịch. Nên phải đặt <b>2 chiếc ren thuận + 2 chiếc ren nghịch</b>. Đặt 4 chiếc cùng một loại là hỏng, phải mua lại.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Cánh bán kèm đã đúng chiều theo từng loại ren</strong>Mỗi chiếc kèm 2 cánh 1045 đúng chiều cho loại ren đó. Mua 2+2 là có sẵn đủ 4 cánh đúng chiều, thừa ra một bộ dự phòng.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Số lượng tối thiểu là 5</strong>Trang ghi <span class="mono">MOQ: 5 cái</span>, mà bạn chỉ cần 4. Đặt <b>3 + 2</b> hoặc <b>2 + 3</b> để vừa đủ 4 dùng và 1 dự phòng. <b>Hỏi shop xem mức 5 tính chung cả đơn hay tính riêng từng loại ren</b> — nếu tính riêng thì phải lấy 5+5, đội giá gấp đôi.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Đặt dư chiếc thứ 5 loại ren nào — chọn ren nghịch</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px"><b>Về kỹ thuật thì hai bên hoàn toàn như nhau.</b> Quadcopter có đúng 2 motor quay thuận và 2 quay nghịch, chịu tải giống hệt nhau, mòn như nhau, hỏng như nhau. Không bên nào cần dự phòng hơn bên nào. Chọn bừa cũng không sai.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px"><b>Nếu muốn một lý do để quyết thì lấy dư bên ren nghịch</b> <span class="mono">反螺纹</span>. Lý do duy nhất: chiếc dự phòng kèm theo <b>ốc chóp ren nghịch</b>, mà ren nghịch là thứ <b>không mua được ở cửa hàng ốc vít thường</b> — ngoài đời gần như chỉ có ren thuận. Mất ốc ren thuận thì còn xoay xở tạm được, mất ốc ren nghịch thì phải đặt lại từ đầu.</p>
+    <p style="font-size:13.5px; color:var(--ink2)">Đây là lý do <b>yếu</b>, nói ra để bạn khỏi phân vân chứ không phải vì nó quan trọng. Cánh kèm theo thì bên nào cũng dư ra 2 chiếc, cân bằng nhau.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Thứ đáng lo hơn nhiều: shop giao nhầm 5 chiếc cùng loại</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Đơn chia 3+2 qua trung gian rất dễ bị gom thành 5 chiếc cùng một mã cho gọn. Lúc đó bạn chỉ lắp được 2 trong 4 vị trí. Hai việc phải làm:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Nhắn rõ bằng chữ Trung khi đặt</strong>Ghi thẳng <span class="mono">正螺纹 × 2</span> và <span class="mono">反螺纹 × 3</span> cho người nhận đơn, đừng chỉ nói "5 cái". Xin họ xác nhận lại trước khi chốt.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Nhận hàng thì thử ốc, đừng tin nhãn hộp</strong>Vặn thử ốc chóp bằng tay: <b>siết chặt khi xoay theo chiều kim đồng hồ là ren thuận</b>, siết chặt khi xoay ngược chiều kim đồng hồ là <b>ren nghịch</b>. Đếm đủ 2 và 3 rồi mới yên tâm.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--accent); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">Quy trình lắp an toàn — làm đúng thứ tự này thì không sợ sai ren</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Loại ren quyết định motor đó <b>phải quay chiều nào</b>. Mà chiều quay lại do bạn đấu dây, nên sửa được thoải mái — miễn là sửa <b>trước khi lắp cánh</b>.</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>1. Đặt motor đúng vị trí theo ren</strong>Hai chiếc <b>ren thuận</b> vào hai vị trí quay ngược chiều kim đồng hồ, hai chiếc <b>ren nghịch</b> vào hai vị trí quay theo chiều kim đồng hồ. Sơ đồ vị trí xem mục <b>Hiểu về CW và CCW</b> ở đầu phần này.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>2. Chạy Motor Test — TUYỆT ĐỐI chưa lắp cánh</strong>Mission Planner có mục quay từng motor riêng. Nhìn chiều quay thật của từng chiếc rồi đối chiếu với loại ren của nó.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>3. Chiếc nào quay sai chiều thì đảo hai dây bất kỳ</strong>Đổi chỗ hai trong ba dây motor là quay ngược lại. Không cần đổi motor, không cần đổi vị trí.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>4. Cả 4 chiếc đúng chiều rồi mới lắp cánh</strong>Làm theo thứ tự này thì kể cả shop giao sai tỉ lệ ren, bạn vẫn phát hiện được lúc còn an toàn — thay vì phát hiện bằng một chiếc cánh văng giữa trời.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Trong hộp mỗi chiếc có gì</h3>
+    <div class="tags">
+      <span class="tag">1 motor MT2216 II</span>
+      <span class="tag key">2 cánh <b>1045</b> đúng chiều</span>
+      <span class="tag">1 ốc chóp</span>
+      <span class="tag">Bộ ốc bắt</span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px">Đọc từ trang "Packaging / accessories display" chính hãng. Bản II dùng <b>trục ren liền</b> nên chỉ cần ốc chóp, không có miếng chuyển đế như bản thường. Đơn giản hơn khi lắp.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Mua cánh dự phòng thì đo trước.</b> Trục ren là <b>M6</b>, bệ đỡ cánh <b>Ø7,9 mm</b>. Cánh 1045 bán lẻ có nhiều cỡ lỗ khác nhau, nên cầm motor đo rồi hãy đặt.</p>
+  </div>
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Bẫy số lượng trong gói motor — kiểm tra trước khi trả tiền</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Cùng một motor MT2216 810KV nhưng người bán đóng gói theo ít nhất hai kiểu, và phần "Package list" trên trang sản phẩm <b>thường mô tả bộ đầy đủ chứ không phải thứ ứng với giá đang hiển thị</b>.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Kiểu đóng gói</th>
+            <th style="padding:7px 10px">Mua bao nhiêu</th>
+            <th style="padding:7px 10px">Tổng cánh nhận được</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0"><b>Vỉ lẻ</b> — 1 motor + 2 cánh</td>
+            <td style="padding:8px 10px">Đặt số lượng <b>4</b></td>
+            <td style="padding:8px 10px"><b style="color:var(--ok)">8 cánh</b><br><span style="color:var(--muted)">1 bộ dùng + 1 bộ dự phòng</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0"><b>Gói combo</b> — 4 motor + 2 CW + 2 CCW</td>
+            <td style="padding:8px 10px">Đặt số lượng <b>1</b></td>
+            <td style="padding:8px 10px"><b style="color:var(--warn)">4 cánh</b><br><span style="color:var(--muted)">chỉ vừa đủ, không có dự phòng</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="fn-list" style="margin-top:12px">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Dấu hiệu nhận ra gói ghi sai: đối chiếu trọng lượng</strong>Một motor bản II nặng <b>63 g</b>. Nếu trang ghi "Package list: 4 motor" mà "Package weight" chỉ <b>160 g</b> thì con số đó vô lý — riêng 4 motor đã là 252 g, chưa tính 8 cánh và hộp, tổng thật phải khoảng <b>350 – 400 g</b>. 160 g chỉ khớp với <b>1 motor kèm 2 cánh</b>. Gặp trường hợp này thì giá hiển thị gần như chắc chắn là giá một chiếc.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Câu hỏi gửi người bán trước khi đặt</strong>Nhắn trong khung chat của sàn để có bằng chứng: <span class="mono">"Is the listed price for 1 motor or for 4 motors? How many propellers are included at that price? I need 2 CW and 2 CCW motors."</span></p>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<section id="doc-3">
+  <div class="sec-head"><h2>Vì sao lại là 1045, và có combo nào khác không</h2></div>
+  <p class="sec-sub">Cỡ cánh không phải chọn tuỳ thích. Nó bị khoá lại bởi khung, rồi cỡ cánh mới quyết định KV của motor.</p>
+
+  <div class="figure" style="grid-template-columns:1fr">
+    <div class="figure-notes">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Bước 1 — Khung quyết định cỡ cánh tối đa</strong>Khung S500 có sải 480mm tính theo đường chéo, nên hai motor cạnh nhau cách nhau 480 ÷ √2 ≈ <b>339mm</b>. Cánh không được chạm nhau, nên trên lý thuyết lắp được tới khoảng 13 inch. Trừ khoảng hở an toàn thì vùng hợp lý là <b>10 đến 11 inch</b>.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Bước 2 — Cỡ cánh quyết định KV của motor</strong>Cánh càng to càng cần lực xoay lớn, tức KV càng phải thấp. Quy tắc thực dụng: <b>cánh 10 inch đi với khoảng 1000KV ở 3S, 800–900KV ở 4S</b>. Cánh 11 inch thì cần khoảng 700KV ở 4S. Đó chính là lý do 810KV ở 4S là cặp chuẩn cho cánh 10 inch.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Bước 3 — Motor giới hạn cánh tối đa</strong>EMAX ghi rõ MT2216 chỉ dùng cánh <b>8 đến 10 inch</b>. Vậy 10 inch vừa là mức khung cho phép, vừa là mức motor cho phép. Hai giới hạn gặp nhau đúng ở 1045, nên không còn gì để chọn.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); background:var(--warn-soft); margin-top:14px">
+    <h3 style="color:var(--warn)">Một lựa chọn thay thế đáng thử về sau: cánh 9450</h3>
+    <p style="font-size:13.5px; color:var(--ink2)">Đọc lại bảng đo ở trên sẽ thấy một điều thú vị. Ở 4S, cánh <b>9450</b> cho <b>910 g</b> lực đẩy chỉ với <b>11,8 A</b>, trong khi cánh <b>1045</b> cho <b>950 g</b> nhưng ăn tới <b>14,6 A</b>.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px">Tức là đổi sang 9450 thì mất khoảng <b>4% lực đẩy</b> nhưng tiết kiệm <b>19% dòng điện</b>. Tỉ lệ lực đẩy trên trọng lượng vẫn còn 2,3:1, vẫn trên ngưỡng. Nếu sau này thấy thời gian bay ngắn quá thì đây là thứ đáng thử.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Nhưng đừng mua ngay bây giờ.</b> Cánh 1045 đã kèm sẵn miễn phí và cho nhiều lực đẩy hơn, tức là nhiều dư địa an toàn hơn cho lần bay đầu. Để dành 9450 làm thí nghiệm tối ưu sau, và nó cũng là nội dung tốt cho báo cáo đề tài.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); background:var(--danger-soft); margin-top:12px">
+    <h3 style="color:var(--danger)">Hai hướng KHÔNG dùng được</h3>
+    <p style="font-size:13.5px; color:var(--ink2)"><b>Lắp cánh to hơn 10 inch lên motor này:</b> quá tải so với mức EMAX công bố, motor nóng và có thể cháy. Muốn dùng cánh 11 inch thì phải đổi sang motor KV thấp hơn, khoảng 700KV.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Chạy pin 3S với cánh 1045:</b> chỉ được 670 g mỗi motor, tổng 2,68 kg, tỉ lệ chỉ <b>1,6:1</b>. Dưới ngưỡng an toàn, drone sẽ ì và không đủ sức gượng khi gặp gió. Bắt buộc 4S.</p>
+  </div>
+</section>
+
+<section id="doc-4">
+  <div class="sec-head"><h2>Chọn GPS cho đúng</h2><span class="pill must">Đọc trước khi đặt</span></div>
+  <p class="sec-sub">Thị trường có hàng trăm module ghi "M10", cái vuông cái tròn, giắc khác nhau, giá chênh nhau 4 lần. Nắm được nguyên tắc dưới đây thì tự loại được phần lớn lựa chọn sai.</p>
+
+  <div class="included" style="border-left-color:var(--accent); background:var(--accent-soft)">
+    <h3 style="color:var(--accent-ink)">Bên trong mỗi module GPS luôn có hai thiết bị riêng</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Đây là gốc rễ của mọi nhầm lẫn về số chân. Hai thiết bị này nói chuyện với bo bay bằng <b>hai đường truyền hoàn toàn khác nhau</b>, nên không gộp chung dây được.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Thiết bị</th>
+            <th style="padding:7px 10px">Nhiệm vụ</th>
+            <th style="padding:7px 10px">Đường truyền</th>
+            <th style="padding:7px 10px">Dây cần</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0"><b>Chip GPS</b></td>
+            <td style="padding:8px 10px">Biết drone đang ở toạ độ nào</td>
+            <td style="padding:8px 10px" class="mono">UART</td>
+            <td style="padding:8px 10px" class="mono">TX, RX</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0"><b>La bàn</b></td>
+            <td style="padding:8px 10px">Biết mũi drone đang quay về hướng nào</td>
+            <td style="padding:8px 10px" class="mono">I2C</td>
+            <td style="padding:8px 10px" class="mono">SDA, SCL</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0"><b>Nguồn nuôi</b></td>
+            <td style="padding:8px 10px">Cấp điện cho cả hai</td>
+            <td style="padding:8px 10px">—</td>
+            <td style="padding:8px 10px" class="mono">VCC, GND</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Cộng lại đúng 6 dây.</b> Mọi module GPS có la bàn đều mang đúng 6 tín hiệu này. Nhà sản xuất chỉ khác nhau ở chỗ <b>gói 6 dây đó vào loại giắc gì</b> — một giắc 6 chân, một giắc 10 chân, hay tách làm hai giắc 6 và 4. Hình dạng giắc gần như không quan trọng, vì đầu cắm vào bo bay là do bạn tự bấm lại.</p>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Cổng GPS trên F405 V5 của bạn</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:10px">Lấy từ bảng thông số chính hãng SpeedyBee. Ba dòng này là toàn bộ ràng buộc:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>I2C: Supported (GPS connector + pads)</strong>SpeedyBee <b>cố tình gộp đường I2C của la bàn vào chung cổng GPS</b>. Bạn không phải hàn riêng SDA và SCL ra pad khác.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>UART4 (GPS pads + front SH1.0-6-pin)</strong>Cổng GPS là giắc <b>JST-SH 1.0mm, 6 chân</b> ở mặt trước bo. Thứ tự chân theo quy ước SpeedyBee là GND · 4V5 · TX · RX · SDA · SCL.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Bo không có la bàn tích hợp</strong>Tài liệu ArduPilot ghi nguyên văn <span class="mono">"The SpeedyBee F405 v5 does not have a builtin compass"</span>. Nên module GPS <b>bắt buộc</b> phải kèm la bàn. Loại GPS 4 dây chỉ có GND, VCC, TX, RX là loại không la bàn — mua về sẽ không Loiter, không waypoint, không tự về nhà được.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Dây phía bo bay bạn đã có sẵn.</b> Gói Deluxe kèm "Dây GPS SH1.0 6pin 120mm + đầu rời". Đầu rời chính là vỏ giắc trống để bạn cắm lại thứ tự chân cho khớp module.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Vì sao chọn bản "GPS Secondary" chứ không phải "Standard"</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Cùng một module Holybro, chỉ khác sợi cáp đi kèm. Sơ đồ chân lấy từ tài liệu kỹ thuật của hãng:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Biến thể</th>
+            <th style="padding:7px 10px">Cáp</th>
+            <th style="padding:7px 10px">Thứ tự chân</th>
+            <th style="padding:7px 10px">Hợp với bạn?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0"><b>GPS Secondary</b><br><span style="color:var(--muted)">SKU 12087 / 12090</span></td>
+            <td style="padding:8px 10px" class="mono">GHR1.25<br>6 chân</td>
+            <td style="padding:8px 10px" class="mono">VCC · RX · TX<br>SCL · SDA · GND</td>
+            <td style="padding:8px 10px"><b style="color:var(--ok)">Đúng</b><br><span style="color:var(--muted)">6 tín hiệu, không thừa dây nào</span></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0"><b>Standard</b><br><span style="color:var(--muted)">SKU 12086 / 12089</span></td>
+            <td style="padding:8px 10px" class="mono">GHR1.25<br>10 chân</td>
+            <td style="padding:8px 10px" class="mono">VCC · RX · TX · SCL · SDA<br><b>NC · NC · NC · NC</b> · GND</td>
+            <td style="padding:8px 10px">Thừa<br><span style="color:var(--muted)">4 chân NC là không nối gì</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Bản Standard 10 chân mang <b>đúng 6 tín hiệu y hệt</b>, chỉ thêm 4 chân bỏ trống. Nó sinh ra để cắm thẳng vào cổng 10 chân của Pixhawk. Bo của bạn không có cổng đó, nên 4 chân kia hoàn toàn vô dụng mà bạn vẫn phải cắt bấm lại như thường. Bản Secondary giá bằng nhau, gọn hơn, khớp một đối một.</p>
+  </div>
+
+
+  <div class="included" style="border-left-color:var(--ok); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--ok)">Bản 10 chân — cắt lấy 6 dây được, đây là sơ đồ chính hãng</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Đã đọc trực tiếp bản vẽ chân cắm trên tài liệu Holybro. Bốn biến thể, và <b>sáu tín hiệu cần dùng nằm ở đúng một vị trí trong cả bốn</b>:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 8px 7px 0">Chân</th>
+            <th style="padding:7px 8px">V2 · 10 chân</th>
+            <th style="padding:7px 8px">V2 · 6 chân</th>
+            <th style="padding:7px 8px">V1 · 10 chân</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 10%, transparent)">
+            <td style="padding:7px 8px 7px 0" class="mono">1</td>
+            <td style="padding:7px 8px" class="mono"><b>VCC 5V</b> <span style="color:var(--muted)">(đỏ)</span></td>
+            <td style="padding:7px 8px" class="mono"><b>VCC 5V</b></td>
+            <td style="padding:7px 8px" class="mono"><b>VCC 5V</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 10%, transparent)">
+            <td style="padding:7px 8px 7px 0" class="mono">2</td>
+            <td style="padding:7px 8px" class="mono"><b>RX</b></td>
+            <td style="padding:7px 8px" class="mono"><b>RX</b></td>
+            <td style="padding:7px 8px" class="mono"><b>RX</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 10%, transparent)">
+            <td style="padding:7px 8px 7px 0" class="mono">3</td>
+            <td style="padding:7px 8px" class="mono"><b>TX</b></td>
+            <td style="padding:7px 8px" class="mono"><b>TX</b></td>
+            <td style="padding:7px 8px" class="mono"><b>TX</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 10%, transparent)">
+            <td style="padding:7px 8px 7px 0" class="mono">4</td>
+            <td style="padding:7px 8px" class="mono"><b>SCL</b></td>
+            <td style="padding:7px 8px" class="mono"><b>SCL</b></td>
+            <td style="padding:7px 8px" class="mono"><b>SCL</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 10%, transparent)">
+            <td style="padding:7px 8px 7px 0" class="mono">5</td>
+            <td style="padding:7px 8px" class="mono"><b>SDA</b></td>
+            <td style="padding:7px 8px" class="mono"><b>SDA</b></td>
+            <td style="padding:7px 8px" class="mono"><b>SDA</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:7px 8px 7px 0" class="mono">6–9</td>
+            <td style="padding:7px 8px; color:var(--muted)" class="mono">NC · NC · NC · NC</td>
+            <td style="padding:7px 8px" class="mono">—</td>
+            <td style="padding:7px 8px" class="mono">SAFETY_SWITCH<br>SAFETY_SWITCH_LED<br>VDD_3V3 · BUZZER−</td>
+          </tr>
+          <tr style="background:color-mix(in srgb, var(--ok) 10%, transparent)">
+            <td style="padding:7px 8px 7px 0" class="mono">cuối</td>
+            <td style="padding:7px 8px" class="mono"><b>GND</b></td>
+            <td style="padding:7px 8px" class="mono"><b>GND</b></td>
+            <td style="padding:7px 8px" class="mono"><b>GND</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Năm dòng bôi đậm cộng GND là toàn bộ thứ bạn cần</b>, và chúng giống hệt nhau ở mọi biến thể. Bản 10 chân của V2 thì bốn chân giữa ghi thẳng là <span class="mono">NC</span> — <b>không nối gì bên trong module</b>, tức bốn sợi dây chết. Cắt bỏ chúng không mất gì cả.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--accent); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">Thực ra bạn phải cắt bấm lại dù mua bản nào</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Đây là điều làm cả câu hỏi "6 chân hay 10 chân" gần như không còn quan trọng:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Hai đầu là hai họ giắc khác nhau</strong>Đầu Holybro là <span class="mono">JST-GH 1,25mm</span>. Cổng GPS của F405 V5 là <span class="mono">JST-SH 1,0mm</span>. Khác họ, khác khoảng cách chân — <b>không cắm vừa, kể cả bản 6 chân</b>.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Thứ tự chân cũng ngược nhau</strong>Holybro đi <span class="mono">VCC · RX · TX · SCL · SDA · GND</span>. F405 V5 đi <span class="mono">GND · 4V5 · TX · RX · SDA · SCL</span>. Nên dù có cùng giắc thì vẫn phải đổi thứ tự.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Bắt chéo TX và RX</strong>Lỗi phổ biến nhất khi đấu GPS. <span class="mono">TX của GPS nối vào RX của bo</span>, và ngược lại. Nối thẳng TX vào TX thì GPS không bao giờ lên, mà cũng không hỏng gì — nên nếu không thấy vệ tinh, đây là chỗ kiểm tra đầu tiên.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Cách làm</strong>Cắt đứt cáp Holybro, giữ nguyên đầu cắm phía GPS. Đầu còn lại nối vào một sợi cáp <b>SH 1,0mm 6 chân</b> — loại cáp này có sẵn trong hộp stack SpeedyBee. Nối theo đúng tên tín hiệu, không nối theo màu dây.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Ảnh trên moodfpv không khớp với tên sản phẩm — hỏi trước khi trả tiền</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Tiêu đề ghi <b>M10 V2 Standard</b>, nhưng ảnh sản phẩm là <b>một cái vỏ V1</b>. Nhận ra bằng hai dấu hiệu ngay trên ảnh:</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Vỏ trong ảnh có chữ <span class="mono">GPS FIX</span> và <span class="mono">SWITCH</span> in ở hai bên, cùng <b>một nút bấm tròn</b> ở mặt trước. Tài liệu Holybro nói rõ: <span class="mono">"The V2 version removed the buzzer and safety switch to reduce electromagnetic interference."</span> Bản V2 <b>không còn nút đó nữa</b>. Bản vẽ V2 chính hãng cũng vẽ mặt vỏ trơn, không nhãn.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px"><b>Vì sao chi tiết này đáng quan tâm:</b> hãng bỏ còi và công tắc <b>để giảm nhiễu điện từ</b> — mà nhiễu điện từ chính là thứ phá la bàn, và la bàn hỏng là nguyên nhân số một khiến bay tự động thất bại. Đó không phải khác biệt hình thức.</p>
+    <p style="font-size:13.5px; color:var(--ink2)"><b>Việc cần làm:</b> nhắn hỏi shop <b>hàng thực tế là V1 hay V2</b>, xin ảnh chụp thật món sẽ giao. Nhiều khả năng shop chỉ lấy nhầm ảnh cũ. Nếu đúng là V1 thì <b>vẫn đấu dây y hệt</b> (bốn chân thừa để không), chỉ là mất phần lợi chống nhiễu.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); margin-top:14px">
+    <h3 style="color:var(--warn)">Lý do shop từ chối GPS không đúng về mặt kỹ thuật</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Shop nói cả hai món <b>"truyền phát tín hiệu"</b> nên vướng chính sách chính ngạch. Với bộ điều khiển FlySky thì đúng — nó phát sóng vô tuyến 2,4GHz, đó là thiết bị phát thật.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px"><b>Nhưng module GPS thì chỉ thu, không phát.</b> Nó là máy thu tín hiệu vệ tinh — bên trong có chip thu u-blox M10 và một bộ khuếch đại tín hiệu vào <span class="mono">MAX2659ELT+</span>, hoàn toàn không có bộ phát nào. Về nguyên lý nó giống cái ăng-ten radio hơn là cái điện thoại.</p>
+    <p style="font-size:13.5px; color:var(--ink2)">Nhiều khả năng shop áp một quy tắc chung <b>"cứ có ăng-ten là từ chối"</b> cho nhanh, chứ không xét từng món. <b>Đáng thử hỏi lại</b>, hoặc hỏi một đơn vị nhận hàng khác — chênh lệch giữa mua ngoài và mua trong nước là khoảng <b>500.000 ₫</b> cho riêng món này.</p>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>"V2" nghĩa là gì, và có tốt hơn thật không</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">V2 là <b>thế hệ thứ hai của vỏ và mạch</b>, không phải chiêu marketing. Hãng liệt kê rõ những gì đổi so với V1, và ba trong số đó có lợi trực tiếp cho bản lắp này:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Thêm bộ lọc SAW và lớp chắn nhiễu cho chip thu</strong>GPS bắt tín hiệu vệ tinh cực yếu từ độ cao 20.000km, trong khi ESC 4-in-1 của bạn đóng cắt dòng tới 220A ngay bên dưới. Lớp chắn này sinh ra để chống đúng nguồn nhiễu đó.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Bỏ còi và nút an toàn để giảm nhiễu điện từ</strong>Nghe như mất tính năng, nhưng bo F405 V5 vốn <b>không có chân để cắm hai thứ đó</b>. Bản V1 mang chúng theo chỉ để làm nguồn nhiễu vô ích. Bỏ đi là lợi thuần với bạn.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Vỏ đạt chuẩn IP67 chống nước và bụi</strong>Đề tài khảo sát ngoài trời thì gặp sương và bụi là chuyện thường. Bản V1 vỏ hở.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); margin-top:14px">
+    <h3 style="color:var(--warn)">Vì sao M9N lại đắt hơn M10</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Nghe thì vô lý vì số 10 lớn hơn số 9. Nhưng <b>M9 và M10 là hai dòng khác mục đích, không phải hai đời hơn kém nhau</b>. u-blox làm dòng M10 để <b>tiết kiệm điện</b> cho thiết bị chạy pin, còn dòng M9 là dòng <b>hiệu năng cao</b>. Con số là tên dòng, không phải thứ hạng.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Chỉ số</th>
+            <th style="padding:7px 10px">M10 · 1.148.212 ₫</th>
+            <th style="padding:7px 10px">M9N · 1.522.565 ₫</th>
+            <th style="padding:7px 10px">Có đáng với bạn?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Sai số vị trí</td>
+            <td style="padding:8px 10px" class="mono">2,0 m CEP</td>
+            <td style="padding:8px 10px" class="mono"><b>1,5 m CEP</b></td>
+            <td style="padding:8px 10px">Hơn 0,5m. Có ích nhưng không quyết định.</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Tốc độ cập nhật<br><span style="color:var(--muted)">khi bật cả 4 chòm sao</span></td>
+            <td style="padding:8px 10px" class="mono">10 Hz</td>
+            <td style="padding:8px 10px" class="mono"><b>25 Hz</b></td>
+            <td style="padding:8px 10px">ArduPilot thường chỉ dùng 5 đến 10 Hz. <b>10 Hz là đã đủ.</b></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">La bàn, vỏ, ăng-ten, cột</td>
+            <td style="padding:8px 10px" colspan="2"><b>Giống hệt nhau</b> — cùng la bàn IST8310/8308, cùng vỏ IP67, cùng ăng-ten gốm 25×25×4mm, cùng cột carbon</td>
+            <td style="padding:8px 10px">Không chênh gì</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Kết luận: chọn M10.</b> Drone khảo sát bay chậm theo waypoint, không phải drone đua. Cả hai lợi thế của M9N đều nghiêng về bay nhanh và cơ động. Chênh 374.353 ₫ dùng vào pin dự phòng có ích hơn nhiều. Chỉ nên cân nhắc M9N nếu đề tài của bạn <b>lấy chính độ chính xác định vị làm đối tượng nghiên cứu</b>.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Hai điều phải làm khi đấu dây</h3>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Phải bắt chéo TX và RX</strong>TX là chân nói, RX là chân nghe. Nối TX với TX thì hai bên cùng nói và không ai nghe. Đúng phải là <b>GPS TX nối vào bo RX</b>, và <b>GPS RX nối vào bo TX</b>. Đây là lỗi phổ biến nhất khi tự bấm dây. Triệu chứng là GPS vẫn sáng đèn bình thường nhưng phần mềm báo "No GPS".</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Đo điện áp chân nguồn trước khi tin</strong>Holybro công bố module cần <b>4,7 đến 5,2V</b>, trong khi chân nguồn cổng GPS của bo ghi là <b>4V5</b>. Trên giấy tờ là hơi thấp. Thực tế đường này khi chạy pin thường cho ra khoảng 4,8 đến 5,0V nên đa số vẫn chạy tốt, nhưng <b>tôi không có số đo thực trên đúng bo này nên không khẳng định được</b>. Cách xử lý: dùng đồng hồ đo chân đó khi đã cắm pin. Nếu dưới 4,7V hoặc GPS không bắt được vệ tinh, hàn riêng dây đỏ sang <b>pad 5V</b> và giữ nguyên 5 dây còn lại.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Vì sao loại 7 lựa chọn còn lại</h3>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Sản phẩm</th>
+            <th style="padding:7px 10px">Giá</th>
+            <th style="padding:7px 10px">Lý do loại</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Holybro cho Pix32</td>
+            <td style="padding:8px 10px" class="mono">1.151k</td>
+            <td style="padding:8px 10px">Phí ship <b>1.204.138 ₫</b>, đắt gần bằng chính món hàng</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">CUAV NEO 4 SE</td>
+            <td style="padding:8px 10px" class="mono">1.677k</td>
+            <td style="padding:8px 10px">Đắt nhất, không kèm cột, không hơn gì về thông số</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Holybro M10 V2 mua trong nước</td>
+            <td style="padding:8px 10px" class="mono">1.650k</td>
+            <td style="padding:8px 10px">Cùng module nhưng đắt hơn <b>502k</b>, cáp 10 chân, không kèm cột. Chỉ đáng nếu cần gấp</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Holybro M10 ACP0089</td>
+            <td style="padding:8px 10px" class="mono">1.225k</td>
+            <td style="padding:8px 10px">Là bản <b>V1</b> — tiêu đề listing còn ghi "Buzzer Safety Switch", đúng hai thứ mà V2 đã bỏ để giảm nhiễu. Đắt hơn mà lại cũ hơn</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Holybro M10 Standard (cửa hàng khác)</td>
+            <td style="padding:8px 10px" class="mono">1.177k</td>
+            <td style="padding:8px 10px">Chỉ có biến thể cáp cho Pixhawk, không kèm cột, lại là cửa hàng khác nên tốn thêm một lần ship</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">M10 kèm QMC5883 vỏ nấm</td>
+            <td style="padding:8px 10px" class="mono">442k</td>
+            <td style="padding:8px 10px">Rẻ thật và ArduPilot có driver cho QMC5883L. Nhưng hàng giá rẻ hay dùng chip nhái, có trường hợp bo bay không nhận hoặc la bàn nhiễu. Vẫn phải mua cột riêng</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">HawkSpeed NEO-M10 bo trần</td>
+            <td style="padding:8px 10px" class="mono">374k</td>
+            <td style="padding:8px 10px">Rẻ nhất và nhãn chân in sẵn GND/VCC/RXD/TXD/SDA/SCL nên rất dễ bấm. Nhưng là bo trần không vỏ, ăng-ten hở, dễ gãy và dễ nhiễu. Vẫn phải mua cột riêng</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Hai lựa chọn rẻ ở cuối bảng <b>không sai về kỹ thuật</b>, chúng chạy được. Vấn đề là la bàn là bộ phận dễ hỏng và khó chẩn đoán nhất trong toàn bộ hệ ArduPilot. Khi la bàn nhiễu, drone không báo lỗi gì cả mà chỉ bay vòng tròn mỗi lúc một rộng, và người mới gần như không thể tự phân biệt là do la bàn, do rung động, hay do chỉnh sai tham số. IST8310 là chip mà chính đội phát triển ArduPilot dùng để kiểm thử.</p>
+  </div>
+</section>
+
+<section id="doc-5">
+  <div class="sec-head"><h2>Dây nối dài motor — cỡ dây và màu dây</h2><span class="pill must">Có đính chính</span></div>
+  <p class="sec-sub">Hai câu hỏi tưởng nhỏ nhưng một trong hai làm lộ ra lỗi trong chính bản kê này. Phần cỡ dây quan trọng hơn phần màu dây.</p>
+
+  <div class="included" style="border-left-color:var(--danger)">
+    <h3 style="color:var(--danger)">Đính chính — bản kê trước ghi 14AWG là sai, phải là 16 hoặc 18AWG</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Tôi đã áp nhầm cỡ dây của <b>dây nguồn pin</b> sang <b>dây motor</b>. Đây là hai chỗ chịu dòng khác hẳn nhau:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Vị trí</th>
+            <th style="padding:7px 10px">Dòng chạy qua</th>
+            <th style="padding:7px 10px">Cỡ dây đúng</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Dây pin vào ESC</td>
+            <td style="padding:8px 10px" class="mono">58,4 A</td>
+            <td style="padding:8px 10px" class="mono"><b>14 AWG</b></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0"><b>Dây motor (mỗi sợi)</b></td>
+            <td style="padding:8px 10px" class="mono"><b>14,6 A</b></td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">16 hoặc 18 AWG</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Mỗi motor chỉ rút <b>một phần tư</b> dòng của cả drone. Dây 18AWG chịu được khoảng <b>50 A</b>, tức dư <b>3,4 lần</b> so với 14,6 A. Quy ước chung trong giới FPV cũng đúng như vậy: <span class="mono">14AWG cho dây pin</span>, <span class="mono">18–20AWG cho dây motor và ESC</span>.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); margin-top:14px">
+    <h3 style="color:var(--warn)">Vì sao dây quá to lại có hại chứ không phải "chắc ăn hơn"</h3>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Cứng, khó luồn, và làm nứt mối hàn</strong>Đây là vấn đề lớn nhất. Dây 14AWG có tiết diện đồng <b>2,08 mm²</b>, gấp <b>2,5 lần</b> dây 18AWG (0,823 mm²). Nó cứng như dây điện trong nhà. Luồn dọc cần khung đã khó, mà quan trọng hơn là <b>dây cứng không hấp thụ rung</b> — nó truyền thẳng rung động của motor vào mối hàn cho tới khi mối hàn nứt. Mất một motor giữa lúc bay.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Hàn vào dây motor mảnh sẽ ra mối hàn xấu</strong>Dây gốc của motor mảnh hơn nhiều. Nối một sợi mảnh vào một sợi to gấp 2,5 lần cho ra mối hàn cục mịch và yếu. Tệ hơn: nhiệt cần để làm chảy thiếc trên dây 14AWG <b>đủ để chảy lớp cách điện</b> của sợi mảnh bên cạnh.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Nặng thêm không cần thiết</strong>Gấp 2,5 lần đồng trên khoảng 4 mét dây. Không phải con số khủng khiếp, nhưng là cân nặng bỏ ra mà không đổi lại được gì.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Nên mua 16AWG.</b> Nó là điểm giữa an toàn: mềm, dễ hàn, chịu tới 80 A, và không quá mảnh so với tay nghề người mới. 18AWG cũng đúng và nhẹ hơn nhưng mảnh hơn nên khó hàn hơn một chút.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Màu dây — bạn suy luận đúng, nhưng vẫn nên mua 3 màu</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px"><b>Về mặt điện thì màu hoàn toàn không quan trọng.</b> Ba dây motor là <b>ba pha xoay chiều</b>, không có dây dương dây âm. Đảo hai dây bất kỳ chỉ làm motor quay ngược lại, không hỏng gì. Nên mua hai cuộn đỏ <b>không sai</b>, và nếu đã lỡ mua thì cứ dùng.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Nhưng ba cuộn khác màu <b>giá y hệt</b>, và nó tiết kiệm cho bạn một việc khó chịu:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0"></th>
+            <th style="padding:7px 10px">Dùng 3 màu</th>
+            <th style="padding:7px 10px">Dùng toàn màu đỏ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Cách làm</td>
+            <td style="padding:8px 10px">Đấu motor 1, ghi lại màu nào vào chân nào, <b>lặp y hệt cho 3 motor còn lại</b></td>
+            <td style="padding:8px 10px">Mỗi motor đấu tuỳ ý, không có gì để đối chiếu</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Chiều quay lần thử đầu</td>
+            <td style="padding:8px 10px"><b style="color:var(--ok)">Cả 4 giống nhau</b></td>
+            <td style="padding:8px 10px">Mỗi motor là một lần <b>tung đồng xu</b> — trung bình <b>2 trong 4 sai chiều</b></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">Khi cần sửa</td>
+            <td style="padding:8px 10px">Gần như không phải sửa</td>
+            <td style="padding:8px 10px">Phải <b>tháo hàn trên bo ESC</b> để đảo dây</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Lý do sâu hơn: dây gốc của motor vốn đã có 3 màu sẵn.</b> Nối dài bằng một màu duy nhất là <b>xoá mất thông tin đó</b> ở đầu bên kia. Bạn vẫn đấu được, chỉ là mất khả năng đối chiếu giữa 4 motor.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Đừng lo quá về chuyện này.</b> Chiều quay nhiều khả năng còn đổi được bằng phần mềm qua trang cấu hình của firmware OX32 trên ESC, mà không cần đụng mỏ hàn — tôi chưa xác nhận được tính năng đó có đúng trên bản OX32 hay không nên bạn kiểm tra lại. Dù sao thì <b>tháo hàn trên bo ESC 4-in-1 là thao tác rủi ro nhất cả quá trình lắp</b>: 12 chân motor nằm sát nhau, hơ lại dễ bong chân hoặc dính chập hai chân. Tránh được lần nào tốt lần đó.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--accent); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">16AWG có nối được với dây motor không</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px"><b>Nói trước điều tôi không biết:</b> EMAX <b>không công bố cỡ dây</b> của MT2216. Tôi đã tra trang sản phẩm chính thức của hãng, bảng thông số không có dòng nào về dây. Nên tôi không khẳng định được dây gốc là 18AWG hay 20AWG.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px"><b>Nhưng điều đó không quan trọng, vì đây là mối hàn chứ không phải giắc cắm.</b> Giắc cắm thì phải khớp kích thước mới cắm được. Mối hàn thì không: hai sợi dây khác cỡ hàn vào nhau hoàn toàn bình thường. Chỉ cần hai điều:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Dây nối dài phải tải nổi dòng</strong>16AWG chịu khoảng <b>80 A</b>, mà mỗi motor chỉ rút <b>14,6 A</b>. Dư hơn 5 lần. Điều kiện này thoả rất xa.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Hai cỡ dây không được lệch nhau quá xa</strong>Lệch một hai bậc thì mối hàn vẫn gọn. Dây motor loại 2216 gần như luôn nằm trong khoảng <b>18–20AWG</b>, tức cách 16AWG đúng một tới hai bậc. Vừa đẹp.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Bằng chứng mạnh nhất là chính thị trường.</b> Có sản phẩm bán sẵn tên là <span class="mono">"3.5mm Bullet Motor Wire Extension 15cm 16AWG"</span> — dây nối dài motor làm sẵn, bán theo bộ 3 sợi đúng 3 pha, và cỡ dây họ chọn là <b>16AWG</b>. Đây đúng là công việc bạn đang làm, và ngành đã chốt 16AWG cho nó.</p>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>16AWG dùng được cho những motor nào</h3>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Loại motor</th>
+            <th style="padding:7px 10px">16AWG?</th>
+            <th style="padding:7px 10px">Lý do</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0"><b>Cỡ 2204 đến 2820</b><br><span style="color:var(--muted)">khung 250mm đến 600mm, gồm MT2216 của bạn</span></td>
+            <td style="padding:8px 10px"><b style="color:var(--ok)">Đúng</b></td>
+            <td style="padding:8px 10px">Rút nhiều nhất khoảng 20–30 A, dây gốc 16–20AWG</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Motor tí hon 0802, 1103<br><span style="color:var(--muted)">drone bay trong nhà</span></td>
+            <td style="padding:8px 10px"><b style="color:var(--danger)">Sai</b></td>
+            <td style="padding:8px 10px">Dây gốc mảnh như sợi tóc, 16AWG to gấp nhiều lần, không hàn nổi</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">Motor lớn 5010 trở lên<br><span style="color:var(--muted)">drone nông nghiệp</span></td>
+            <td style="padding:8px 10px"><b style="color:var(--warn)">Thiếu</b></td>
+            <td style="padding:8px 10px">Rút trên 40 A mỗi motor, cần 14AWG trở lên</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Nói cách khác, <b>16AWG là cỡ dùng chung được cho gần như mọi drone khảo sát cỡ vừa</b>. Mua dư dùng cho dự án sau vẫn hợp.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); margin-top:14px">
+    <h3 style="color:var(--warn)">Hỏi người bán trước: dây trần hay đã có đầu bullet</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Câu trả lời quyết định bạn mua gì và làm gì. Hai tình huống hoàn toàn khác nhau:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Nếu là dây trần</strong>Mua cuộn 16AWG ba màu như đã kê. Cắt, hàn nối, bọc co nhiệt. Nhẹ nhất và ít điểm hỏng nhất, nhưng phải hàn 12 mối và sau này muốn tháo motor thì phải cắt.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Nếu đã có đầu bullet 3.5mm</strong>Mua thẳng <b>dây nối dài làm sẵn có bullet hai đầu</b>, khỏi hàn ở phía motor. Nặng thêm khoảng 2g mỗi cặp và thêm một điểm tiếp xúc có thể lỏng, nhưng <b>tháo lắp motor sau này chỉ mất vài giây</b>. Với đề tài nghiên cứu phải tháo ra lắp vào nhiều lần thì đây là lợi thế thật.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Hàn nối cho đúng — ba điều quyết định độ bền</h3>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Đừng chỉ xoắn hai đầu vào nhau rồi chấm thiếc</strong>Đó là mối nối yếu nhất và là kiểu hỏng phổ biến nhất. Cách đúng: tuốt vỏ khoảng <b>8mm</b> mỗi bên, đặt hai lõi <b>gối lên nhau song song</b>, thấm thiếc cho ngấm hết vào lõi rồi mới bọc. Mối hàn phải nhìn thấy thiếc chảy vào giữa các sợi đồng, không phải một cục thiếc bọc ngoài.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>So le ba mối nối, đừng để thẳng hàng</strong>Cắt ba sợi lệch nhau khoảng <b>2cm</b> để ba mối hàn nằm ở ba vị trí khác nhau dọc bó dây. Nếu để thẳng hàng, chỗ đó phình thành một cục cứng, vừa khó luồn vào cần khung vừa tập trung ứng suất đúng chỗ yếu nhất.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Co nhiệt hai lớp</strong>Một ống nhỏ bọc riêng từng mối, rồi một ống to bọc chung cả ba. Lớp ngoài giữ bó dây không cọ vào cạnh cần khung — cạnh sợi thuỷ tinh cắt đứt vỏ dây theo thời gian do rung.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Tóm lại nên mua gì</h3>
+    <div class="tags">
+      <span class="tag key">Silicone <b>16AWG</b> (18AWG cũng được)</span>
+      <span class="tag"><b>3 màu</b> khác nhau</span>
+      <span class="tag">Khoảng <b>1,5 m mỗi màu</b></span>
+      <span class="tag">Loại <b>nhiều sợi mảnh</b>, thật mềm</span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px">Cần 30cm × 3 dây × 4 motor = <b>3,6 m</b>, mua 4,5 m cho dư phần hỏng. Chọn loại lõi nhiều sợi mảnh — bẻ gập thấy mềm oặt là đúng, thấy cứng và giữ nếp là dây sai, rung sẽ làm gãy lõi bên trong lớp vỏ mà nhìn ngoài không thấy gì.</p>
+  </div>
+</section>
+
+<section id="doc-6">
+  <div class="sec-head"><h2>Chọn bộ sạc cho đúng</h2><span class="pill must">Có một cái bẫy</span></div>
+  <p class="sec-sub">Sạc LiPo không giống sạc điện thoại. Có một con số phải tính trước, và một cái bẫy khiến rất nhiều người mua về rồi mới phát hiện thiếu đồ.</p>
+
+  <div class="included" style="border-left-color:var(--accent); background:var(--accent-soft)">
+    <h3 style="color:var(--accent-ink)">Bộ sạc cần mạnh bao nhiêu — tính ra được</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Quy tắc an toàn là sạc ở <b>1C</b>, tức dòng sạc bằng đúng dung lượng pin. Sạc nhanh hơn 1C làm pin chai nhanh.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Bước tính</th>
+            <th style="padding:7px 10px">Con số</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Dòng sạc 1C cho pin 5300mAh</td>
+            <td style="padding:8px 10px" class="mono">5,3 A</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Điện áp pin 4S khi sạc đầy</td>
+            <td style="padding:8px 10px" class="mono">16,8 V</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0"><b>Công suất cần</b></td>
+            <td style="padding:8px 10px" class="mono"><b>5,3 × 16,8 ≈ 90 W</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>90 W là trần, không phải mục tiêu để vượt.</b> Sạc 300W hay 500W không giúp bạn sạc nhanh hơn được, vì giới hạn nằm ở chính viên pin chứ không nằm ở bộ sạc. Mua sạc công suất khủng là lặp lại đúng sai lầm mua pin 110C — trả tiền cho con số không dùng tới.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Cái bẫy — phần lớn bộ sạc không kèm nguồn điện</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Đây là điều gây hụt hẫng nhất khi mở hộp. Rất nhiều bộ sạc phổ biến — iMAX B6 bản thường, ToolkitRC M6, M7, M6D — <b>chỉ nhận điện một chiều</b>. Mua về cắm vào ổ điện tường thì không có gì xảy ra cả.</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Dấu hiệu nhận ra trên trang bán</strong>Tìm dòng <span class="mono">"Không Tích Hợp Nguồn"</span>, hoặc mục điện áp đầu vào ghi kiểu <span class="mono">"7.0–28.0V"</span> / <span class="mono">"10–20VDC"</span>. Đó là <b>điện một chiều</b>, không phải điện lưới. Ngược lại nếu ghi <span class="mono">"AC 100–240V"</span> thì cắm thẳng ổ điện được.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Nếu lỡ mua loại không kèm nguồn</strong>Không phải bỏ đi. Mua thêm <b>cáp Type-C sang XT60</b> (khoảng 148.000 ₫, loại 20V 5A 100W) rồi lấy điện từ củ sạc laptop USB-C. Cách này gọn và rẻ hơn mua nguồn tổ ong, nhưng bắt buộc phải có sẵn củ sạc USB-C công suất cao.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Đã chọn: SkyRC iMAX B6AC V2</h3>
+    <div class="tags">
+      <span class="tag">Giá <b>991.000 ₫</b> <span style="opacity:.7">(830k + 161k ship)</span></span>
+      <span class="tag key"><b>Nguồn AC 100–240V tích hợp</b></span>
+      <span class="tag">50 W · tối đa 6 A</span>
+      <span class="tag">Cân bằng 1–6 cell</span>
+      <span class="tag">Có mã xác thực chính hãng</span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px">Lý do chọn bản <b>AC</b> chứ không phải bản thường: cắm thẳng ổ điện tường, không phải mua thêm nguồn, không có rủi ro mua thiếu món. Với người mới thì sự đơn giản này đáng giá hơn vài chục phút sạc.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Đánh đổi phải biết trước:</b> nó chỉ <b>50 W</b>, nên ở 4S dòng sạc tối đa là 50 ÷ 16,8 ≈ <b>2,98 A</b>, tức khoảng 0,56C. Sạc đầy một viên 5300mAh mất <b>khoảng 1 giờ 40 phút</b> thay vì 1 giờ. Chấp nhận được, và đây cũng là lý do nên mua 2 viên pin nếu muốn bay nhiều trong một buổi.</p>
+    <h3 style="margin-top:14px">Trong hộp đã có sẵn những gì</h3>
+    <div class="tags">
+      <span class="tag">Bộ sạc</span>
+      <span class="tag">Cáp nguồn AC</span>
+      <span class="tag key">Dây sạc đầu <b>XT60</b></span>
+      <span class="tag">Dây kẹp cá sấu</span>
+      <span class="tag">Dây đầu JST</span>
+      <span class="tag">Dây đầu Futaba</span>
+      <span class="tag">Dây đầu chuối</span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px"><b>Dây XT60 đã có sẵn</b>, khớp thẳng với đầu xả của pin. Cổng cân bằng của bộ sạc là loại vỉ đa năng 2–6S, cắm vừa giắc <b>JST-XH</b> của pin. <b>Không phải mua thêm phụ kiện nào.</b></p>
+  </div>
+
+
+
+  <div class="included" style="border-left-color:var(--ok); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--ok)">B6AC V2 đã làm được việc của đồng hồ đo cell — bỏ món đó đi</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Sổ tay chính hãng có hẳn hai mục riêng cho việc này, tách khỏi chức năng sạc:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Battery Meter — đo điện áp từng cell</strong>Nguyên văn sổ tay: <span class="mono">"The user can check battery's total voltage, the highest voltage, the lowest voltage and each cell's voltage."</span> Cắm hai dây vào rồi bấm <b>START/ENTER</b>, màn hình hiện điện áp <b>từng cell</b> (kiểu 4.20 4.19 4.19 V), bấm tiếp hiện tổng cùng cell cao nhất và thấp nhất. <b>Không cần bắt đầu sạc.</b></p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Battery Resistance Meter — đo điện trở trong từng cell</strong>Cái này thì đồng hồ 50.000 ₫ <b>không làm được</b>. Nó hiện điện trở của từng cell theo đơn vị mΩ, cùng tổng, cao nhất và thấp nhất.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Nghĩa là bộ sạc <b>làm được nhiều hơn</b> món đồng hồ rời, chứ không phải chỉ ngang bằng. Đã bỏ món đó khỏi danh sách mua, tiết kiệm <b>50.000 ₫</b>.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--accent); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">Điện trở trong — chỉ số cảnh báo pin hỏng sớm nhất</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Đây là tính năng đáng dùng mà hầu như người mới không biết có. Điện áp chỉ cho biết pin <b>đang còn bao nhiêu</b>. Điện trở trong cho biết pin <b>còn khoẻ không</b>.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px"><b>Việc nên làm ngay khi pin còn mới:</b> đo một lần và <b>ghi lại con số mΩ của từng cell</b> vào sổ. Đó là mốc gốc. Sau này cứ vài chục lần sạc đo lại một lần.</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Bốn cell xấp xỉ nhau và gần mốc gốc</strong>Pin còn khoẻ.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Một cell cao hơn hẳn ba cell kia</strong>Cell đó đang yếu đi. Nó sẽ là cell sụt áp trước tiên khi bay, và bo bay <b>không phát hiện được</b> vì bo chỉ đo tổng điện áp cả cục.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Điện trở tăng rõ so với mốc gốc</strong>Pin đang chai. Chuyển sang dùng cho việc thử nghiệm dưới đất, đừng mang bay mang theo camera.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Khi nào mới đáng mua đồng hồ đo cell rời</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Chỉ có <b>một</b> việc bộ sạc không làm được: bộ sạc cần <b>điện lưới</b>, còn ra bãi bay thì không có ổ cắm. Đồng hồ rời bỏ túi được, lấy điện ngay từ giắc cân bằng.</p>
+    <p style="font-size:13.5px; color:var(--ink2)">Việc đó chỉ có ý nghĩa khi bạn <b>có từ 2 viên pin trở lên</b> và bay nhiều lượt trong một buổi ở xa nhà — lúc đó mới cần kiểm tra viên vừa bay xong ngay tại chỗ. <b>Với một viên pin thì không cần</b>: bay xong là về, về tới nhà đã có bộ sạc. Nên để món 50.000 ₫ này lại, mua chung lúc mua viên pin thứ hai.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Bản "B6AC V3" không tồn tại — SkyRC chưa từng làm</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Đây là kết luận quan trọng nhất khi so ba nơi bán. Ba bằng chứng độc lập:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Danh mục chính hãng không có bản V3</strong>Trang sản phẩm iMAX của SkyRC liệt kê đúng ba model: <span class="mono">iMAX B6 V2</span> (SK-100161), <span class="mono">iMAX B6mini</span> (SK-100084), <span class="mono">iMAX B6AC V2</span> (SK-100008). Hết. Bản kế nhiệm của B6AC V2 tên là <b>B6ACneo</b>, không phải V3.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Chính trang bán tự khai nhà sản xuất khác</strong>Mô tả ghi <span class="mono">"bộ sạc đến từ sevenchip"</span>. Tức người bán nói thẳng rằng máy do <b>sevenchip</b> làm, không phải SkyRC. Vậy cái tên "iMAX B6AC" trên vỏ chỉ là mượn.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Con số 80 W không khớp bất kỳ model thật nào</strong>B6AC V2 chính hãng là <b>50 W</b>. B6 V2 là <b>60 W</b>. B6ACneo là 200 W qua nguồn một chiều và <b>60 W</b> qua điện lưới. <b>Không có bản B6 nào 80 W cả.</b> Con số này xuất hiện ở cả phương án 2 và 3 — đó là dấu vân tay của cùng một dòng hàng nhái.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b style="color:var(--danger)">Đính chính:</b> bản kê trước của tôi nói chi tiết <span class="mono">"đo điện trở bên trong"</span> là tính năng của máy khác — <b>sai</b>. Sổ tay chính hãng của B6AC V2 có hẳn mục <span class="mono">Battery Resistance Meter</span> ở trang 19, tức bản V2 thật <b>vốn đã có</b> tính năng đó. Chi tiết này không chứng minh được gì cả. <b>Kết luận về bản V3 không đổi</b>, vì nó đứng trên ba bằng chứng bên trên, không phải trên chi tiết này.</p>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Ba nơi bán đặt cạnh nhau</h3>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 8px 7px 0">Phương án</th>
+            <th style="padding:7px 8px">Model có thật?</th>
+            <th style="padding:7px 8px">Cắm ổ điện?</th>
+            <th style="padding:7px 8px">Giá</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 10%, transparent)">
+            <td style="padding:8px 8px 8px 0"><b>1 · B6AC V2</b><br><span style="color:var(--muted)">Alibaba, Shenzhen Xinjiaguo</span></td>
+            <td style="padding:8px 8px"><b style="color:var(--ok)">Có</b><br><span style="color:var(--muted)">SK-100008, 50 W</span></td>
+            <td style="padding:8px 8px"><b style="color:var(--ok)">Được</b><br><span style="color:var(--muted)">AC 100–240V</span></td>
+            <td style="padding:8px 8px" class="mono">830k + <b>161k ship</b><br><b>= 991k</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 8px 8px 0">2 · B6 + nguồn 12V 5A<br><span style="color:var(--muted)">Shopee</span></td>
+            <td style="padding:8px 8px"><b style="color:var(--danger)">Sai công suất</b><br><span style="color:var(--muted)">ghi 80 W, thật là 50–60 W</span></td>
+            <td style="padding:8px 8px"><b style="color:var(--warn)">Nhờ nguồn kèm</b></td>
+            <td style="padding:8px 8px" class="mono">chưa đọc được</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 8px 8px 0">3 · "B6AC V3"<br><span style="color:var(--muted)">Shopee, sevenchip</span></td>
+            <td style="padding:8px 8px"><b style="color:var(--danger)">Không tồn tại</b></td>
+            <td style="padding:8px 8px">Được</td>
+            <td style="padding:8px 8px" class="mono">chưa đọc được</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-top:10px">Hai trang Shopee bị chặn truy cập tự động nên không đọc được giá. Thông số phương án 3 lấy từ chính người dùng gửi.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); margin-top:14px">
+    <h3 style="color:var(--warn)">Phương án 2: nguồn 12V 5A không cho ra 80 W</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Đây là phép nhân đơn giản: <span class="mono">12 V × 5 A = <b>60 W</b></span>. Đó là toàn bộ công suất nguồn cấp được. Máy sạc không thể lấy ra nhiều hơn thứ được đưa vào, nên <b>60 W là trần cứng</b>, chưa trừ hao hiệu suất. Sau hao còn khoảng 50 W.</p>
+    <p style="font-size:13.5px; color:var(--ink2)">Nghĩa là phương án 2 <b>sạc không nhanh hơn phương án 1</b>, dù quảng cáo ghi 80 W. Nó chỉ thêm một cục nguồn rời để làm mất, và thêm một điểm hỏng.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">80 W nhanh hơn được bao nhiêu — và có đáng không</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Giả sử con số 80 W là thật đi. Sạc viên 5300mAh từ mức cất giữ lên đầy, tức nạp khoảng 4240 mAh:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Công suất</th>
+            <th style="padding:7px 10px">Dòng sạc ở 4S</th>
+            <th style="padding:7px 10px">Thời gian</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">50 W (B6AC V2 thật)</td>
+            <td style="padding:8px 10px" class="mono">~3,2 A · 0,6C</td>
+            <td style="padding:8px 10px" class="mono">~1 giờ 45</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">80 W (nếu có thật)</td>
+            <td style="padding:8px 10px" class="mono">~5,1 A · 0,96C</td>
+            <td style="padding:8px 10px" class="mono">~1 giờ 15</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Chênh nhau khoảng 30 phút.</b> Đổi 30 phút lấy một mạch cân bằng không rõ nguồn gốc, trên thiết bị mà kiểu hỏng là <b>cháy</b>, là đổi sai chiều.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Và mức 50 W thật ra tốt cho pin hơn.</b> Sạc ở 0,6C nhẹ nhàng hơn sạc ở gần 1C — pin ít nóng, tuổi thọ dài hơn. Cái trần 50 W không phải khuyết điểm, nó tự giữ bạn ở mức an toàn ngay cả khi bấm nhầm.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Nếu thật sự cần sạc nhanh</b> thì máy chính hãng cần tìm tên là <b>SkyRC B6ACneo</b> — 60 W qua điện lưới, 200 W nếu cấp nguồn một chiều rời. Đó mới là bản mạnh hơn có thật, không phải "V3".</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Chọn phương án 1 — nhưng biết trước ba điều</h3>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Cộng phí ship vào rồi hãy so giá</strong>Giá hiện 829.517 ₫ nhưng phí vận chuyển <b>161.087 ₫</b> tính riêng. Tổng thật là <b>990.604 ₫</b>. Đừng nhìn mỗi con số lớn trên trang.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Giao hàng 18/09 – 04/10, tức 2 đến 4 tuần</strong>Phải <b>đặt sớm</b>. Nếu lịch lắp ráp gấp thì đây là nhược điểm thật của phương án này. Chọn chuẩn phích cắm <b>EU</b> — hai chân tròn, cắm vừa ổ điện Việt Nam.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Alibaba cũng bán hàng nhái — nhưng có bảo vệ người mua</strong>Người bán này được xác minh, 4,8/5 với 293 đánh giá, và đơn hàng có <b>bảo đảm hoàn tiền</b>. Nghĩa là nếu cào tem mà mã không hợp lệ, bạn <b>đòi lại được tiền</b>. Mua ngoài chợ một cái không rõ nguồn gốc thì không có cửa đó.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Việc bắt buộc khi nhận hàng:</b> cào lớp tráng bạc trên tem, lấy 12 chữ số, nhập vào trang xác thực SkyRC. Không hợp lệ thì mở khiếu nại ngay, đừng cắm thử.</p>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Điều tôi không kiểm chứng được</h3>
+    <p style="font-size:13.5px; color:var(--ink2)"><b>Không đọc được hai trang Shopee</b> — Shopee chặn truy cập tự động bằng captcha. Nên tôi không biết giá phương án 2 và 3. Nếu chúng rẻ hơn nhiều thì cũng không đổi kết luận, vì vấn đề là <b>model không có thật</b> chứ không phải giá. Ngoài ra mã <span class="mono">ACP8703</span> trên trang Alibaba là mã kho của người bán, không phải mã SkyRC — nên <b>trang Alibaba tự nó cũng không chứng minh được hàng thật</b>. Chỉ có thao tác cào tem lúc nhận hàng mới chứng minh được.</p>
+  </div>
+
+
+  <div class="included" style="border-left-color:var(--ok); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--ok)">Đối chiếu bảng thông số phương án 1 với hàng chính hãng</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Bảng người bán đưa khớp <b>từng con số một</b> với sổ tay SkyRC. Không có chỗ nào vênh:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Thông số</th>
+            <th style="padding:7px 10px">SkyRC chính hãng</th>
+            <th style="padding:7px 10px">Trang bán</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Điện áp vào</td>
+            <td style="padding:8px 10px" class="mono">AC 100–240V · DC 11–18V</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">khớp</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Công suất sạc</td>
+            <td style="padding:8px 10px" class="mono">50 W</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">khớp</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Công suất xả</td>
+            <td style="padding:8px 10px" class="mono">5 W</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">khớp</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Dòng sạc</td>
+            <td style="padding:8px 10px" class="mono">0,1 – 6,0 A</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">khớp</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Dòng xả</td>
+            <td style="padding:8px 10px" class="mono">0,1 – 2,0 A</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">khớp</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Số cell Lithium</td>
+            <td style="padding:8px 10px" class="mono">1 – 6S</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">khớp</b></td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">NiMH/NiCd · Pb</td>
+            <td style="padding:8px 10px" class="mono">1–15S · 2–20V</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">khớp</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Trong hộp có dây T sang XT60</b> — khớp thẳng với đầu pin Ovonic vừa mua, không phải mua thêm.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Nhưng để ý một chỗ lệch trong chính trang đó:</b> phần "Tính năng bộ sạc IMAX B6" ở dưới ghi <span class="mono">"0.1 – 5A"</span> và <span class="mono">"tối đa 5 gói trong bộ nhớ"</span>, trong khi bảng trên ghi <span class="mono">6,0A</span> và <span class="mono">10 hồ sơ</span>. Đây là người bán <b>chép nhầm mô tả của bản B6 thường</b> dán vào. Đó là cẩu thả chứ chưa phải bằng chứng hàng giả — nhưng nó nhắc rằng <b>chữ trên trang bán không chứng minh được gì</b>, chỉ có cào tem mới chứng minh được.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Ảnh phương án 2 tự tố cáo — chữ trên vỏ không phải SkyRC</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Đây là điểm quyết định, và nó nằm ngay trong ảnh sản phẩm chứ không phải trong mô tả:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Trên vỏ máy in chữ "BUILD-POWER" kèm logo chiếc lá</strong>Và <b>không có chữ SKYRC ở bất kỳ đâu</b> trên máy. Máy SkyRC thật luôn in logo SKYRC trên mặt. Tiêu đề trang bán ghi một hãng, cái vỏ ghi một hãng khác — tin cái vỏ.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Bảng in trên vỏ ghi "Charge Rate 0.1–5A"</strong>Đúng thông số bản B6 đời cũ, chỉ 50 W và 5 A. Vậy con số <b>80 W</b> trong tiêu đề rao bán mâu thuẫn với chính cái vỏ trong ảnh của họ.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Cách kiểm tra này dùng được cho mọi món sau này</strong><b>Đọc chữ in trên vỏ trong ảnh, đừng đọc tiêu đề.</b> Tiêu đề do người bán gõ nên gõ gì cũng được. Cái vỏ thì phải do nhà máy in.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Nói cho công bằng:</b> tôi đang đọc ảnh người bán đăng, chưa cầm máy thật. Nhưng người bán chụp một cái máy BUILD-POWER thì thứ họ giao là máy BUILD-POWER, không phải SkyRC.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); margin-top:14px">
+    <h3 style="color:var(--warn)">Vỉ sạc song song — không hợp với bộ sạc 50 W, cả bây giờ lẫn sau này</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Vỉ sạc sinh ra để <b>một bộ sạc mạnh nạp nhiều viên cùng lúc</b>. Nó không tạo thêm công suất, chỉ chia công suất sẵn có ra nhiều viên. Với bộ sạc 50 W thì phép chia đó không đem lại gì:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Cách sạc</th>
+            <th style="padding:7px 10px">Dòng mỗi viên</th>
+            <th style="padding:7px 10px">Xong cả lô</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">1 viên, không vỉ</td>
+            <td style="padding:8px 10px" class="mono">~3,2 A</td>
+            <td style="padding:8px 10px" class="mono">~1 giờ 45</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">2 viên qua vỉ, vẫn 50 W</td>
+            <td style="padding:8px 10px" class="mono">~1,6 A</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--warn)">~3 giờ 30</b></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Tổng thời gian y hệt.</b> Sạc hai viên nối tiếp nhau cũng mất chừng đó. Vỉ sạc chỉ bắt đầu có ích từ khoảng <b>200 W trở lên</b>. Ghi chú trên vỉ — chịu 35 A, cầu chì 40 A — là thật và tốt, nhưng bộ sạc 50 W không bao giờ chạm tới mức đó.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Và có một rủi ro thật.</b> Sạc song song là kỹ thuật nâng cao: nối hai viên chênh lệch điện áp vào cùng một vỉ thì <b>ngay khoảnh khắc cắm, dòng rất lớn phóng từ viên cao sang viên thấp</b>. Chính mô tả vỉ đã cảnh báo "chỉ sạc nhiều pin cùng loại". Với người mới và <b>đang có đúng một viên pin</b>, đây là món chưa nên đụng tới.</p>
+    <p style="font-size:13px; color:var(--muted); margin-top:10px">Trang Shopee của vỉ sạc bị chặn truy cập tự động, nên phần này đọc từ ảnh mô tả bạn gửi.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Kết luận: mua phương án 1</h3>
+    <div class="tags">
+      <span class="tag key">Thông số khớp <b>100%</b> hàng thật</span>
+      <span class="tag key">Nguồn AC <b>tích hợp</b></span>
+      <span class="tag">Đã có dây <b>XT60</b></span>
+      <span class="tag">Không cần adapter rời</span>
+      <span class="tag">Không cần vỉ sạc</span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px">Phương án 2 thua ở ba điểm cùng lúc: <b>vỏ máy ghi hãng khác</b>, cần thêm cục nguồn rời để mất và để hỏng, và kèm một món phụ kiện vừa vô dụng ở 50 W vừa rủi ro cho người mới.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Vẫn phải cào tem kiểm tra khi nhận hàng.</b> Thông số khớp chỉ chứng minh người bán chép đúng bảng thông số, không chứng minh cái máy trong hộp là thật. Xem mục ngay dưới.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Hàng nhái B6 tràn lan — phải kiểm tra mã</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">iMAX B6 là bộ sạc bị làm nhái nhiều nhất trong giới RC. Đây không phải chuyện mất tiền oan mà là chuyện an toàn: <b>mạch cân bằng trên hàng nhái thường sai hoặc không hoạt động</b>. Mà mạch cân bằng chính là thứ giữ cho 4 cell nạp đều nhau. Cell bị nạp quá là con đường dẫn thẳng tới phồng và cháy.</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Cách kiểm tra, làm ngay khi nhận hàng</strong>Trên tem mã vạch có một ô phủ lớp tráng bạc. <b>Cào nhẹ lớp bạc</b> sẽ lộ ra dãy <b>12 chữ số</b>. Nhập dãy số đó vào trang xác thực của SkyRC. Hàng thật sẽ hiện dòng chữ màu xanh lá xác nhận sản phẩm do SkyRC sản xuất.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Nếu mã không hợp lệ thì trả hàng ngay</strong>Đừng tiếc, và tuyệt đối đừng dùng thử "xem sao". Một bộ sạc cân bằng sai sẽ không báo lỗi gì cả — nó chỉ âm thầm làm hỏng pin qua vài chục lần sạc, cho tới ngày pin phồng.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="included" style="border-left-color:var(--ok); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--ok)">Không cần mua dây cân bằng rời — máy đã có sẵn cổng</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Sơ đồ máy trong sổ tay chính hãng ghi rõ một bộ phận tên là <span class="mono">Balance Lead Socket JST-XH Ports</span> — <b>dãy cổng cân bằng 2S đến 6S gắn liền trên thân máy</b>. Giắc cân bằng của viên Ovonic là JST-XH 5 chân, cắm thẳng vào ô <b>4S</b> trên máy.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Hình minh hoạ trong sổ tay cũng vẽ pin nối <b>trực tiếp</b> vào máy, không qua dây trung gian nào. Tiết kiệm <b>45.000 – 60.000 ₫</b>.</p>
+    <p style="font-size:13.5px; color:var(--ink2)"><b>Chỉ có hai lý do đáng mua loại dây đó,</b> và bạn không rơi vào cái nào: pin dùng giắc cân bằng khác chuẩn JST-XH (Ovonic thì không), hoặc muốn một sợi hy sinh để mòn thay cho cổng hàn trên máy. Cái thứ hai là tuỳ thích, không bắt buộc.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Thứ tự cắm dây — cắm sai làm hỏng bộ sạc</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Sổ tay cảnh báo nguyên văn: <span class="mono">"Failure to connect as shown in this diagram will damage this charger."</span> Đây là quy tắc dễ làm sai nhất vì nó phản trực giác.</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Lúc cắm: nối vào MÁY trước, nối vào PIN sau</strong>Cắm dây sạc vào bộ sạc trước đã, xong mới cắm đầu kia vào pin. Lý do: nếu cắm vào pin trước thì hai đầu chuối phía máy đang <b>mang điện và hở</b>, chạm nhau là chập thẳng viên pin.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Lúc rút: ngược lại — rút khỏi PIN trước</strong>Rút đầu pin ra trước, sau đó mới rút khỏi máy.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Dây đen của giắc cân bằng phải nằm đúng phía dấu âm</strong>Giắc JST-XH chỉ cắm được một chiều, nhưng vẫn phải nhìn: <b>dây đen thẳng hàng với dấu trừ</b> in trên máy.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Mỗi lần chỉ một viên pin</strong>Nguyên văn sổ tay: <span class="mono">"DON'T connect more than one battery to the balance ports simultaneously... this charger can charge ONE battery at a time."</span> Đây là lý do thứ hai, từ chính nhà sản xuất, để <b>không mua vỉ sạc song song</b>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Bốn quy tắc khi sạc</h3>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Đặt dòng sạc đúng, không để mặc định</strong>Bộ sạc không tự biết pin bạn bao nhiêu mAh. Phải tự chọn <b>4S</b> và đặt dòng <b>không quá 5,3 A</b>. Với bộ sạc 50W thì nó tự giới hạn ở khoảng 3A nên bạn an toàn, nhưng vẫn phải chọn đúng số cell — chọn sai số cell là lỗi gây cháy phổ biến nhất.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Luôn cắm cả hai dây</strong>Dây XT60 để nạp điện, và <b>dây cân bằng JST-XH</b> để bộ sạc theo dõi từng cell riêng. Chỉ cắm XT60 mà quên dây cân bằng thì bộ sạc không biết cell nào đang cao thấp.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Sạc trong túi chống cháy, không rời mắt</strong>Không sạc qua đêm, không sạc khi đi ra ngoài. Đây là lúc nguy hiểm nhất trong toàn bộ vòng đời viên pin.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Cất giữ dùng chế độ Storage</strong>Không cất pin ở trạng thái sạc đầy. Bộ sạc có chế độ <b>Storage</b> đưa pin về <b>3,8 V mỗi cell</b> — dùng chế độ đó nếu không bay trong vài ngày tới. Để đầy dài ngày làm pin chai rất nhanh.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="doc-7">
+  <div class="sec-head"><h2>Gắn bo bay lên khung — đừng khoan</h2><span class="pill must">Quyết định sớm</span></div>
+  <p class="sec-sub">Khung S500 không có lỗ 30,5 × 30,5 mm, và người bán nói đúng về điều đó. Nhưng "tự khoan" là cách xử lý sai, vì hai lý do độc lập nhau.</p>
+
+  <div class="included" style="border-left-color:var(--danger)">
+    <h3 style="color:var(--danger)">Lý do 1 — đế dưới của S500 là một bo mạch có đồng bên trong</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Đế dưới S500 không phải tấm nhựa trơn. Nó là <b>bo phân phối nguồn tích hợp</b>, có <b>các đường đồng đúc chìm bên trong lớp vật liệu</b> để dẫn dòng từ pin ra 4 điểm hàn ESC.</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Bạn không nhìn thấy đường đồng từ bên ngoài</strong>Chúng nằm giữa các lớp. Khoan trúng một đường là <b>đứt mạch nguồn</b>, và bạn sẽ không biết cho tới khi cắm pin thấy không lên điện. Không có cách nào dò trước bằng mắt.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Mạt khoan dẫn điện</strong>Mũi khoan kéo theo vụn đồng dọc thành lỗ, nối lớp trên với lớp dưới. Đây là kiểu <b>chập chờn</b> nguy hiểm nhất: lúc đầu vẫn chạy, tới khi rung và nóng lên mới chập, mà lúc đó drone đang ở trên không.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Nếu bắt buộc phải khoan thì chỉ khoan tấm trên</strong>Tấm trên thường là tấm sợi thuỷ tinh trơn, không có mạch. Cách phân biệt: <b>tấm nào có các điểm hàn đồng và ký hiệu cực + − thì tuyệt đối không khoan.</b></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Lý do 2 — bắt cứng bo bay vào khung là sai ngay từ đầu</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Đây mới là lý do quan trọng hơn. Kể cả khung <b>có sẵn</b> lỗ 30,5 thì bạn cũng <b>không nên</b> bắt ốc trực tiếp.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Tài liệu ArduPilot nói thẳng: <span class="mono">"Autopilots have accelerometers that are sensitive to vibrations"</span>. Bo bay giữ độ cao và giữ vị trí bằng cách đọc cảm biến gia tốc. Bắt cứng vào khung nghĩa là <b>truyền thẳng toàn bộ rung động của 4 motor vào đúng cái cảm biến đó</b>.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Mức rung đo được</th>
+            <th style="padding:7px 10px">Hậu quả theo tài liệu ArduPilot</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0" class="mono">dưới 30 m/s²</td>
+            <td style="padding:8px 10px"><b style="color:var(--ok)">Chấp nhận được</b> — <span class="mono">"normally acceptable"</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0" class="mono">trên 30 m/s²</td>
+            <td style="padding:8px 10px">Bắt đầu <b>có thể</b> gặp sự cố</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0" class="mono">trên 60 m/s²</td>
+            <td style="padding:8px 10px"><b style="color:var(--danger)">Gần như luôn hỏng</b> phần giữ vị trí và giữ độ cao — <span class="mono">"nearly always have problems"</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Triệu chứng khi rung quá ngưỡng: bật AltHold thì drone <b>tự trôi lên hoặc tụt xuống</b> dù bạn không đụng cần ga, bật Loiter thì trôi ngang. Đây chính là chế độ bay mà cả đề tài của bạn phụ thuộc vào.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Cách làm đúng — không cần khoan một lỗ nào</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Mua <b>bát chống rung 30,5 × 30,5 mm</b>. Đây là một tấm nhỏ có 4 quả cao su giảm chấn ở giữa: mặt trên bắt bo bay theo chuẩn 30,5, mặt dưới dán hoặc bắt vào khung.</p>
+    <div class="tags">
+      <span class="tag">Tên tìm mua: <b>bát chống rung 30.5x30.5</b></span>
+      <span class="tag">hoặc <b>FC anti-vibration mount 30.5mm</b></span>
+      <span class="tag">Giá khoảng <b>50.000 – 150.000 ₫</b></span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px">Cách cố định mặt dưới vào khung, theo thứ tự ưu tiên:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Dùng lỗ có sẵn trên tấm trên</strong>Tấm trên S500 thường đã có sẵn một dãy lỗ để bắt phụ kiện. Bắt ốc vào lỗ nào trùng là xong, không phải khoan.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Băng keo hai mặt xốp loại dày</strong>Loại 3M VHB hoặc băng xốp dày 1–2 mm. Nghe có vẻ tạm bợ nhưng đây là cách <b>chính tài liệu ArduPilot khuyến nghị</b> — bản thân lớp xốp cũng góp phần giảm rung. Dán kín cả mặt, không dán 4 góc.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Dây rút qua lỗ có sẵn</strong>Chắc chắn nhưng siết quá tay sẽ ép chết mấy quả cao su giảm chấn, làm mất tác dụng chống rung. Siết vừa đủ không xê dịch.</p>
+      </div>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Không dùng ốc bắt xuyên qua bát chống rung xuống thẳng khung.</b> Làm vậy là nối cứng lại, mấy quả cao su mất hết tác dụng và bạn quay về đúng vấn đề ban đầu.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--accent); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">Vì sao khung S500 lại không có lỗ 30,5</h3>
+    <p style="font-size:13.5px; color:var(--ink2)">Không phải khung bị thiếu sót. S500 thiết kế từ thời bo bay là loại <b>hộp lớn chuẩn 45 × 45 mm</b> kiểu Pixhawk, gắn bằng miếng xốp giảm chấn dán ở đáy. Chuẩn <b>30,5 × 30,5 mm</b> ra đời sau, từ dòng bo nhỏ gọn của giới đua. Bo F405 V5 của bạn thuộc chuẩn mới, khung thuộc chuẩn cũ. Bát chống rung chính là món sinh ra để nối hai chuẩn đó, và tiện thể giải quyết luôn vấn đề rung.</p>
+  </div>
+</section>
+
+<section id="doc-8">
+  <div class="sec-head"><h2>Chọn pin cho đúng</h2><span class="pill must">Dễ mua thừa tiền nhất</span></div>
+  <p class="sec-sub">Pin LiPo ghi ba con số và một chữ C. Hiểu chữ C là tự loại được phần lớn hàng đắt vô ích, vì con số đó bị thổi phồng nhiều nhất trên thị trường.</p>
+
+  <div class="included" style="border-left-color:var(--accent); background:var(--accent-soft)">
+    <h3 style="color:var(--accent-ink)">Chữ C nghĩa là gì</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">C là <b>bội số của dung lượng</b>, cho biết viên pin nhả ra dòng tối đa bao nhiêu mà không hỏng. Công thức chỉ có một dòng:</p>
+    <div class="tags">
+      <span class="tag" style="font-size:14px">Dòng tối đa (A) = <b>Dung lượng (Ah) × Số C</b></span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px">Ví dụ pin 5300mAh tức 5,3Ah. Nếu ghi 20C thì nhả được 5,3 × 20 = <b>106 A</b>. Nếu ghi 110C thì trên lý thuyết là 5,3 × 110 = <b>583 A</b>.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px">Vậy câu hỏi đúng không phải "C càng cao càng tốt phải không", mà là <b>"drone của tôi thật sự rút bao nhiêu ampe"</b>.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Drone của bạn cần đúng bao nhiêu C</h3>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Bước tính</th>
+            <th style="padding:7px 10px">Con số</th>
+            <th style="padding:7px 10px">Nguồn</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Dòng tối đa một motor ở 4S với cánh 1045</td>
+            <td style="padding:8px 10px" class="mono">14,6 A</td>
+            <td style="padding:8px 10px">Bảng đo EMAX</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Cả 4 motor kéo hết ga cùng lúc</td>
+            <td style="padding:8px 10px" class="mono"><b>58,4 A</b></td>
+            <td style="padding:8px 10px">14,6 × 4</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Số C cần, nếu pin 5300mAh</td>
+            <td style="padding:8px 10px" class="mono"><b>11 C</b></td>
+            <td style="padding:8px 10px">58,4 ÷ 5,3</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">Nhân đôi cho an toàn và cho pin già đi</td>
+            <td style="padding:8px 10px" class="mono"><b>≈ 22 C</b></td>
+            <td style="padding:8px 10px">biên dự phòng</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Nghĩa là <b>pin 25C đã đủ, 35–50C là dư dả và thoải mái</b>. Mọi con số cao hơn nữa bạn trả tiền nhưng không bao giờ dùng tới, vì drone khảo sát hiếm khi kéo hết ga, còn lúc treo lơ lửng chỉ rút khoảng <b>17–18 A</b>, tức chưa tới <b>3,5 C</b>.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Con số C cao là quảng cáo, nhưng không phải lý do để loại pin</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Có hai điều khác nhau ở đây, và rất dễ lẫn:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Con số 110C đúng là không thực hiện được</strong>Đầu <b>XT60</b> chịu khoảng <b>60 A</b> liên tục — con số 60 trong tên gọi chính là ampe. Một viên 5300mAh ghi 110C tức tuyên bố nhả <b>583 A</b>. Nếu điều đó có thật thì chính cái đầu cắm sẽ chảy ra từ lâu trước đó. Nhà sản xuất gắn XT60 lên viên pin ấy là đã tự thừa nhận nó không bao giờ chạy quá khoảng 60 A.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Nhưng con số bị thổi phồng không làm viên pin trở nên tồi</strong>Pin vẫn chạy bình thường, chỉ là bạn không bao giờ dùng tới phần dư đó. Nên <b>đừng loại một viên pin chỉ vì nó ghi C cao</b>. Điều duy nhất cần làm là <b>đừng trả thêm tiền</b> cho con số đó.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Đính chính: "C cao thì nặng hơn" là sai</strong>Đây là suy luận hợp lý về mặt nguyên lý nhưng <b>số liệu thực tế bác bỏ nó</b>. Pin đua làm cho người chơi đếm từng gam, nên vỏ mỏng và nhẹ. Bảng dưới đây cho thấy viên <b>110C lại là viên nhẹ nhất</b> trong nhóm.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Số liệu thật: cân nặng mới là thứ đáng so</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Cột cuối là <b>mAh trên mỗi gam</b> — càng cao thì càng chở được nhiều năng lượng trên mỗi gam phải bay lên. Đây mới là chỉ số quyết định thời gian bay.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Pin 4S</th>
+            <th style="padding:7px 10px">Dung lượng</th>
+            <th style="padding:7px 10px">C</th>
+            <th style="padding:7px 10px">Nặng</th>
+            <th style="padding:7px 10px">mAh/g</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 8%, transparent)">
+            <td style="padding:8px 10px 8px 0"><b>Ovonic Rebel FPV</b></td>
+            <td style="padding:8px 10px" class="mono">5300 mAh</td>
+            <td style="padding:8px 10px" class="mono">110C</td>
+            <td style="padding:8px 10px" class="mono"><b>425 g</b></td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--ok)">12,5</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Tattu G-tech</td>
+            <td style="padding:8px 10px" class="mono">5200 mAh</td>
+            <td style="padding:8px 10px" class="mono">35C</td>
+            <td style="padding:8px 10px" class="mono">436,5 g</td>
+            <td style="padding:8px 10px" class="mono">11,9</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Ovonic</td>
+            <td style="padding:8px 10px" class="mono">5000 mAh</td>
+            <td style="padding:8px 10px" class="mono">50C</td>
+            <td style="padding:8px 10px" class="mono">448 g</td>
+            <td style="padding:8px 10px" class="mono">11,2</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">Ovonic</td>
+            <td style="padding:8px 10px" class="mono">5300 mAh</td>
+            <td style="padding:8px 10px" class="mono">50C</td>
+            <td style="padding:8px 10px" class="mono">508 g</td>
+            <td style="padding:8px 10px" class="mono">10,4</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">Tattu GensAce</td>
+            <td style="padding:8px 10px" class="mono">2300 mAh</td>
+            <td style="padding:8px 10px" class="mono">45C</td>
+            <td style="padding:8px 10px" class="mono">230 g</td>
+            <td style="padding:8px 10px; color:var(--danger)" class="mono">10,0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Viên 110C đứng đầu bảng.</b> Nó vừa nhiều dung lượng nhất vừa nhẹ nhất. Đó là lý do quy tắc đúng phải là: <b>lọc theo gam và theo giá, không lọc theo C</b>. Chỉ cần C vượt ngưỡng 25 là xong, sau đó quên con số đó đi.</p>
+  </div>
+
+
+  <div class="included" style="border-left-color:var(--accent); background:var(--accent-soft); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">So bốn viên pin cụ thể — chọn viên nào</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px"><b>Cả bốn viên đều thừa dòng xả.</b> Yêu cầu thật chỉ là <span class="mono">11C</span>, viên thấp nhất trong nhóm đã là 35C. Nên C <b>không phân biệt được viên nào</b> — bỏ cột đó ra và so bằng gam.</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 8px 7px 0">Phương án</th>
+            <th style="padding:7px 8px">Nặng</th>
+            <th style="padding:7px 8px">mAh/g</th>
+            <th style="padding:7px 8px">Bay được</th>
+            <th style="padding:7px 8px">Lực đẩy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--ok) 10%, transparent)">
+            <td style="padding:8px 8px 8px 0"><b>4 · Ovonic 5300mAh 110C</b><br><span style="color:var(--muted)">135 × 40 × 30 mm</span></td>
+            <td style="padding:8px 8px" class="mono"><b>423 g</b></td>
+            <td style="padding:8px 8px" class="mono"><b style="color:var(--ok)">12,5</b></td>
+            <td style="padding:8px 8px" class="mono">~14,5 ph</td>
+            <td style="padding:8px 8px" class="mono"><b style="color:var(--ok)">2,20:1</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 8px 8px 0">3 · Ovonic 6200mAh 90C<br><span style="color:var(--muted)">153 × 43 × 32 mm</span></td>
+            <td style="padding:8px 8px" class="mono">511 g</td>
+            <td style="padding:8px 8px" class="mono">12,1</td>
+            <td style="padding:8px 8px" class="mono"><b style="color:var(--ok)">~15,8 ph</b></td>
+            <td style="padding:8px 8px" class="mono"><b style="color:var(--warn)">2,10:1</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 8px 8px 0">1 · 5400mAh 35C<br><span style="color:var(--muted)">135 × 43 × 39 mm</span></td>
+            <td style="padding:8px 8px" class="mono"><b style="color:var(--danger)">300 g?</b><br><span style="color:var(--muted); font-size:12px">không đáng tin</span></td>
+            <td style="padding:8px 8px" class="mono">—</td>
+            <td style="padding:8px 8px" class="mono">—</td>
+            <td style="padding:8px 8px" class="mono">—</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 8px 8px 0">2 · Ovonic 4200mAh 110C<br><span style="color:var(--muted)">137 × 41 × 33 mm</span></td>
+            <td style="padding:8px 8px" class="mono">407 g</td>
+            <td style="padding:8px 8px" class="mono">10,3</td>
+            <td style="padding:8px 8px" class="mono"><b style="color:var(--danger)">~11,7 ph</b></td>
+            <td style="padding:8px 8px" class="mono">2,22:1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-top:10px">Thời gian bay là ngoại suy từ mốc 5300mAh treo lơ lửng 17,5 A trong bảng trên, có điều chỉnh theo khối lượng. Không phải số đo thực tế.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Người bán báo 300 g — con số đó không thể đúng</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Không cần cân cũng biết, vì nó sai ở <b>hai phép kiểm tra độc lập</b>, mỗi phép đều chỉ cần phép chia.</p>
+
+    <h3 style="margin-top:6px">Kiểm tra 1 — năng lượng trên mỗi ký</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin:6px 0 10px">Viên này chứa <span class="mono">5,4 Ah × 14,8 V = <b>79,9 Wh</b></span>. Nếu nặng 300 g thì ra <b>266 Wh mỗi ký</b>. So với ba viên còn lại:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Viên</th>
+            <th style="padding:7px 10px">Năng lượng</th>
+            <th style="padding:7px 10px">Nặng</th>
+            <th style="padding:7px 10px">Wh mỗi ký</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line); background:color-mix(in srgb, var(--danger) 10%, transparent)">
+            <td style="padding:8px 10px 8px 0"><b>1 · theo lời người bán</b></td>
+            <td style="padding:8px 10px" class="mono">79,9 Wh</td>
+            <td style="padding:8px 10px" class="mono">300 g</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--danger)">266</b></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">4 · Ovonic 5300</td>
+            <td style="padding:8px 10px" class="mono">78,4 Wh</td>
+            <td style="padding:8px 10px" class="mono">423 g</td>
+            <td style="padding:8px 10px" class="mono">185</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">3 · Ovonic 6200</td>
+            <td style="padding:8px 10px" class="mono">91,8 Wh</td>
+            <td style="padding:8px 10px" class="mono">511 g</td>
+            <td style="padding:8px 10px" class="mono">180</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">2 · Ovonic 4200</td>
+            <td style="padding:8px 10px" class="mono">62,2 Wh</td>
+            <td style="padding:8px 10px" class="mono">407 g</td>
+            <td style="padding:8px 10px" class="mono">153</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px">Bảy viên pin thật đã tra trong tài liệu này nằm trọn trong khoảng <span class="mono">148 – 185 Wh/kg</span>. Viên số 1 đòi hỏi <b>266</b> — cao hơn viên tốt nhất tới <b>44%</b>. Một viên pin rẻ, dòng xả thấp, mà vượt viên tốt nhất thị trường 44% thì không phải phát hiện lớn, mà là <b>số liệu sai</b>.</p>
+
+    <h3 style="margin-top:14px">Kiểm tra 2 — nặng trên mỗi đơn vị thể tích</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin:6px 0 10px">Thể tích viên này là <span class="mono">13,5 × 4,3 × 3,9 = 226 cm³</span>. Nếu nặng 300 g thì mật độ chỉ <span class="mono"><b>1,33 g/cm³</b></span>.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:10px">Để dễ hình dung: <b>nước là 1,00</b>. Ba viên Ovonic đã cân thật nằm ở <span class="mono">2,20 – 2,61</span>. Ruột pin là đồng, nhôm và oxit kim loại — <b>không thể chỉ nặng hơn nước một chút</b>. Ở mật độ 1,33 thì bên trong cái vỏ đó phải có gần một nửa là không khí.</p>
+
+    <h3 style="margin-top:14px">Vậy con số nào sai</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin:6px 0 10px">Ba con số — 5400mAh, 226 cm³, 300 g — không thể cùng đúng. Chỉ có hai khả năng, và <b>cả hai đều làm viên này tệ hơn viên số 4</b>:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Nếu đúng là 5400mAh thì nó nặng khoảng 500 – 540 g</strong>Hai phép kiểm tra trên cho hai khoảng chồng nhau ở vùng này. Tức <b>nặng hơn viên số 4 cứ 100 g</b>, đẩy drone xuống dưới ngưỡng an toàn ngay khi gắn camera.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Nếu đúng là 300 g thì dung lượng thật chỉ khoảng 3700mAh</strong>Lấy 300 g nhân với mức 185 Wh/kg tốt nhất thị trường ra 55,5 Wh, chia cho 14,8 V được <b>3,7 Ah</b>. Tức nhãn <b>5400mAh là thổi phồng khoảng 44%</b> — chuyện rất phổ biến với pin giá rẻ không thương hiệu.</p>
+      </div>
+    </div>
+
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Nếu vẫn muốn theo đuổi viên này:</b> đừng hỏi miệng nữa. Yêu cầu người bán <b>đặt viên pin lên cân và chụp ảnh</b>. Không chụp được thì bỏ. Đây không phải chuyện tiếc tiền — pin là món nặng nhất trên drone, sai 200 g là hỏng toàn bộ tính toán lực đẩy.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Một thói quen nên giữ:</b> khi một món rẻ vượt món tốt nhất thị trường tới vài chục phần trăm, giả thiết đầu tiên luôn là <b>thông số sai</b>, không phải mình vớ được món hời. Kiểm tra bằng một phép chia là đủ.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Nên mua phương án 4 — Ovonic 5300mAh 110C, 423 g</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Đúng viên đã kê trong bảng mua ở trên. Ba lý do:</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Năng lượng trên mỗi gam cao nhất</strong>12,5 mAh/g, dẫn đầu cả bốn viên. Đây là chỉ số quyết định, không phải dung lượng thô.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Nhỏ gọn nhất</strong>162 cm³, nhỏ hơn viên số 3 tới <b>23%</b>. Trên khung S500 pin nằm dưới bụng, viên càng ngắn càng dễ đặt đúng trọng tâm và càng ít cản gió.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Còn chỗ cho camera và máy tính nhúng</strong>Đây là lý do quan trọng nhất, xem ô bên dưới.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Vì sao không chọn viên 6200mAh dù nó bay lâu hơn</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Viên số 3 cho thêm khoảng <b>1,3 phút</b> bay. Nghe hấp dẫn, nhưng nó nặng hơn <b>88 g</b>, và đề tài của bạn <b>chưa gắn camera và telemetry</b>. Cộng thêm khoảng 150 g cho đợt 3:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0"></th>
+            <th style="padding:7px 10px">Bây giờ</th>
+            <th style="padding:7px 10px">Sau khi gắn camera</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0"><b>Viên 5300 (423 g)</b></td>
+            <td style="padding:8px 10px" class="mono">2,20:1</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--warn)">2,03:1</b> — vừa đủ</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">Viên 6200 (511 g)</td>
+            <td style="padding:8px 10px" class="mono">2,10:1</td>
+            <td style="padding:8px 10px" class="mono"><b style="color:var(--danger)">1,94:1</b> — dưới ngưỡng</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px"><b>Viên 6200 đẩy bạn xuống dưới ngưỡng 2:1 ngay khi lắp camera vào.</b> Lúc đó drone vẫn bay được, nhưng không còn dư sức gượng khi gặp gió giật, và bay tự động thì hay gặp gió giật. Đổi một chút thời gian bay lấy biên an toàn là đổi đúng chiều.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px"><b>Ngoại lệ:</b> nếu sau này lắp xong, cân thật ra nhẹ hơn dự kiến và bạn thấy 14 phút là ngắn, thì viên 6200 là món nâng cấp hợp lý. Nhưng mua nó <b>trước</b> khi biết cân nặng thật là đặt cược sai chiều.</p>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Điều tôi không biết</h3>
+    <p style="font-size:13.5px; color:var(--ink2)"><b>Không có giá của cả bốn viên.</b> Nếu viên 6200 rẻ hơn viên 5300 đáng kể thì đó là dữ kiện mới đáng cân nhắc lại. Còn nếu giá xấp xỉ nhau thì kết luận trên giữ nguyên. Ngoài ra mọi tỉ lệ lực đẩy trong phần pin này tính theo motor <b>80 g</b> của bản MT2216 thường. Mua bản <b>II</b> nhẹ 63 g thì drone nhẹ đi <b>68 g</b>, nên các con số đó <b>an toàn hơn thực tế khoảng 0,07 – 0,09</b> — ví dụ 2,20:1 thật ra là 2,29:1, và 2,03:1 sau khi gắn camera thật ra là <b>2,10:1</b>. Khối lượng khô <b>1300 g</b> cũng chỉ là suy ra từ tỉ lệ ở phần motor, chưa phải cân thật — <b>cân lại sau khi lắp xong</b> rồi đối chiếu.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3 style="color:var(--ok)">Thông số cần tìm khi đi mua</h3>
+    <div class="tags">
+      <span class="tag"><b>4S</b> · 14,8 V — bắt buộc, không phải 3S</span>
+      <span class="tag"><b>5000 – 5300 mAh</b></span>
+      <span class="tag">C bất kỳ <b>từ 25C trở lên</b></span>
+      <span class="tag">Đầu <b>XT60</b></span>
+      <span class="tag">Nặng <b>dưới 450 g</b></span>
+      <span class="tag">Dài dưới <b>170 mm</b></span>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:11px"><b>Trọng lượng là chỉ số quan trọng thứ hai sau dung lượng.</b> Khi so hai viên cùng 5300mAh, viên nào nhẹ hơn thì bay lâu hơn, bất kể C ghi bao nhiêu. Một viên 4S 5300mAh 50C thực tế cân nặng khoảng <b>508 g</b>, kích thước 154 × 42 × 32 mm — lấy đó làm mốc để so sánh.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:9px">Ước tính thời gian bay với 5300mAh: treo lơ lửng rút khoảng 17–18 A, dùng 80% dung lượng cho an toàn thì được khoảng <b>14 – 15 phút</b>. Đây là ngoại suy từ bảng đo motor, không phải số đo thực tế.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--danger); margin-top:14px">
+    <h3 style="color:var(--danger)">Túi chống cháy — không, pin không bán kèm túi</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Đây là món <b>mua riêng</b>, giá chỉ khoảng 50.000 – 150.000 ₫, và là khoản bảo hiểm rẻ nhất trong toàn bộ dự án.</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Vì sao cháy LiPo khác mọi đám cháy khác</strong>Khi một cell vào trạng thái mất kiểm soát nhiệt, phản ứng bên trong <b>tự sinh ra oxy</b>. Nghĩa là trùm kín để dập không có tác dụng, và nước cũng không chặn được phản ứng. Ngọn lửa phun ra như đèn khò và kéo dài cho tới khi cell cháy hết.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Cháy hầu như luôn xảy ra vào hai lúc</strong>Lúc <b>đang sạc</b>, và <b>sau khi pin bị va đập</b> trong một cú rơi. Pin nằm yên không sạc thì gần như không tự cháy. Nên quy tắc là: sạc trong túi, và sau mỗi lần rơi thì để pin riêng ra quan sát ít nhất 30 phút trước khi cất.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--accent)"></span>
+        <p><strong>Túi không dập lửa, túi chỉ giữ lửa lại một chỗ</strong>Đừng kỳ vọng nó ngăn được cháy. Việc của nó là <b>chặn ngọn lửa và mảnh văng</b>, không cho đám cháy lan ra bàn, rèm hay đống giấy tờ bên cạnh. Với phòng trọ hay phòng lab thì đó là toàn bộ khác biệt.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Ba thói quen đi kèm</strong>Không bao giờ rời mắt khi đang sạc. Cất pin lâu ngày ở mức <b>3,8 V mỗi cell</b> chứ không phải sạc đầy, vì để đầy dài ngày làm pin chai nhanh. Pin <b>phồng lên là bỏ</b>, không sạc lại, không tiếc.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="doc-9">
+  <div class="sec-head"><h2>An toàn khi bay thử</h2><span class="pill must">Đọc trước khi lắp cánh</span></div>
+  <p class="sec-sub">Phần này quan trọng hơn mọi thứ về linh kiện ở trên. Đọc kỹ trước lần cắm pin đầu tiên có lắp cánh.</p>
+
+  <div class="alerts" style="margin-top:10px">
+    <div class="alert">
+      <span class="alert-mark">!</span>
+      <div>
+        <h3>Tuyệt đối không đưa tay ra bắt drone đang rơi</h3>
+        <p>Theo bảng đo của chính motor này, ở ga tối đa cánh quay <b>10.703 vòng/phút</b>. Với cánh 10 inch, đầu cánh di chuyển khoảng <b>510 km/h</b>. Ngay cả khi chỉ treo lơ lửng ở ga 50%, đầu cánh vẫn đi khoảng <b>300 km/h</b>. Đây là nhựa cứng, không phải cánh quạt bàn.</p>
+        <p style="margin-top:8px">Drone rơi mất kiểm soát thì cánh vẫn đang quay, vì ở chế độ Stabilize bộ điều khiển vẫn cố gắng gượng lại. Đưa tay vào vùng cánh quay là đứt gân tay, mất đầu ngón, hoặc thương tích ở mặt.</p>
+        <p style="margin-top:8px"><b>Phản xạ đúng: buông cần ga xuống hết và để nó rơi.</b> Một cánh gãy giá 82.600 ₫. Một bàn tay thì không mua lại được, và tai nạn đó cũng chấm dứt luôn đề tài.</p>
+      </div>
+    </div>
+    <div class="alert warn">
+      <span class="alert-mark">!</span>
+      <div>
+        <h3>Đừng bay thử S500 trong nhà</h3>
+        <p>Khung 480mm cộng cánh 10 inch tức là đường kính hoạt động khoảng <b>75cm</b>. Đây không phải cỡ máy bay trong nhà. Trong nhà không có tín hiệu GPS nên drone sẽ trôi, luồng gió dội lại từ tường và sàn làm nó chao đảo, và mọi vật cản đều nằm trong tầm cánh.</p>
+        <p style="margin-top:8px">Bay thử ngoài trời, chỗ trống, <b>trên nền cỏ hoặc đất</b>. Nghiêng đổ trên cỏ thường không gãy cánh; trên bê tông thì gãy.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--ok); margin-top:14px">
+    <h3>Quy trình để mua 1 bộ cánh là đủ</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:10px">Nguyên nhân số một làm gãy cánh ở lần bay đầu <b>không phải</b> là hạ cánh mạnh, mà là drone <b>lật úp ngay khi vừa nhấc lên</b> vì sai thứ tự motor hoặc sai chiều quay. Bo mạch của bạn mặc định dùng thứ tự đánh số kiểu Betaflight X, khác kiểu X tiêu chuẩn, nên rủi ro này cao hơn bình thường. Loại bỏ nó không tốn đồng nào:</p>
+    <div class="asks" style="gap:8px">
+      <div class="ask"><span class="ask-n">1</span><p>Lắp motor, đi dây, nạp firmware, hiệu chỉnh đầy đủ. <b>Chưa lắp cánh.</b></p></div>
+      <div class="ask"><span class="ask-n">2</span><p>Mission Planner → Setup → Optional Hardware → <b>Motor Test</b>, chạy từng motor ở 5–10%.<em>Ghi lại motor nào là A, B, C, D trên thực tế và mỗi cái quay chiều nào.</em></p></div>
+      <div class="ask"><span class="ask-n">3</span><p>Cái nào quay sai chiều thì đảo 2 trong 3 dây của nó, rồi test lại.</p></div>
+      <div class="ask"><span class="ask-n">4</span><p>Khi cả 4 motor đúng vị trí và đúng chiều mới lắp cánh, và lắp đúng cánh CW vào motor CW.</p></div>
+      <div class="ask"><span class="ask-n">5</span><p>Lần bay đầu: ngoài trời, nền cỏ, nhấc lên 30–50cm, treo 10 giây rồi hạ.<em>Đừng bay cao, đừng bay xa, đừng thử chế độ tự động ở lần đầu.</em></p></div>
+      <div class="ask"><span class="ask-n">6</span><p>Gán một công tắc trên FS-i6X làm <b>Motor Emergency Stop</b> trong ArduPilot.<em>Để khi có sự cố thì gạt một cái là tắt hết motor, không phải mò cần ga.</em></p></div>
+    </div>
+  </div>
+</section>
+
+<section id="doc-10">
+  <div class="sec-head"><h2>Hai rủi ro cần biết trước</h2></div>
+  <div class="alerts" style="margin-top:10px">
+    <div class="alert warn">
+      <span class="alert-mark">A</span>
+      <div>
+        <h3>ESC đua chạy motor to có thể bị mất đồng bộ</h3>
+        <p>Bộ ESC 55A này được thiết kế cho drone đua với motor nhỏ quay rất nhanh. Motor 2216 của bạn to và quay chậm, đôi khi gây hiện tượng motor khựng giữa chừng. Holybro dùng ESC 20A cho chính bộ này. <b>Cách xử lý:</b> kẹp chặt drone xuống bàn, không lắp cánh, đẩy ga từ từ và nghe tiếng motor. Có tiếng khục hoặc giật thì phải chỉnh lại thông số timing của ESC trước khi bay ngoài trời.</p>
+      </div>
+    </div>
+    <div class="alert warn">
+      <span class="alert-mark">B</span>
+      <div>
+        <h3>Kiểm tra lỗ bắt bo trên tấm giữa khung</h3>
+        <p>Stack dùng chuẩn 30,5 × 30,5mm. Cần xác nhận tấm giữa của S500 có đúng lỗ này. Nếu không khớp thì mua thêm tấm đế chuyển, khoảng 50.000 ₫. Phần cao su chống rung thì bản Deluxe đã có sẵn ốc nylon và đệm silicone rồi.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="doc-11">
+  <div class="sec-head"><h2>Bộ thu sóng — cái nào dùng được với tay điều khiển của bạn</h2><span class="pill must">Đừng mua nhầm</span></div>
+  <p class="sec-sub">Bộ thu và tay điều khiển là một cặp khoá với chìa. Mua nhầm loại thì không có cách nào ghép được, kể cả cắm vừa dây.</p>
+
+  <div class="included" style="border-left-color:var(--danger)">
+    <h3 style="color:var(--danger)">Bộ thu ELRS không dùng được với FlySky — dù cắm vừa dây</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:12px">Đây là chỗ rất dễ mất tiền oan, vì bộ thu ELRS nhỏ đẹp, rẻ, và <b>cắm vừa đúng chân R6</b> trên bo bay của bạn. Nhưng nó vẫn không hoạt động.</p>
+    <div class="fn-list">
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--danger)"></span>
+        <p><strong>Hai bên nói hai thứ tiếng khác nhau</strong>Tay <b>FS-i6X</b> phát theo chuẩn riêng của FlySky (<span class="mono">AFHDS-2A</span>). Bộ thu <b>ELRS</b> chỉ nghe được tay phát ELRS. Đây không phải chuyện cắm dây hay nạp phần mềm — <b>hai bên phát và thu bằng hai giao thức sóng khác hẳn nhau</b>, không có cách nào ghép.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--ok)"></span>
+        <p><strong>Bộ bạn mua đã đủ, không thiếu gì</strong><b>FS-i6X</b> là tay phát, <b>iA6B</b> là bộ thu đi kèm đúng hãng. Nối cổng <span class="mono">i-BUS</span> của iA6B vào chân <span class="mono">R6</span> trên bo bay là xong. Không cần mua thêm bộ thu nào nữa.</p>
+      </div>
+      <div class="fn">
+        <span class="fn-dot" style="background:var(--warn)"></span>
+        <p><strong>Quy tắc chung cho mọi lần mua sau này</strong><b>Bộ thu phải cùng hãng và cùng chuẩn với tay phát.</b> FlySky đi với FlySky, ELRS đi với ELRS, Frsky đi với Frsky. Giá rẻ hay ăng-ten đẹp không cứu được chuyện này.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="included" style="border-left-color:var(--accent); margin-top:14px">
+    <h3 style="color:var(--accent-ink)">Bo bay của bạn thì sẵn sàng cho ELRS — chỉ tay phát là vướng</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px">Điểm này đáng biết để sau này còn đường nâng cấp. Bo <b>SpeedyBee F405 V5</b> nhận được cả hai chuẩn trên <b>cùng một chân R6</b>:</p>
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid var(--line2)">
+            <th style="padding:7px 10px 7px 0">Dùng bộ thu</th>
+            <th style="padding:7px 10px">Cắm vào</th>
+            <th style="padding:7px 10px">Đặt giao thức</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 10px 8px 0">FlySky iA6B <span style="color:var(--muted)">(đang dùng)</span></td>
+            <td style="padding:8px 10px" class="mono">R6</td>
+            <td style="padding:8px 10px" class="mono">i-BUS</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 10px 8px 0">ELRS <span style="color:var(--muted)">(nếu sau này đổi)</span></td>
+            <td style="padding:8px 10px" class="mono">R6 <span style="color:var(--muted)">— vẫn chân đó</span></td>
+            <td style="padding:8px 10px" class="mono">CRSF</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:13.5px; color:var(--ink2); margin-top:12px">Nghĩa là <b>phần cứng không phải đổi gì</b>, chỉ đổi một tham số trong ArduPilot. Nút thắt duy nhất nằm ở <b>tay phát</b>.</p>
+  </div>
+
+  <div class="included" style="margin-top:14px">
+    <h3>Khi nào mới đáng chuyển sang ELRS</h3>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px"><b>Lý do thật sự chỉ có một: tầm xa.</b> FS-i6X bay tốt trong khoảng vài trăm mét tới quãng 1 km. ELRS đi xa hơn hẳn. Nếu sau này đề tài cần bay khảo sát vượt quá tầm đó, mất sóng sẽ làm drone tự kích hoạt chế độ an toàn và quay về giữa nhiệm vụ.</p>
+    <p style="font-size:13.5px; color:var(--ink2); margin-bottom:11px"><b>Nhưng chuyển sang ELRS là đổi cả tay phát, không phải mua thêm bộ thu.</b> FS-i6X <b>không có khe cắm module RF</b> sẵn từ nhà máy. Cộng đồng có làm được: in 3D một khe gắn ngoài, hàn vào cổng trainer, nạp phần mềm của bên thứ ba. Nhưng đó là <b>dự án vọc phần cứng, có thể làm hỏng tay điều khiển</b> — không phải việc nên làm ở bản dựng đầu tiên.</p>
+    <p style="font-size:13.5px; color:var(--ink2)"><b>Với giai đoạn này thì FlySky là đủ.</b> Bay thử trong sân trường hay một bãi trống vài trăm mét thì tầm sóng không phải giới hạn. Và nhớ rằng <b>bay tự động theo waypoint không cần sóng điều khiển</b> — sóng đó chỉ để bạn giành lại quyền lái khi cần. Cứ bay trong tầm nhìn mắt thường thì FlySky thừa sức.</p>
+  </div>
+
+  <div class="included" style="border-left-color:var(--warn); margin-top:14px">
+    <h3 style="color:var(--warn)">Nếu sau này có mua ELRS thì chọn bản 2.4G</h3>
+    <p style="font-size:13.5px; color:var(--ink2)">Loại trong ảnh có hai bản <span class="mono">2.4G</span> và <span class="mono">915M</span>. Bản 915MHz đi xa hơn và xuyên vật cản tốt hơn, nhưng <b>băng tần dưới 1GHz bị quản lý khác nhau tuỳ quốc gia</b>. Tôi không tra được quy định cụ thể của Việt Nam nên không khẳng định. Bản <b>2.4GHz</b> là băng tần dùng chung phổ biến, an toàn hơn về mặt thủ tục — và nó cũng là băng tần mà tay FlySky hiện tại đang dùng.</p>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  Thông số đối chiếu từ trang chính hãng SpeedyBee và Holybro, kho firmware chính thức <span class="mono">firmware.ardupilot.org</span>, và tệp cấu hình phần cứng <span class="mono">speedybeef4v5/hwdef.dat</span> trong mã nguồn ArduPilot. Giá lấy từ listing tại thời điểm tra cứu, tháng 9 năm 2026.
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var TKEY = "s500-tab-v1";
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+  var panels = {};
+  tabs.forEach(function(t){ panels[t.dataset.tab] = document.getElementById("panel-" + t.dataset.tab); });
+
+  function show(name){
+    if (!panels[name]) name = "checklist";
+    tabs.forEach(function(t){
+      var on = t.dataset.tab === name;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      panels[t.dataset.tab].hidden = !on;
+    });
+    try { localStorage.setItem(TKEY, name); } catch(e){}
+  }
+
+  tabs.forEach(function(t){
+    t.addEventListener("click", function(){
+      show(t.dataset.tab);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  // deep link: #doc-N always opens the docs tab
+  function fromHash(){
+    var h = location.hash || "";
+    if (/^#doc-\d+$/.test(h)){
+      show("docs");
+      var el = document.querySelector(h);
+      if (el) el.scrollIntoView();
+      return true;
+    }
+    return false;
+  }
+  window.addEventListener("hashchange", fromHash);
+
+  if (!fromHash()){
+    var saved = null;
+    try { saved = localStorage.getItem(TKEY); } catch(e){}
+    show(saved || "checklist");
+  }
+})();
+(function(){
+  var KEY = "s500-bom-v1";
+  var ticks = Array.prototype.slice.call(document.querySelectorAll(".tick"));
+  var elCount = document.getElementById("mCount"),
+      elTotal = document.getElementById("mTotal"),
+      elSpent = document.getElementById("mSpent"),
+      elBar   = document.getElementById("mBar"),
+      elAll   = document.getElementById("mAll");
+
+  function fmt(n){ return n.toLocaleString("vi-VN"); }
+
+  function load(){
+    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }
+    catch(e){ return {}; }
+  }
+  function save(state){
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){}
+  }
+
+  var grandTotal = ticks.reduce(function(s,t){ return s + Number(t.dataset.cost || 0); }, 0);
+  elTotal.textContent = ticks.length;
+  elAll.textContent = fmt(grandTotal);
+
+  function refresh(){
+    var done = 0, spent = 0;
+    ticks.forEach(function(t){
+      if (t.checked){ done++; spent += Number(t.dataset.cost || 0); }
+    });
+    elCount.textContent = done;
+    elSpent.textContent = fmt(spent);
+    elBar.style.width = ticks.length ? (done / ticks.length * 100) + "%" : "0%";
+  }
+
+  var state = load();
+  ticks.forEach(function(t){
+    if (state[t.dataset.id]) t.checked = true;
+    t.addEventListener("change", function(){
+      var s = load();
+      if (t.checked) s[t.dataset.id] = 1; else delete s[t.dataset.id];
+      save(s);
+      refresh();
+    });
+  });
+  refresh();
+})();
+</script>
+</body>
+</html>
