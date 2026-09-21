@@ -1,6 +1,10 @@
-# ArduPilot source dung lam SITL. Mac dinh la ./ardupilot (da bi gitignore,
-# khong phai code cua du an). Doi bang ARDUPILOT_DIR neu ban dat cho khac.
-ARDUPILOT_DIR ?= ./ardupilot
+# ArduPilot source dung lam SITL. Mac dinh la ~/ardupilot TRONG WSL — khong
+# phai trong repo (Phase 02 viec 02.2 clone vao $HOME, xem plan). Doi bang
+# ARDUPILOT_DIR neu ban dat cho khac.
+#
+# `make sitl` CHI CHAY DUOC TRONG WSL. Goi tu PowerShell:
+#   wsl -d Ubuntu -- bash -lc "cd /mnt/d/Coding/IOT-CV && make sitl"
+ARDUPILOT_DIR ?= $(HOME)/ardupilot
 
 .PHONY: help setup setup-ml lint fmt test run sitl github-bootstrap clean
 
@@ -11,7 +15,7 @@ help:
 	@echo "make fmt              - ruff format"
 	@echo "make test             - pytest"
 	@echo "make run              - chay backend FastAPI (reload)"
-	@echo "make sitl             - chay ArduCopter SITL"
+	@echo "make sitl             - chay ArduCopter SITL (CHI TRONG WSL)"
 	@echo "make github-bootstrap - tao labels/milestones/issues tren GitHub (can gh)"
 
 setup:
