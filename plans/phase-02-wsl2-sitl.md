@@ -136,25 +136,33 @@ Nếu lỗi:
 
 `sim_vehicle.py` dùng MAVProxy làm giao diện dòng lệnh của nó. Đây là bản **trong WSL**, khác với bản Windows đã cài ở Phase 00 — hai bản song song là bình thường.
 
-Lệnh lấy nguyên văn từ tài liệu ArduPilot, chạy ở **bash trong WSL**:
+> ⚠️ **Việc này gần như đã xong ở 02.2, đừng chạy lại khối `pip` cũ.** Kiểm chứng 21/09/2026 trên chính `install-prereqs-ubuntu.sh` bản 4.7.1: `PYTHON_PKGS` dòng 197 đã gồm `MAVProxy` và `pymavlink`; `SITL_PKGS` đã gồm `python3-wxgtk4.0`, `python3-matplotlib`, `python3-opencv`, `python3-yaml` và bộ SDL cho pygame. Trên Ubuntu 24.04 script còn tạo venv ở `~/venv-ardupilot` và cài MAVProxy **vào đó**. Chạy thêm `python3 -m pip install mavproxy --user` sẽ đặt **bản thứ hai ngoài venv**, rồi hai bản tranh nhau PATH — hại chứ không lợi.
+
+Chỉ cần **đo**, ở **bash trong WSL**:
 
 ```bash
-sudo apt-get install python3-dev python3-opencv python3-wxgtk4.0 python3-pip python3-matplotlib python3-lxml python3-pygame
-python3 -m pip install PyYAML mavproxy --user
-echo 'export PATH="$PATH:$HOME/.local/bin"' >> ~/.bashrc
-source ~/.bashrc
 mavproxy.py --version
 ```
 
-`python3-wxgtk4.0` và `python3-matplotlib` là thứ vẽ ra cửa sổ `--map` và `--console`; thiếu chúng thì SITL vẫn chạy nhưng không có bản đồ để nhìn.
+Kết quả mong đợi: in ra số phiên bản (đo được 21/09/2026: `1.8.74`).
+
+`python3-wxgtk4.0` và `python3-matplotlib` là thứ vẽ ra cửa sổ `--map` và `--console`; thiếu chúng thì SITL vẫn chạy nhưng không có bản đồ để nhìn. Kiểm bằng `import`, đừng kiểm bằng `dpkg` — `dpkg` báo đã cài không có nghĩa là Python **đang dùng** nhìn thấy nó:
+
+```bash
+~/venv-ardupilot/bin/python -c "import wx, matplotlib, pexpect; print('du goi')"
+```
+
+Nếu dòng đó báo `No module named 'pexpect'` thì đọc lỗi #4 bên dưới **trước khi** build, vì `./waf copter` sẽ chết vì đúng lý do đó.
 
 Kết quả mong đợi: `mavproxy.py --version` in ra số phiên bản.
 
 Nếu lỗi:
 
-1. **`pip install` báo `externally-managed-environment`** → Ubuntu 24.04 chặn cài vào Python hệ thống. Thêm `--break-system-packages` vào sau `--user`, hoặc dùng `pipx install mavproxy`.
+1. **`pip install` báo `externally-managed-environment`** → chỉ xảy ra nếu bạn cài vào Python hệ thống. Cài vào venv thì không gặp: `~/venv-ardupilot/bin/pip install <gói>`.
 2. **`python3-wxgtk4.0` không tìm thấy** → `sudo apt-get update` trước; nếu vẫn thiếu thì tên gói đã đổi, tìm bằng `apt-cache search wxgtk`.
-3. **`mavproxy.py` không nhận diện** → `$HOME/.local/bin` chưa vào PATH; kiểm bằng `echo $PATH`, và `source ~/.bashrc` lại.
+3. **`mavproxy.py` không nhận diện** → chưa `. ~/.profile`, hoặc đang ở phiên bash cũ. Script đã nối `source ~/venv-ardupilot/bin/activate` vào `~/.profile`; thoát WSL rồi vào lại cũng được.
+4. **`./waf copter` chết với `you need to install pexpect`, dù `dpkg` báo `python3-pexpect` đã cài.** Đã gặp 21/09/2026. Nguyên nhân: `install-prereqs` tạo venv bằng `python3` **đứng đầu PATH**; nếu máy bạn có conda/miniforge thì đó là Python 3.13 của miniforge, không phải Python 3.12 của Ubuntu — mà gói apt `python3-pexpect` nằm trong `dist-packages` của 3.12 nên venv không thấy. Sửa: `~/venv-ardupilot/bin/pip install pexpect`. Kiểm bản Python của venv bằng `~/venv-ardupilot/bin/python -V` và `readlink -f ~/venv-ardupilot/bin/python`. **Đừng suy rộng** — lần đo đó `wx`, `matplotlib`, `numpy`, `cv2`, `lxml` vẫn import được, chỉ thiếu đúng `pexpect`.
+5. **`sudo` hỏi lại mật khẩu giữa chừng rồi đứng im.** Timestamp mặc định 15 phút, mà `install-prereqs` chạy 12–40 phút. Chạy `sudo -v` trước, rồi `while true; do sudo -n true; sleep 60; done &` để giữ phiên, `kill` nó sau khi xong.
 
 ### 02.5 Chạy SITL lần đầu
 
@@ -242,6 +250,8 @@ Mission Planner: `UDP`, cổng `14550`.
 
 **Trường hợp C — firewall chặn UDP, cần đường chắc ăn hơn**: Mission Planner chọn `TCP`, host là IP của WSL, port `5760` (cổng TCP gốc của SITL).
 
+⚠️ **Gõ `127.0.0.1`, KHÔNG gõ `localhost`.** Kiểm chứng 21/09/2026 khi đang bật mirrored: `127.0.0.1:5760` nối được, `localhost:5760` **không**. Lý do: trên Windows `localhost` phân giải ra `::1` (IPv6) trước, mà SITL chỉ bind IPv4. Triệu chứng khi gõ nhầm giống hệt bị firewall chặn, nên bạn sẽ đi debug nhầm chỗ.
+
 ⚠️ **Cảnh báo firewall.** Lần đầu Mission Planner mở cổng UDP, Windows Defender hiện hộp thoại hỏi. **Phải bấm Allow cho cả Private lẫn Public.** Nếu lỡ bấm Cancel, gói tin bị nuốt **im lặng** — không có thông báo lỗi nào — và bạn sẽ ngồi debug nhầm chỗ hàng giờ. Sửa bằng: `Windows Security` → `Firewall & network protection` → `Allow an app through firewall` → tìm `Mission Planner`, tick cả hai cột.
 
 Kết quả mong đợi: Mission Planner hiện HUD sống (đường chân trời nhúc nhích), bản đồ có icon máy bay, thanh trạng thái ghi `ArduCopter V4.7.1`. Gõ `takeoff 20` trong MAVProxy thì thấy số Alt trên Mission Planner tăng — chứng minh cả hai đang nhìn cùng một con drone.
@@ -315,11 +325,12 @@ Ghi vào `plans/PROGRESS.md` mục Phase 02: thời gian build thực tế trên
 
 ## Cổng pass
 
-- [ ] `C:\Users\Nghaiz\.wslconfig` tồn tại với `networkingMode=mirrored` (hoặc bạn ghi rõ trong PROGRESS là đã chọn đường NAT).
-- [ ] `du -sh ~/ardupilot` trong WSL in ra ~6–8 GB; `git -C ~/ardupilot log -1 --oneline` chạy được trên nhánh `Copter-4.7.1`.
+- [ ] `C:\Users\Nghaiz\.wslconfig` tồn tại với `networkingMode=mirrored` (hoặc bạn ghi rõ trong PROGRESS là đã chọn đường NAT). Kiểm bằng giao tập IP, đừng nhìn bằng mắt: `ip -4 -o addr show` trong WSL phải in ra **IP LAN thật của Windows**; còn thấy `172.x` trên `eth0` là vẫn NAT.
+- [ ] `git -C ~/ardupilot rev-parse HEAD` **khớp byte-for-byte** với `git -C ~/ardupilot rev-parse Copter-4.7.1^{commit}`, và `grep THISFIRMWARE ~/ardupilot/ArduCopter/version.h` in ra `ArduCopter V4.7.1`.
+- [ ] **Hai** số đo đĩa, ghi riêng — đừng gộp: `du -sh ~/ardupilot` ra **~2–3,5 GB** (chỉ repo + `build/sitl`), và **delta `df --output=used /`** đo từ trước khi clone tới sau khi build ra **~5–8 GB** (gồm toolchain ở `/opt` và venv ở `~/venv-ardupilot`, cả hai **nằm ngoài** `~/ardupilot`). Bản cũ của cổng này đòi `du` ra 6–8 GB nên **đỏ kể cả khi cài hoàn toàn đúng** — đo 21/09/2026: `du` = 2,0 GB, tổng thật 5,2 GB.
 - [ ] `mavproxy.py --version` trong WSL in ra số phiên bản.
 - [ ] `./scripts/run_sitl.sh` khởi động SITL với đủ ba cửa sổ (MAVProxy, Console, Map).
-- [ ] Chuỗi `mode guided` → `arm throttle` → `takeoff 40` → `mode rtl` chạy trọn: drone lên ~40 m rồi về và `DISARMED`.
+- [ ] Chuỗi `mode guided` → `arm throttle` → `takeoff 40` → `mode rtl` chạy trọn: drone lên ~40 m rồi về và disarm. **Đừng grep chữ `DISARMED`** — ArduCopter 4.7.1 phát STATUSTEXT là `Arming motors` / `Disarming`. Bằng chứng chắc hơn: `relative_alt` lớn nhất trong `GLOBAL_POSITION_INT` chạm ~40 000 mm rồi về ~0, và HEARTBEAT cuối có `base_mode` **thiếu bit 128 (`SAFETY_ARMED`)** kèm `system_status: 3` (STANDBY).
 - [ ] Mission Planner trên Windows nối được vào SITL: HUD sống, thanh trạng thái ghi `ArduCopter V4.7.1`, và khi gõ `takeoff 20` trong MAVProxy thì số Alt trên Mission Planner tăng theo.
 - [ ] `scripts/run_sitl.sh` đã sửa và commit; mục `sitl:` trong `Makefile` trỏ đúng đường dẫn mới.
 - [ ] `plans/PROGRESS.md` mục Phase 02 đã tick và ghi **thời gian build thực tế + dung lượng thực tế**.
