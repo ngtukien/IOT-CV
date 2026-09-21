@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | – | ~2,75 giờ | Không |
+| xong 21/09/2026, trừ 00.4 (STM32CubeProgrammer) | – | ~2,95 giờ | Không |
 
 ## Mục tiêu
 
@@ -154,12 +154,17 @@ Kết quả mong đợi: mở Mission Planner từ Start Menu, thấy màn hình
 
 ```powershell
 Test-Path "D:\IOT_Tools\apps\MissionPlanner\MissionPlanner.exe"
+Test-Path "C:\Program Files (x86)\Mission Planner\MissionPlanner.exe"
 Get-ItemProperty HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* |
   Where-Object DisplayName -like "*Mission Planner*" |
   Select-Object DisplayName, DisplayVersion, InstallLocation
 ```
 
-`InstallLocation` phải trỏ vào `D:\`. Nếu vẫn in `C:\Program Files (x86)\Mission Planner`, property đã bị bỏ qua — dùng lại đường GUI ở trên.
+Dòng đầu phải in `True`, dòng thứ hai phải in `False`. **Đó mới là bằng chứng.**
+
+⚠️ **Đừng kết luận theo `InstallLocation` — MSI này để trống nó.** Kiểm chứng ngày 21/09/2026: cài thành công vào `D:\IOT_Tools\apps\MissionPlanner` (295,8 MB, 1319 file, `MissionPlanner.exe` chạy được), registry vẫn in `DisplayName : Mission Planner`, `DisplayVersion : 1.3.83`, `InstallLocation :` **rỗng**. Cổng pass bản cũ bắt `InstallLocation` phải trỏ `D:\` nên **không bao giờ pass được, kể cả khi cài đúng** — đây là "báo đỏ giả", mặt còn lại của bài học ở mục 00.0: một cổng canh sai thứ thì vô dụng dù nó đỏ hay xanh. Hỏi ngược lại: *nếu installer thật sự đổ vào C:, dòng nào sẽ đổi màu?* Câu trả lời là hai dòng `Test-Path`, không phải dòng registry.
+
+Cũng đừng kết luận theo mã thoát của `msiexec`. `ExitCode = 0` trong lần cài này là thật, nhưng nó thật vì hai dòng `Test-Path` xác nhận, không phải ngược lại.
 
 Nếu lỗi:
 
@@ -393,13 +398,49 @@ nạp web của DroneBridge. Đây là chỗ người mới kẹt lâu nhất v�
 hộ. Đọc `scripts/gui/README.md` trước khi dùng lần đầu, đặc biệt phần bốn rào an toàn.
 
 ```powershell
-pwsh -File scripts/gui/gui.ps1 -Action monitors
-pwsh -File scripts/gui/gui.ps1 -Action windows
-pwsh -File scripts/gui/gui.ps1 -Action shot -Monitor 0 -Out tmp/thu.png
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action monitors
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action windows
+pwsh -NoProfile -File scripts/gui/gui.ps1 -Action shot -Monitor 0 -Out tmp/thu.png
 ```
+
+⚠️ **`-NoProfile` là bắt buộc, không phải tuỳ chọn.** Bỏ nó đi thì `pwsh` nạp profile người dùng, và nếu profile đó chạy `fastfetch` (máy này có) thì khoảng 40 dòng ASCII art cộng hai lỗi `Set-PSReadLineOption` sẽ trộn thẳng vào stdout trước kết quả thật. Với người đọc thì chỉ khó chịu; với Claude phân tích output thì kết quả bị chôn dưới đống nhiễu và dễ bị cắt mất. Đã kiểm chứng ngày 21/09/2026: cùng một lệnh, không `-NoProfile` cho output không dùng được, có `-NoProfile` cho đúng bảng `Id / ProcessName / MainWindowTitle`.
+
+**`gui.ps1` chỉ thấy một cửa sổ mỗi tiến trình.** Nó liệt kê theo `MainWindowTitle`, nên một app mở hộp thoại con sẽ chỉ hiện đúng một dòng. Mission Planner lúc chạy lần đầu bật popup **"Altitude Angel"** (dịch vụ UTM bên thứ ba, dự án không dùng) che mất cửa sổ chính — `gui.ps1` không thấy popup đó. `cua-driver` thấy cả hai. Xem mục "Dùng `cua-driver` trước, `gui.ps1` là đường lui" bên dưới.
 
 **AN TOÀN:** không dùng công cụ này cho ARM, Motor Test, hay bất cứ thao tác nào làm motor
 quay. Những nút đó người vận hành tự bấm, tay luôn cầm RC. Xem `SAFETY.md` mục 1 và 2.
+
+#### Dùng `cua-driver` trước, `gui.ps1` là đường lui
+
+Thứ tự đã kiểm chứng trên Mission Planner ngày 21/09/2026: **thử `cua-driver` trước**, chỉ lùi
+về `gui.ps1` khi MCP server hỏng, bị chặn bởi ranh giới UIPI, hoặc không có mạng. Ba điểm hơn
+đo được, không phải suy đoán:
+
+| | `gui.ps1` | `cua-driver` |
+|---|---|---|
+| Cửa sổ con / hộp thoại | không thấy (chỉ đọc `MainWindowTitle`) | thấy, kèm `window_id` riêng |
+| Biết mình đang bấm gì | không, bấm theo toạ độ | có — `role`, `label`, `enabled`, `actions` |
+| Kiểm chứng sau khi bấm | tự chụp lại rồi tự nhìn | `verify_state` trả `satisfied` / `unsatisfied` / `unknown` |
+
+Quy trình mỗi lượt: `list_windows(pid)` → `get_window_state(pid, window_id)` → thao tác bằng
+`element_token` → `verify_state`. Bảng chỉ mục phần tử bị thay mới sau mỗi `get_window_state`
+của **cùng** cửa sổ, nên phải snapshot lại trước mỗi lượt thao tác.
+
+**Hai cái bẫy đã sập thật, ghi lại để khỏi sập lần nữa:**
+
+1. **`element_token` lấy từ cửa sổ CHA không bấm được nút của cửa sổ CON.** Cây UIA của cửa sổ
+   chính Mission Planner có lồng nguyên popup "Altitude Angel" vào, kể cả nút `Cancel` — nhìn
+   thì tưởng bấm được. Bấm bằng token từ snapshot cửa sổ cha trả về `route: synthetic_events`
+   và popup **vẫn còn**. Phải `get_window_state` đúng `window_id` của popup, khi đó token mới
+   đi đường `route: accessibility` và đóng được. Thấy cây có lồng cửa sổ con thì snapshot lại
+   theo `window_id` của nó, đừng bấm xuyên từ cha.
+2. **`effect: "unverifiable"` nghĩa là "đã gửi", không phải "đã xong".** Cả hai lần bấm đều trả
+   `unverifiable` — lần hỏng và lần được giống hệt nhau ở trường này. Thứ phân biệt là
+   `verify_state` (hoặc `list_windows` lại). Đây đúng là bài học "báo xanh giả" ở mục 00.0
+   dịch sang ngôn ngữ GUI: *transport thành công không phải là kết quả*. Không bao giờ đi tiếp
+   chỉ vì lệnh bấm không ném lỗi.
+
+Phiên nào thao tác nhiều lượt thì truyền cùng một nhãn `session` ngắn cho mọi lệnh.
 
 ### 00.9 Ghi lại vào PROGRESS
 
@@ -417,10 +458,10 @@ Commit với prefix `chore(plans):`.
 - [ ] Cây thư mục `D:\DevCache\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio}}` và `D:\IOT_Tools\apps` tồn tại.
 - [ ] `py --list` hiện `3.13`.
 - [ ] `node --version` in v24.x, `pnpm --version` in 11.x, `uv --version` in 0.12.x.
-- [ ] `pwsh -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được.
+- [ ] `pwsh -NoProfile -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được. (`-NoProfile` bắt buộc — xem 00.8.)
 - [ ] `docker info --format "{{.ServerVersion}}"` in ra số phiên bản (Docker Desktop đang chạy).
 - [ ] `wsl --list --verbose` hiện `Ubuntu` với VERSION = `2`; vào được bằng `wsl -d Ubuntu`; `df -h /` trong WSL còn > 15 GB.
-- [ ] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` (kiểm bằng `InstallLocation` trong registry Uninstall), mở được, hiện màn hình `FLIGHT DATA` với nút `CONNECT`.
+- [ ] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` — `Test-Path` trên D: in `True` **và** trên `C:\Program Files (x86)\Mission Planner` in `False` (đừng dùng `InstallLocation`, MSI này để trống, xem 00.2); mở được, hiện màn hình `FLIGHT DATA` với nút `CONNECT`.
 - [ ] MAVProxy cài trong `D:\IOT_Tools\apps\MAVProxy\`; `where.exe mavproxy` in đường dẫn `D:\`; `mavproxy.exe --version` chạy được.
 - [ ] STM32CubeProgrammer mở được, thấy ô chọn kiểu kết nối.
 - [ ] `code --version` in 3 dòng; PlatformIO IDE hiện trong danh sách extension đã cài của VS Code; `pio system info` in `Core Directory` trỏ `D:\DevCache\tools\platformio`.
@@ -454,8 +495,9 @@ Commit với prefix `chore(plans):`.
 | 00.5 VS Code + PlatformIO + Arduino IDE | 0,5 | PlatformIO tự tải toolchain |
 | 00.6 esptool + pymavlink | 0,25 | |
 | 00.7 WSL2 lần đầu | 0,25 | |
-| 00.8 Ghi PROGRESS | 0,1 | |
-| **Tổng** | **2,75** | Có thể làm song song: bấm tải Mission Planner rồi làm bước khác trong lúc chờ |
+| 00.8 Kiểm tra bộ điều khiển giao diện | 0,1 | Bảng cũ thiếu hẳn dòng này và gọi nhầm 00.9 thành "00.8" |
+| 00.9 Ghi PROGRESS | 0,1 | |
+| **Tổng** | **2,95** | Có thể làm song song: bấm tải Mission Planner rồi làm bước khác trong lúc chờ |
 
 ## Ghi chú cho sổ tay
 

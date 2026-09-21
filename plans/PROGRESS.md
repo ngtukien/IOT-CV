@@ -33,23 +33,29 @@ Cổng pass của **mọi** phase (00–24, ai-01…ai-04) là bản đầy đ�
 
 Plan: plans/phase-00-cai-cong-cu-pc.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 21/09/2026 · Ngày xong: 21/09/2026 (trừ STM32CubeProgrammer, xem HOÃN)
 
-- [ ] Sáu biến môi trường User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều trỏ vào `D:\DevCache\...` — kiểm bằng `uv cache dir; uv tool dir; uv python dir; npm config get cache`.
-- [ ] Cây thư mục `D:\DevCache\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio}}` và `D:\IOT_Tools\apps` tồn tại.
-- [ ] `py --list` hiện `3.13`.
-- [ ] `node --version` in v24.x, `pnpm --version` in 11.x, `uv --version` in 0.12.x.
-- [ ] `pwsh -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được.
-- [ ] `docker info --format "{{.ServerVersion}}"` in ra số phiên bản.
-- [ ] `wsl --list --verbose` hiện `Ubuntu` VERSION = `2`; `df -h /` trong WSL còn > 15 GB.
-- [ ] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` (kiểm bằng `InstallLocation` trong registry Uninstall), mở được, hiện màn hình `FLIGHT DATA`.
-- [ ] MAVProxy cài trong `D:\IOT_Tools\apps\MAVProxy\`; `where.exe mavproxy` in đường dẫn `D:\`; `mavproxy.exe --version` chạy được.
+- [x] Sáu biến môi trường User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều trỏ vào `D:\DevCache\...` — kiểm bằng `uv cache dir; uv tool dir; uv python dir; npm config get cache`.
+- [x] Cây thư mục `D:\DevCache\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio}}` và `D:\IOT_Tools\apps` tồn tại.
+- [x] `py --list` hiện `3.13`.
+- [x] `node --version` in v24.x, `pnpm --version` in 11.x, `uv --version` in 0.12.x.
+- [x] `pwsh -NoProfile -File scripts/gui/gui.ps1 -Action windows` liệt kê được cửa sổ đang mở; `-Action shot -Monitor 0` tạo ra file PNG đọc được.
+- [x] `docker info --format "{{.ServerVersion}}"` in ra số phiên bản.
+- [x] `wsl --list --verbose` hiện `Ubuntu` VERSION = `2`; `df -h /` trong WSL còn > 15 GB.
+- [x] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` (kiểm bằng `Test-Path` cộng với **vắng mặt** ở `C:\Program Files (x86)\Mission Planner` — MSI này **không** ghi `InstallLocation`, xem Ghi chú), mở được, hiện màn hình `FLIGHT DATA`.
+- [x] MAVProxy cài trong `D:\IOT_Tools\apps\MAVProxy\`; `where.exe mavproxy` in đường dẫn `D:\`; `mavproxy.exe --version` chạy được.
 - [ ] STM32CubeProgrammer mở được.
-- [ ] `code --version` chạy; PlatformIO IDE có trong danh sách extension; `pio system info` in `Core Directory` trỏ `D:\DevCache\tools\platformio`.
-- [ ] `esptool version` in `v5.x`; `uv run python -c "import pymavlink; print(pymavlink.__version__)"` (trong `D:\Coding\IOT-CV`) in `2.4.x` và `sys.executable` bắt đầu bằng `D:\`.
-- [ ] Đã ghi số phiên bản thực tế vào Ghi chú dưới đây.
+- [x] `code --version` chạy; PlatformIO IDE có trong danh sách extension; `pio system info` in `Core Directory` trỏ `D:\DevCache\tools\platformio`.
+- [x] `esptool version` in `v5.x`; `uv run python -c "import pymavlink; print(pymavlink.__version__)"` (trong `D:\Coding\IOT-CV`) in `2.4.x` và `sys.executable` bắt đầu bằng `D:\`.
+- [x] Đã ghi số phiên bản thực tế vào Ghi chú dưới đây.
 
-Ghi chú: 
+Ghi chú:
+
+**Phiên bản thực tế đo ngày 21/09/2026.** Python 3.13.7 · Node v24.13.0 · pnpm 11.10.0 · uv 0.12.12 · Docker Engine 29.6.2 · WSL Ubuntu 24.04.4 LTS (VERSION 2, còn 920 GB trống, RAM 19 GiB) · Mission Planner 1.3.83 build 1.3.9384.38258 (295,8 MB, 1319 file) · MAVProxy 1.8.74 (352,5 MB, 1675 file) · VS Code 1.138.0 + `platformio.platformio-ide` · PlatformIO Core 6.2.0 · esptool v5.4.0 · pymavlink 2.4.49.
+
+**HOÃN: STM32CubeProgrammer.** `st.com` không truy cập được bằng công cụ tự động (thử `Invoke-WebRequest -Method Head` vào cả trang sản phẩm lẫn trang chủ — cái đầu lỗi kết nối, cái sau hết hạn 25 s), và bản cài bắt buộc đăng ký tài khoản ST rồi nhận link qua email. Không có đường tự động hoá. Công cụ này chỉ dùng ở **Phase 14**, nên không chặn Phase 01–13. Việc còn lại của người vận hành: đăng ký tài khoản ST, tải bản Windows, cài vào `D:\IOT_Tools\apps\STM32CubeProgrammer`.
+
+**Làm thêm ngoài cổng pass:** `%USERPROFILE%\.wslconfig` đã trỏ `swapFile=D:\\WSL\\swap.vhdx`; sau `wsl --shutdown` đã kiểm chứng `D:\WSL\swap.vhdx` tồn tại, WSL thấy 5 GB swap ở `/dev/sdc`, và `%TEMP%\swap.vhdx` trên C: **không còn**. Ổ C: còn 35,49 GB, ổ D: còn 130,71 GB.
 
 ## Phase 01 — Tái cấu trúc repo, uv, Vite, mosquitto, CI
 
