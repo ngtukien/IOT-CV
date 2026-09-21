@@ -206,17 +206,49 @@ Board SpeedyBee F405 V5 xuất xưởng chạy Betaflight. Lần nạp ArduPilot
 
 Việc này chỉ thực sự dùng ở **Phase 14**. Nhưng cài ngay bây giờ vì nó cần đăng ký một tài khoản ST miễn phí, và bạn không muốn ngồi chờ email xác thực vào đúng hôm hàng về.
 
-**Không có lệnh tải trực tiếp, và không có flag đường dẫn một dòng kiểu `/DIR=`.** Đây là installer InstallAnywhere (Java) — tài liệu ST mô tả chạy nó bằng `jre\bin\java -jar SetupSTM32CubeProgrammer-X.Y.Z.exe`, dấu hiệu đặc trưng của InstallAnywhere; cách cài im lặng của nó là cơ chế hai bước (cài tay một lần sinh ra file XML, lần sau chạy XML đó), không có flag đơn lẻ để chỉ định thư mục. Làm bằng tay:
+**Không có lệnh tải trực tiếp, và không có flag đường dẫn một dòng kiểu `/DIR=`.** Đây là installer **IzPack** (Java) — kiểm chứng ngày 21/09/2026 bằng stack trace của chính nó: `com.izforge.izpack.installer.unpacker.UnpackerBase`, `com.izforge.izpack.event.RegistryInstallerListener`. (Bản cũ của mục này ghi là InstallAnywhere — sai, nhưng mô tả cơ chế cài im lặng hai bước thì đúng: cài tay một lần sinh file XML, lần sau chạy XML đó.) Không có flag đơn lẻ để chỉ định thư mục. Làm bằng tay:
 
 1. Mở trình duyệt vào `st.com`.
 2. Tìm "STM32CubeProgrammer".
 3. Đăng ký một tài khoản ST miễn phí (họ gửi link tải qua email).
-4. Tải bản Windows, giải nén, chạy installer. Có thể cần Java — installer sẽ báo.
-5. Ở trang **"Choose Install Folder"**, gõ `D:\IOT_Tools\apps\STM32CubeProgrammer`.
+4. Tải bản Windows (`SetupSTM32CubeProgrammer_win64.zip`), giải nén, chạy file `.exe` bên trong. Cần Java — máy này đã có OpenJDK 24.
+5. Bấm qua wizard 9 bước; đường dẫn đặt ở **bước 4**.
 
-⚠️ **Chưa xác minh:** trang "Choose Install Folder" có chắc chắn xuất hiện hay không — chưa lấy được ảnh chụp/mô tả từ tài liệu ST (`st.com` chặn truy cập tự động, không mở được bằng công cụ). Đây là trang mặc định của InstallAnywhere nên khả năng cao là có. **Dự phòng:** nếu không thấy trang chọn thư mục, cứ cài mặc định và chấp nhận ~200–300 MB trên C: — đây là công cụ dùng đúng một lần ở Phase 14, không phải thứ phình to theo thời gian, nên chi phí này chấp nhận được.
+**Đã xác minh ngày 21/09/2026 trên bản 2.23.0 — chín bước đó là:**
 
-⚠️ URL trang sản phẩm trên `st.com` **chưa xác minh được** bằng công cụ tự động (st.com chặn) — điều đó không có nghĩa trang hỏng, chỉ nghĩa là phải mở bằng trình duyệt tay.
+| Bước | Trang | Phải làm gì |
+|---|---|---|
+| 1 | Welcome | Next |
+| 2 | Information | Next |
+| 3 | ST Licensing agreement | Chọn **"I accept the terms of this license agreement"** (SLA0048) — Next đang xám cho tới khi chọn |
+| 4 | **STM32CubeProgrammer Package installation** | Ô **"Select the installation path:"** — xoá mặc định, gõ `D:\IOT_Tools\apps\STM32CubeProgrammer`. Hiện hộp `Message` xác nhận sẽ tạo thư mục → OK |
+| 5 | Terms of Use | Tick **"I have read and understood… ST Terms of Use"**. Trang này cũng báo ST thu thập thống kê sử dụng ẩn danh; tắt sau qua `Help > User Preferences` |
+| 6 | Components selection | Core Files (bắt buộc) + STM32CubeProgrammer + STM32TrustedPackageCreator. **Tổng 1,41 GB** |
+| 7 | Pack installation progress | Chờ |
+| 8–9 | Shortcut + hoàn tất | Next / Done |
+
+**Hai chỗ bản cũ của mục này đoán sai:**
+
+1. Trang chọn thư mục **có** tồn tại, nhưng tên nó **không** phải "Choose Install Folder" — nó là **"STM32CubeProgrammer Package installation"** với nhãn "Select the installation path:", nằm ở bước 4/9. Tìm theo tên cũ sẽ không thấy.
+2. Dự phòng cũ viết "cứ cài mặc định và chấp nhận ~200–300 MB trên C:". **Sai gần 5 lần** — bộ cài chiếm **1,41 GB**. Với ổ C: chỉ còn ~35 GB, đó không còn là chi phí vặt. Nếu buộc phải cài lên C:, biết trước con số thật rồi hãy quyết.
+
+⚠️ **Wizard này chạy quyền Administrator nên không công cụ computer-use nào bấm được nó** (ranh giới UIPI: `cua-driver` lẫn `gui.ps1` đều ở Medium integrity). Cách đã dùng được: đặt biến `__COMPAT_LAYER = "RunAsInvoker"` trước khi `Start-Process`, ép installer chạy Medium integrity. Chi tiết và các bẫy kèm theo: `.claude/rules/computer-use-cua-driver-first.md`.
+
+```powershell
+$env:__COMPAT_LAYER = "RunAsInvoker"
+Start-Process "D:\IOT_Tools\downloads\stm32\SetupSTM32CubeProgrammer_win64.exe"
+```
+
+⚠️ **`RunAsInvoker` có giá của nó, biết trước rồi hãy chọn.** Hạ xuống Medium integrity nghĩa là installer **không ghi được HKLM**: ở cuối bước 7 nó bật hộp `Error` với dòng `Error writing to registry`. File vẫn cài đủ (1590 MB, 1436 file, gồm cả `Drivers\DFU_Driver\`), CLI và GUI đều chạy, nhưng **không có entry trong Add/Remove Programs** — gỡ bằng thư mục `Uninstaller\` trong chỗ cài. Sau lỗi đó wizard tự khởi động lại từ bước 1; đóng nó đi, đừng bấm lại.
+
+Hai đường, chọn theo việc bạn cần:
+
+| Cách | Được | Mất |
+|---|---|---|
+| `RunAsInvoker` | Tự động hoá được toàn bộ, không cần ai ngồi bấm | Không có entry gỡ cài; nếu Phase 14 trục trặc driver thì phải cài lại |
+| Chạy thường (có UAC) | Registry đầy đủ, đúng chuẩn | **Phải tự bấm 9 bước** — UIPI chặn mọi công cụ tự động |
+
+⚠️ URL trang sản phẩm trên `st.com` **không truy cập được** bằng công cụ tự động — kiểm chứng 21/09/2026 bằng `Invoke-WebRequest -Method Head` vào cả trang sản phẩm lẫn trang chủ: cái đầu lỗi kết nối, cái sau hết hạn 25 giây. Điều đó không có nghĩa trang hỏng, chỉ nghĩa là phải mở bằng trình duyệt tay. Việc tải **không tự động hoá được**, vì còn phải đăng nhập tài khoản ST.
 
 **Chưa cần cài lúc này:** `Zadig` và `dfu-util`. Hai thứ đó chỉ dùng khi driver DFU hỏng ở Phase 14, và Zadig là con dao hai lưỡi — chạy nó "cho chắc" có thể làm STM32CubeProgrammer không nhận board nữa.
 
@@ -366,7 +398,7 @@ exit
 Kết quả mong đợi:
 
 - `lsb_release -a` in `Ubuntu 24.04...`.
-- `df -h /` hiện ổ WSL còn **trên 900 GB**. Cần dư ít nhất 15 GB. **Đừng ghim tên thiết bị vào tài liệu** (ví dụ `/dev/sdX`) — tên đổi theo thứ tự gắn đĩa giữa các lần khởi động; chỉ dựa vào con số `Avail`.
+- `df -h /` hiện ổ WSL còn **trên 900 GB**. Cần dư ít nhất 15 GB. **Đừng ghim tên thiết bị vào tài liệu** (ví dụ `/dev/sdX`) — tên đổi theo thứ tự gắn đĩa giữa các lần khởi động; chỉ dựa vào con số `Avail`. **Đã thấy tận mắt ngày 21/09/2026:** đầu phiên `df` in `/dev/sdf`, sau một lần `wsl --shutdown` thì cùng ổ đó in `/dev/sdd`. Cùng dữ liệu, cùng 920 GB trống, khác tên. Ai viết `/dev/sdf` vào script kiểm tra thì hôm sau script đó đỏ mà chẳng có gì hỏng.
 - `free -h` hiện RAM WSL được cấp (mặc định khoảng một nửa RAM máy).
 
 **Bịt lỗ hổng file swap trước khi build ArduPilot ở Phase 02.** Ổ ảo Ubuntu (`ext4.vhdx`) đã nằm đúng trên D: (đã xác nhận qua registry Lxss + quét không thấy `.vhdx` nào dưới `%LOCALAPPDATA%\Packages`), nhưng file **swap** của WSL2 mặc định nằm ở `%Temp%\swap.vhdx` trên **C:**, bất kể distro ở đâu (tài liệu Microsoft, `wsl-config`). Build ArduPilot ngốn RAM có thể kích hoạt swap đúng lúc C: đang chật. Tạo `%USERPROFILE%\.wslconfig`:

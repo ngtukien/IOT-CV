@@ -33,7 +33,7 @@ Cổng pass của **mọi** phase (00–24, ai-01…ai-04) là bản đầy đ�
 
 Plan: plans/phase-00-cai-cong-cu-pc.md
 
-Ngày bắt đầu: 21/09/2026 · Ngày xong: 21/09/2026 (trừ STM32CubeProgrammer, xem HOÃN)
+Ngày bắt đầu: 21/09/2026 · Ngày xong: 21/09/2026
 
 - [x] Sáu biến môi trường User (`UV_CACHE_DIR`, `UV_TOOL_DIR`, `UV_PYTHON_INSTALL_DIR`, `PIP_CACHE_DIR`, `NPM_CONFIG_CACHE`, `PLATFORMIO_CORE_DIR`) đều trỏ vào `D:\DevCache\...` — kiểm bằng `uv cache dir; uv tool dir; uv python dir; npm config get cache`.
 - [x] Cây thư mục `D:\DevCache\{cache\{uv,pip,npm,pnpm-store},tools\{uv-tools,uv-python,platformio}}` và `D:\IOT_Tools\apps` tồn tại.
@@ -44,18 +44,25 @@ Ngày bắt đầu: 21/09/2026 · Ngày xong: 21/09/2026 (trừ STM32CubeProgram
 - [x] `wsl --list --verbose` hiện `Ubuntu` VERSION = `2`; `df -h /` trong WSL còn > 15 GB.
 - [x] Mission Planner cài trong `D:\IOT_Tools\apps\MissionPlanner\` (kiểm bằng `Test-Path` cộng với **vắng mặt** ở `C:\Program Files (x86)\Mission Planner` — MSI này **không** ghi `InstallLocation`, xem Ghi chú), mở được, hiện màn hình `FLIGHT DATA`.
 - [x] MAVProxy cài trong `D:\IOT_Tools\apps\MAVProxy\`; `where.exe mavproxy` in đường dẫn `D:\`; `mavproxy.exe --version` chạy được.
-- [ ] STM32CubeProgrammer mở được.
+- [x] STM32CubeProgrammer mở được.
 - [x] `code --version` chạy; PlatformIO IDE có trong danh sách extension; `pio system info` in `Core Directory` trỏ `D:\DevCache\tools\platformio`.
 - [x] `esptool version` in `v5.x`; `uv run python -c "import pymavlink; print(pymavlink.__version__)"` (trong `D:\Coding\IOT-CV`) in `2.4.x` và `sys.executable` bắt đầu bằng `D:\`.
 - [x] Đã ghi số phiên bản thực tế vào Ghi chú dưới đây.
 
 Ghi chú:
 
-**Phiên bản thực tế đo ngày 21/09/2026.** Python 3.13.7 · Node v24.13.0 · pnpm 11.10.0 · uv 0.12.12 · Docker Engine 29.6.2 · WSL Ubuntu 24.04.4 LTS (VERSION 2, còn 920 GB trống, RAM 19 GiB) · Mission Planner 1.3.83 build 1.3.9384.38258 (295,8 MB, 1319 file) · MAVProxy 1.8.74 (352,5 MB, 1675 file) · VS Code 1.138.0 + `platformio.platformio-ide` · PlatformIO Core 6.2.0 · esptool v5.4.0 · pymavlink 2.4.49.
+**Phiên bản thực tế đo ngày 21/09/2026.** Python 3.13.7 · Node v24.13.0 · pnpm 11.10.0 · uv 0.12.12 · Docker Engine 29.6.2 · WSL Ubuntu 24.04.4 LTS (VERSION 2, còn 920 GB trống, RAM 19 GiB) · Mission Planner 1.3.83 build 1.3.9384.38258 (295,8 MB, 1319 file) · MAVProxy 1.8.74 (352,5 MB, 1675 file) · VS Code 1.138.0 + `platformio.platformio-ide` · PlatformIO Core 6.2.0 · esptool v5.4.0 · pymavlink 2.4.49 · STM32CubeProgrammer 2.23.0 (1590 MB, 1436 file).
 
-**HOÃN: STM32CubeProgrammer.** `st.com` không truy cập được bằng công cụ tự động (thử `Invoke-WebRequest -Method Head` vào cả trang sản phẩm lẫn trang chủ — cái đầu lỗi kết nối, cái sau hết hạn 25 s), và bản cài bắt buộc đăng ký tài khoản ST rồi nhận link qua email. Không có đường tự động hoá. Công cụ này chỉ dùng ở **Phase 14**, nên không chặn Phase 01–13. Việc còn lại của người vận hành: đăng ký tài khoản ST, tải bản Windows, cài vào `D:\IOT_Tools\apps\STM32CubeProgrammer`.
+**Làm thêm ngoài cổng pass:** `%USERPROFILE%\.wslconfig` đã trỏ `swapFile=D:\\WSL\\swap.vhdx`; sau `wsl --shutdown` đã kiểm chứng `D:\WSL\swap.vhdx` tồn tại, WSL thấy 5 GB swap ở `/dev/sdc`, và `%TEMP%\swap.vhdx` trên C: **không còn**.
 
-**Làm thêm ngoài cổng pass:** `%USERPROFILE%\.wslconfig` đã trỏ `swapFile=D:\\WSL\\swap.vhdx`; sau `wsl --shutdown` đã kiểm chứng `D:\WSL\swap.vhdx` tồn tại, WSL thấy 5 GB swap ở `/dev/sdc`, và `%TEMP%\swap.vhdx` trên C: **không còn**. Ổ C: còn 35,49 GB, ổ D: còn 130,71 GB.
+**⚠️ Nợ kỹ thuật của STM32CubeProgrammer — đọc trước khi vào Phase 14.** Wizard của nó chạy quyền Administrator nên không công cụ computer-use nào bấm được (ranh giới UIPI). Cách đã dùng là ép `__COMPAT_LAYER=RunAsInvoker` để hạ xuống Medium integrity; **đánh đổi là installer báo `Error writing to registry`** (`com.izforge.izpack.event.RegistryInstallerListener.performValueSetting`). Hệ quả đã kiểm chứng:
+
+- **Dùng được bình thường.** `STM32_Programmer_CLI.exe --version` in `2.23.0`; GUI mở, có ô chọn kiểu kết nối `ST-LINK` và nút `Connect`; log in `STM32CubeProgrammer API v2.23.0 | Windows-64Bits`.
+- **Thư mục `Drivers\DFU_Driver\` có đủ** (`Driver\`, `STM32Bootloader.bat`) cùng `Drivers\stsw-link009_v3\` — tức là thứ Phase 14 thật sự cần vẫn nằm trên đĩa. Cài driver là bước chạy tay có quyền admin ở Phase 14, không phụ thuộc registry.
+- **Thiếu entry trong HKLM Uninstall** → không hiện ở Add/Remove Programs. Gỡ bằng thư mục `D:\IOT_Tools\apps\STM32CubeProgrammer\Uninstaller\`.
+- Nếu Phase 14 gặp trục trặc driver, cài lại bằng quyền admin (bỏ `RunAsInvoker`) và **tự bấm 9 bước wizard** — chín bước đó đã ghi thành bảng trong `plans/phase-00-cai-cong-cu-pc.md` §00.4.
+
+**Ổ đĩa sau khi xong:** C: còn 30,44 GB, D: còn 127,68 GB. Trên C: còn ~550 MB rác tự giải nén của installer ở `%TEMP%\7zS8555FEEE` và `%TEMP%\7zS869F7A49` — xoá được, chưa xoá.
 
 ## Phase 01 — Tái cấu trúc repo, uv, Vite, mosquitto, CI
 
