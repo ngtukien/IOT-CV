@@ -140,14 +140,21 @@ def main() -> int:
             # Câu hỏi 2: nó có BAY XUỐNG thật không?
             sitl.start_auto_mission()
 
-            # Chỉ lấy mẫu độ cao SAU khi đã qua waypoint 1 — trước đó máy bay
-            # còn dưới đất, tính vào thì đáy luôn là 0 và phép đo vô nghĩa.
+            # CỬA SỔ LẤY MẪU rất hẹp, và đó là điểm mấu chốt: chỉ từ lúc TỚI
+            # waypoint 2 (cao 25 m) đến lúc TỚI waypoint 4 (cao 25 m) — tức là
+            # đúng chặng đi xuống waypoint 3 rồi leo trở lên.
+            #
+            # Bản trước lấy mẫu suốt cả mission, kể cả đoạn RTL HẠ CÁNH cuối.
+            # Đáy khi đó luôn là ~0 m vì máy bay chạm đất — bất kể FC có bay
+            # xuống waypoint thấp hay không. Phép đo đó không phân biệt được
+            # hai khả năng nó sinh ra để phân biệt, nên con số "-0,0 m" nó cho
+            # KHÔNG chứng minh điều gì. (Tự bắt được 22/09/2026.)
             t0 = time.monotonic()
             while time.monotonic() - t0 < 480:
                 msg = sitl.recv_match("MISSION_ITEM_REACHED", timeout=2.0)
                 if msg is not None and msg.seq not in da_toi:
                     da_toi.append(msg.seq)
-                if da_toi:
+                if 2 in da_toi and 4 not in da_toi:
                     with contextlib.suppress(SitlError):
                         alt = sitl.get_position()["alt_rel_m"]
                         if alt_thap_nhat_khi_bay is None:
@@ -162,7 +169,7 @@ def main() -> int:
             ket_qua.append(("Waypoint đã tới (seq)", str(da_toi)))
             ket_qua.append(
                 (
-                    "Độ cao THẤP NHẤT khi đang bay mission",
+                    "Độ cao THẤP NHẤT trên chặng waypoint 2→4 (chặng có WP thấp)",
                     f"{alt_thap_nhat_khi_bay:.1f} m"
                     if alt_thap_nhat_khi_bay is not None
                     else "không đo được",
@@ -170,8 +177,11 @@ def main() -> int:
             )
             sitl.wait_disarmed(timeout=240.0)
 
+    # "Bay xuống thật" = xuống GẦN 3 m. Chặn thêm cận dưới 0,5 m: nếu đáy ~0 thì
+    # máy bay đã chạm đất, tức phép đo lại dính đoạn hạ cánh chứ không phải
+    # waypoint thấp — khi đó không được kết luận gì.
     bay_xuong_that = (
-        alt_thap_nhat_khi_bay is not None and alt_thap_nhat_khi_bay < DO_CAO_THAP_M + 3.0
+        alt_thap_nhat_khi_bay is not None and 0.5 < alt_thap_nhat_khi_bay < DO_CAO_THAP_M + 3.0
     )
     ket_qua.append(
         (

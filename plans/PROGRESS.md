@@ -200,13 +200,20 @@ Plan: plans/phase-03-hoc-ardupilot-drone-ao.md
 
 Ngày bắt đầu: ______ · Ngày xong: ______
 
-- [ ] Bay trọn `GUIDED` → `LOITER` → `ALT_HOLD` → `RTL` → `DISARMED`, không crash.
+- [x] Bay trọn `GUIDED` → `LOITER` → `ALT_HOLD` → `RTL` → `DISARMED`, không crash.
+      *(`run_mode_chain.py`: 7/7 mode, hai chuyến, không crash, RTL về home 0,0 m.)*
 - [ ] Chạy được mission 5 waypoint (`TAKEOFF` → 3 `WAYPOINT` → `RTL`) ở `AUTO`; `wp list` khớp Mission Planner.
+      *Phần script XONG (`run_mission_auto.py`: tới đủ waypoint [1,2,3,4,5], đọc lại khớp từng
+      trường). Còn nợ phần người: mở Mission Planner đối chiếu `wp list` bằng mắt.*
 - [ ] Có **3 dòng `PreArm:` khác nhau** chép nguyên văn vào sổ tay, mỗi dòng kèm giải thích tự viết.
 - [ ] Mở được log `.BIN` trên UAV Log Viewer; chỉ ra đồ thị độ cao **và** các lần đổi mode.
+      *Phần script XONG (`run_log_dump.py` rút 1218 mẫu `CTUN` + các lần đổi mode ra CSV).
+      Còn nợ phần người: mở `.BIN` trên plot.ardupilot.org và tự chỉ ra hai thứ đó.*
 - [ ] 9 dòng checklist bài tập ở việc 03.6 tick hết.
 - [ ] Viết được câu trả lời tự luận "GUIDED khác AUTO ở chỗ nào" **trước khi** đọc đáp án.
-- [ ] `logs/sitl/.gitkeep` đã commit; không file `.BIN` nào lọt vào git.
+- [x] `logs/sitl/.gitkeep` đã commit; không file `.BIN` nào lọt vào git.
+      *(Kiểm hai chiều: `git ls-files logs/sitl/` ra đúng `.gitkeep`; `git ls-files | grep .BIN` rỗng;
+      CSV vừa sinh bị `logs/sitl/*` chặn đúng như thiết kế.)*
 
 Ghi chú:
 
@@ -249,6 +256,27 @@ mục 10, kèm bằng chứng):
 | Plan §03.3 dòng 141: sau `mode rtl`, mode tự chuyển sang `LAND` rồi `DISARMED` | Mode **vẫn là `RTL`** suốt lúc hạ cho tới khi disarm. RTL tự hạ trong chính nó. Chờ `LAND` là chờ mãi — đã treo trọn 180 s đúng chỗ này |
 | Quy ước mission | **Item 0 là ô HOME**, không phải lệnh. Đặt `NAV_TAKEOFF` ở index 0 thì vào AUTO từ dưới đất bị từ chối: `Auto: Missing Takeoff Cmd`. Mission "5 waypoint" nạp xuống **6 item**. Khó tìm vì lỗi **chỉ** xảy ra khi vào AUTO từ mặt đất |
 | Khởi động mission AUTO | `MAV_CMD_MISSION_START` trả `MAV_RESULT_DENIED`; arm thẳng trong AUTO bị `MAV_RESULT_FAILED`; máy bay tự disarm sau `DISARM_DELAY = 10` s. Cách đúng là tham số **`AUTO_OPTIONS = 3`** (bit 0 cho arm trong AUTO, bit 1 cho cất cánh không cần nâng ga) |
+
+**Kết quả 5 runner, chạy thật trên SITL ArduCopter 4.7.1:**
+
+| Runner | Kết quả |
+|---|---|
+| `run_mode_chain.py` | **PASS** — 7/7 mode; RTL về home **0,0 m** |
+| `run_rtl_alt.py` | **PASS** — đỉnh **20,0 m** (`RTL_ALT_M=15`) vs **50,0 m** (`=50`), chênh **30,0 m** |
+| `run_mission_auto.py` | **PASS** — nạp 6 item (5 lệnh + home), đọc lại **khớp từng trường**, tới đủ waypoint **[1,2,3,4,5]**, đỉnh **25,0 m**, RTL về **0,0 m** |
+| `run_mission_low_alt.py` | **PASS** — FC nhận và bay waypoint 3 m, xuống tới **3,2 m** |
+| `run_log_dump.py` | **PASS** — rút **1218 mẫu** `CTUN` + các lần đổi mode ra CSV |
+
+**Kết luận cho Phase 07 (từ `run_mission_low_alt.py`):** flight controller **nhận
+và bay** waypoint ở 3 m, không hề chặn. Nó **không kiểm hộ độ cao tối thiểu**, nên
+`validate_mission()` ở backend là **bắt buộc**, không phải thừa. `MIN_ALT` của dự
+án là 2 m — thấp hơn nữa phải chặn ở backend.
+
+> **Một phép đo hỏng đã tự bắt được.** Bản đầu lấy mẫu độ cao suốt cả mission, kể
+> cả đoạn RTL hạ cánh cuối, nên đáy luôn ra ~0 m **bất kể** FC có bay xuống
+> waypoint thấp hay không — con số đó không phân biệt được hai khả năng mà nó sinh
+> ra để phân biệt. Đã thu hẹp cửa sổ lấy mẫu về đúng chặng waypoint 2→4, và thêm
+> cận dưới 0,5 m để nếu đáy vẫn ~0 thì runner **từ chối kết luận** thay vì báo bừa.
 
 **Số đo của bài tập §03.5** (chạy `scripts/sitl/run_rtl_alt.py`): cất cánh 20 m rồi
 RTL — `RTL_ALT_M = 15` cho đỉnh **20,0 m** (không leo, vì đang cao hơn ngưỡng);
