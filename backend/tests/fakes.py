@@ -100,3 +100,68 @@ class FakeMAVLink:
 
     def names(self) -> list[str]:
         return [name for name, _ in self.sent]
+
+
+# ---------------------------------------------------------------------------
+# Bộ đồ giả dựng sẵn — Phase 06, dùng lại cho Phase 07 (mission cũng chờ ack).
+# ---------------------------------------------------------------------------
+def tu_dong_ack(conn, fake: FakeMAVLink, result: int = 0):
+    """Bắt chước thread telemetry: mỗi COMMAND_LONG gửi đi được ack ngay.
+
+    Không có cái này thì mọi test của `arm` / `takeoff` / `set_mode` phải chờ
+    hết `COMMAND_ACK_TIMEOUT_S` rồi mới đỏ — 3 giây mỗi bài, và đỏ vì hết giờ
+    chứ không phải vì hành vi sai.
+
+    Ack được bơm NGAY TRONG lời gọi `send`, tức là sau khi `expect_ack()` đã
+    đăng ký hàng đợi — cùng thứ tự với đời thật, nên nó cũng chính là bài kiểm
+    cho thứ tự đăng ký-trước-khi-gửi.
+
+    `result` khác 0 để dựng cảnh FC TỪ CHỐI (2 = MAV_RESULT_DENIED).
+    """
+    goc = conn.send
+
+    def send(fn, *args, **kwargs):
+        ket_qua = goc(fn, *args, **kwargs)
+        if fake.sent:
+            ten, payload = fake.sent[-1]
+            if ten == "command_long_send":
+                # args = (target_system, target_component, command_id, confirmation, p1..p7)
+                vi_tri = payload.get("args", ())
+                if len(vi_tri) >= 3:
+                    conn.route_ack(FakeMessage("COMMAND_ACK", command=vi_tri[2], result=result))
+        return ket_qua
+
+    conn.send = send
+    return conn
+
+
+def stack_gia(*, mode: str = "GUIDED", armed: bool = True, gps_fix_type: int = 3):
+    """Dựng (connection, fake, state, safety, control) đã nối sẵn với nhau.
+
+    `state` mặc định là một drone ĐANG BAY hợp lệ: link sống, GUIDED, armed,
+    3D fix. Test nào muốn dựng cảnh hỏng thì sửa trường tương ứng.
+    """
+    import time
+
+    from backend.mavlink.connection import MavlinkConnection
+    from backend.mavlink.control import FlightControl
+    from backend.mavlink.safety import SafetyState
+    from backend.schemas import TelemetryState
+
+    fake = FakeMAVLink()
+    conn = MavlinkConnection()
+    conn.master = fake
+    conn.target_system = 1
+    conn.target_component = 1
+
+    state = TelemetryState(
+        connected=True,
+        last_update=time.monotonic(),
+        mode=mode,
+        armed=armed,
+        gps_fix_type=gps_fix_type,
+        ekf_ok=True,
+    )
+    safety = SafetyState(current_mode=mode)
+    control = FlightControl(conn, state=state)
+    return conn, fake, state, safety, control

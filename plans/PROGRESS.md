@@ -417,21 +417,73 @@ Ghi chú:
 
 Plan: plans/phase-06-backend-dieu-khien-deadman.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 22/09/2026 · Ngày xong: 22/09/2026 · PR #31
 
-- [ ] `uv run pytest backend/tests/test_deadman.py -v` → **6 PASSED**, gồm đủ 3 test bắt buộc của `SAFETY.md` §5.
-- [ ] `uv run pytest backend/tests/test_control.py -v` → **6 PASSED** (5 hành vi + 1 canh gác hàm cấm).
-- [ ] 4 test cũ trong `test_safety.py` **vẫn xanh** (không được phá vốn đang chạy).
-- [ ] Chuyển thử `DeadmanLoop` vào asyncio → test #5 phải **đỏ**. (Bằng chứng test có tác dụng; hoàn nguyên sau khi thử.)
-- [ ] `scripts/sitl_deadman_check.py` in `KET QUA: PASS`, độ trễ zero-velocity **< 300 ms**.
-- [ ] 4 bài nghiệm thu tay ở 6.8 đều đạt; ghi `docs/test-log.md`.
-- [ ] `grep -rniE "send_motor_pwm|rc_channels_override|21196|do_motor_test|actuator_control|set_attitude_target" backend/` chỉ ra các dòng **ghi chú cấm**, không có lời gọi thật nào.
-- [ ] `grep -rn "\.mav\." backend/mavlink/control.py` — mọi lời gọi đều nằm trong `connection.send(...)`, không gọi thẳng.
-- [ ] Xin `takeoff 50` (vượt `MAX_ALT=10`) → nhận `error`, và **không** có lệnh 22 nào được gửi (kiểm bằng log MAVProxy).
-- [ ] `uv run ruff check .` sạch; `uv run pytest` xanh toàn bộ.
-- [ ] `docs/so-tay/06-backend-dieu-khien-deadman.md` đã viết, có giải thích NED + `type_mask` + ba lớp dead-man.
+- [x] `pytest backend/tests/test_deadman.py` → **17 PASSED**, gồm đủ 3 test bắt buộc của `SAFETY.md` §5. (Plan ghi 6; số thật cao hơn vì thêm bài hồi quy cho ba lỗi bắt được trên SITL.)
+- [x] `pytest backend/tests/test_control.py` → **17 PASSED** (gồm 2 bài canh gác hàm cấm).
+- [x] **9** test cũ trong `test_safety.py` vẫn xanh (plan ghi 4 — đếm sai; không bài nào bị phá).
+- [x] Chuyển thử `DeadmanLoop` vào asyncio → test #5 **đỏ**. Đã thử thật, xem ô cảnh báo ở Ghi chú.
+- [x] `scripts/sitl_deadman_check.py` in `KET QUA: PASS`, độ trễ zero-velocity **< 1 ms**.
+- [x] 4 bài nghiệm thu tay ở 6.8 đều đạt; đã ghi `docs/test-log.md` (file này trước đó chưa tồn tại).
+- [x] `grep -rniE "send_motor_pwm|..."` chỉ ra dòng **ghi chú cấm** và danh sách của chính bài test canh gác; không lời gọi thật nào.
+- [x] `grep -n "\.mav\." backend/mavlink/control.py` — 2 kết quả, cả hai là **tham số** của `self.connection.send(...)`.
+- [x] Xin `takeoff 50` (vượt `MAX_ALT=10`) trên SITL → `validation_failed`, `relative_alt` giữ nguyên **5.02 m**.
+- [x] `ruff check .` sạch; `pytest` → **131 passed** (trước phase: 96).
+- [x] `docs/so-tay/06-backend-dieu-khien-deadman.md` đã viết (11 mục).
 
-Ghi chú: 
+Ghi chú:
+
+**Ba lỗi chỉ lộ ra khi chạy SITL thật, pytest xanh toàn bộ trong khi cả ba đang
+sống.** Đây là bằng chứng cụ thể nhất từ trước tới nay cho câu "một cái xanh
+không thay được cái kia":
+
+| Lỗi | Triệu chứng | Vì sao pytest mù |
+|---|---|---|
+| `ack done` của `cmd.arm` nói dối | arm OK rồi takeoff ngay sau báo "Chua armed" | Cờ `armed` ở HEARTBEAT (1 Hz); test đặt thẳng `state.armed=True` |
+| Dead-man nổ ngay khi bật WEB CONTROL | Bắn velocity **khi drone còn trên mặt đất** → ArduCopter từ chối `NAV_TAKEOFF` với `MAV_RESULT_FAILED` | Test nào cũng gửi một lệnh velocity trước khi bơm thời gian giả |
+| Sự kiện đổ tội sai | `"Mode đổi sang GUIDED — web mất quyền lái"` trong khi GUIDED nằm TRONG whitelist | Không test nào đọc `detail.reason` |
+
+⚠️ **Và một lần phá-thử KHÔNG làm test đỏ — đây là bài học lớn nhất của phase.**
+Bản đầu của `test_event_loop_bi_chen_van_gui_zero` gọi `deadman.start()` TRƯỚC
+`asyncio.run(...)`, nên một bản viết bằng asyncio đặt ở thread riêng vẫn qua.
+Bài test tồn tại để canh đúng một hồi quy, và nó canh không được. Phải chẹn
+ĐÚNG cái loop mà bản asyncio sẽ bám vào. **Trước khi tin một test, hãy phá code
+rồi xem nó có đỏ không** — ba lần phá còn lại đều đỏ đúng lý do, bảng đầy đủ ở
+`docs/test-log.md`.
+
+**Một lần kết luận sai giữa chừng, nguyên nhân đáng ghi:** tôi tuyên bố "bug A
+không phải nguyên nhân của bug C" trong khi backend đang chạy **code cũ** — hai
+tiến trình uvicorn cùng sống, cái cũ giữ cổng 8000 nên cái mới không bind được,
+và SITL với `--no-mavproxy` chỉ nhận MỘT client TCP nên log đầy `EOF on TCP
+socket`. Đếm tiến trình theo TÊN sẽ nhầm (`uv run` đẻ mấy lớp bọc); phải giết
+theo PID giữ cổng. Bài học: **trước khi kết luận một bản sửa không có tác dụng,
+so `StartTime` của tiến trình đang phục vụ với thời điểm sửa.**
+
+**Đã sửa 11 chỗ plan lệch thực tế** (chi tiết trong PR #31), đáng chú ý: §6.3
+bảo nối `on_mode_change` trong `telemetry.py` nhưng Phase 05 đã nối ở
+`ws.py::_reconcile_control_ownership` rồi — nối lại là tạo hai người ghi; và tên
+gói trong test #1 thiếu hậu tố `_send` nên `last()` trả `None` và bài test sẽ
+**xanh vờ**.
+
+**SonarCloud đỏ, đã xử (lặp lại tiền lệ Phase 01).** Gate hỏng ở
+`new_reliability_rating=3` (1 BUG: so bằng trên float ở `_dang_di`) và
+`new_security_rating=3` (3 cảnh báo path-traversal ở hai script CLI).
+
+Kết quả sau khi sửa: **gate OK, cả 5 điều kiện xanh, mọi rating = 1** — 0 bug,
+0 vulnerability. Không tắt luật nào. Cách xử path-traversal: neo đường dẫn
+`--script` / `--log` vào gốc repo. Ràng buộc đó đúng độc lập với máy quét — file
+kịch bản và sổ kiểm là *tang chứng của một lần chạy*, để ngoài repo thì không ai
+xem lại được; cùng lý do với `DEADMAN_LOG_PATH` trong `backend/config.py`.
+
+**Còn 10 code smell CHƯA sửa, nói rõ ra thay vì để trống:** 7 cái thuộc luật
+"đừng nhận tham số `timeout`, để người gọi bọc `asyncio.timeout()`" và 3 cái
+đòi hạ độ rối từ 17/18/20 xuống 15. Tất cả đều nằm ở hai script CLI dev, đều
+là MAJOR/CRITICAL *code smell* chứ không phải bug hay lỗ hổng, và không kéo
+rating nào khỏi 1. Dừng ở đây là đúng bằng vạch của tiền lệ Phase 01 (vòng 5:
+0 vulnerability), không phải là hạ vạch. Luật `timeout` thật ra đáng làm — bỏ
+tham số đó xoá luôn mấy dòng tính hạn chót thủ công — nhưng nó động vào đúng
+hai script vừa được nghiệm thu chạy thật trên SITL, nên để thành một việc
+riêng có nghiệm thu riêng, đừng nhét vào cuối một PR đã xanh.
 
 ## Phase 07 — Backend mission + proximity + safety
 

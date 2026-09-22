@@ -29,7 +29,9 @@ Chạy trực tiếp để kiểm tra CỔNG PASS 5A:
 
 from __future__ import annotations
 
+import contextlib
 import logging
+import queue
 import threading
 import time
 
@@ -87,6 +89,9 @@ class MavlinkConnection:
         self.target_component: int | None = None
         # Xem khối LUẬT ở đầu file.
         self._send_lock = threading.Lock()
+        # command_id -> danh sách hàng đợi của những người đang chờ ack.
+        self._ack_waiters: dict[int, list[queue.Queue]] = {}
+        self._ack_lock = threading.Lock()
 
     def connect(self, timeout: float | None = None) -> tuple[int, int]:
         """Mở link và chờ heartbeat đầu tiên.
@@ -149,6 +154,48 @@ class MavlinkConnection:
             raise ConnectionError("Chưa có link MAVLink — không gửi được lệnh")
         with self._send_lock:
             return fn(*args, **kwargs)
+
+    # -- COMMAND_ACK --------------------------------------------------------
+    #
+    # Chỉ MỘT thread được đọc socket (thread telemetry). Hàm gửi lệnh chạy ở
+    # thread khác nên không tự `recv_match` được — làm thế là hai bên cùng đọc
+    # và mỗi bên nuốt mất message của bên kia, biểu hiện ra ngoài là lệnh
+    # "treo vĩnh viễn ở accepted". Thay vào đó thread đọc gọi `route_ack()`,
+    # còn người gửi đăng ký một hàng đợi TRƯỚC KHI gửi.
+    def expect_ack(self, command_id: int) -> queue.Queue:
+        """Đăng ký chờ COMMAND_ACK của `command_id`. GỌI TRƯỚC KHI GỬI.
+
+        Đăng ký sau khi gửi là một cuộc đua có thật: SITL trên loopback trả ack
+        trong chưa tới một mili-giây, kịp về trước khi ta kịp đăng ký, và ack
+        đó rơi vào hư không.
+        """
+        waiter: queue.Queue = queue.Queue(maxsize=8)
+        with self._ack_lock:
+            self._ack_waiters.setdefault(command_id, []).append(waiter)
+        return waiter
+
+    def stop_expecting(self, command_id: int, waiter: queue.Queue) -> None:
+        """Bỏ đăng ký. Luôn gọi trong `finally`, nếu không hàng đợi rò rỉ."""
+        with self._ack_lock:
+            danh_sach = self._ack_waiters.get(command_id)
+            if not danh_sach:
+                return
+            if waiter in danh_sach:
+                danh_sach.remove(waiter)
+            if not danh_sach:
+                del self._ack_waiters[command_id]
+
+    def route_ack(self, msg) -> None:
+        """Thread đọc gọi hàm này với MỖI COMMAND_ACK nhận được."""
+        command_id = getattr(msg, "command", None)
+        if command_id is None:
+            return
+        with self._ack_lock:
+            waiters = list(self._ack_waiters.get(int(command_id), ()))
+        for waiter in waiters:
+            # Hàng đợi đầy = người chờ đã bỏ đi. Bỏ qua, không chặn thread đọc.
+            with contextlib.suppress(queue.Full):
+                waiter.put_nowait(msg)
 
     def request_streams(self, rates: dict[int, float] | None = None) -> None:
         """Xin FC gửi từng message ở tần số trong `STREAM_RATES`.

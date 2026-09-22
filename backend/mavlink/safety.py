@@ -32,6 +32,17 @@ class SafetyState:
     current_mode: str = "UNKNOWN"
     rc_available: bool = True
 
+    # -- dấu vết của dead-man (Phase 06, việc 6.4.5) -------------------------
+    # CHỈ thêm trường; không hàm cũ nào đổi hành vi, 9 test của Phase 05 phải
+    # tiếp tục xanh nguyên vẹn.
+    #
+    # `deadman_tripped` DÍNH cho tới khi operator chủ động bật lại WEB CONTROL
+    # (`clear_deadman()`). Cố ý: nó là cái gật đầu "tôi đã thấy có một lần mất
+    # lái". Tự tắt khi có velocity kế tiếp thì banner chớp một cái rồi biến,
+    # và sự cố coi như chưa từng xảy ra — trái tinh thần SAFETY.md mục 4.
+    deadman_tripped: bool = False
+    last_zero_velocity_reason: str | None = None
+
     # -- dead-man ----------------------------------------------------------
     def note_manual_command(self, now: float | None = None) -> None:
         """Ghi nhận vừa nhận được một lệnh manual từ browser."""
@@ -56,6 +67,16 @@ class SafetyState:
     # -- quyền điều khiển ---------------------------------------------------
     def enable_web_control(self) -> None:
         self.web_control_enabled = True
+
+    def clear_deadman(self) -> None:
+        """Operator xác nhận đã thấy lần mất lái trước. Xem `deadman_tripped`."""
+        self.deadman_tripped = False
+        self.last_zero_velocity_reason = None
+
+    def note_zero_velocity(self, reason: str) -> None:
+        """Ghi lại rằng backend vừa phải tự gửi velocity 0, và vì sao."""
+        self.deadman_tripped = True
+        self.last_zero_velocity_reason = reason
 
     def disable_web_control(self) -> None:
         """Thu hồi quyền của web và xoá dead-man timer."""
@@ -85,6 +106,15 @@ class SafetyState:
         limit = config.MAX_VELOCITY
         return max(-limit, min(limit, value))
 
+    def clamp_yaw_rate(self, value: float) -> float:
+        """Giới hạn tốc độ xoay theo MAX_YAW_RATE, ĐỘ/GIÂY.
+
+        Tách khỏi `clamp_velocity` vì khác đơn vị: kẹp deg/s bằng ngưỡng m/s
+        là bóp yaw xuống 1 độ/giây mà không có gì báo.
+        """
+        limit = config.MAX_YAW_RATE
+        return max(-limit, min(limit, value))
+
     def as_dict(self) -> dict:
         return {
             "web_control_enabled": self.web_control_enabled,
@@ -92,4 +122,7 @@ class SafetyState:
             "rc_available": self.rc_available,
             "manual_command_timeout_ms": config.MANUAL_COMMAND_TIMEOUT_MS,
             "max_velocity": config.MAX_VELOCITY,
+            "max_yaw_rate": config.MAX_YAW_RATE,
+            "deadman_tripped": self.deadman_tripped,
+            "last_zero_velocity_reason": self.last_zero_velocity_reason,
         }
