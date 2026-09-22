@@ -233,7 +233,7 @@ footer{margin-top:44px; padding-top:18px; border-top:1px solid var(--line);
     <h3><span class="badge bot">Script lo</span></h3>
     <ul>
       <li>Chuỗi 7 chế độ bay, bay hình vuông</li>
-      <li>Thí nghiệm <code>RTL_ALT</code> 15 m so với 50 m</li>
+      <li>Thí nghiệm <code>RTL_ALT_M</code> 15 m so với 50 m</li>
       <li>Mission 5 waypoint, chạy ở AUTO</li>
       <li>Mission có waypoint thấp 3 m</li>
       <li>Tải log <code>.BIN</code>, vẽ đồ thị độ cao</li>
@@ -705,8 +705,10 @@ rc 3 1000">Chép</button>
 
   <div class="saw">
     <h4>Bạn phải thấy ở cuối</h4>
-    <p>Chế độ tự chuyển sang <code>LAND</code>, drone hạ xuống, rồi in <code>Disarming</code>.
-    Bạn không cần gõ gì thêm — RTL tự làm hết.</p>
+    <p>Drone hạ xuống rồi in <code>Disarming</code>. Bạn không cần gõ gì thêm, RTL tự làm hết.</p>
+    <p style="margin-top:7px"><b>Mode vẫn hiện <code>RTL</code> suốt lúc hạ</b>, không đổi sang
+    <code>LAND</code>. RTL tự hạ trong chính nó. Nếu bạn ngồi chờ chữ <code>LAND</code> thì chờ
+    mãi không tới. Đo thật trên ArduCopter 4.7.1 ngày 22/09/2026.</p>
   </div>
 
   <div class="note info">
@@ -909,8 +911,8 @@ cp ~/ardupilot/ArduCopter/logs/*.BIN /mnt/d/Coding/IOT-CV/logs/sitl/">Chép</but
     <tr><td><code>mode land</code></td><td>Hạ ngay tại chỗ đang đứng</td></tr>
     <tr><td><code>rc 3 1500</code></td><td>Đặt cần ga về giữa. <code>1500</code> luôn là giữa</td></tr>
     <tr><td><code>rc 1 1500</code> / <code>rc 2 1500</code></td><td>Trả cần nghiêng và cần chúi về giữa</td></tr>
-    <tr><td><code>param show RTL_ALT</code></td><td>Xem một tham số. Dùng <code>*</code> để tìm: <code>param show RTL*</code></td></tr>
-    <tr><td><code>param set RTL_ALT 5000</code></td><td>Đổi tham số. Đơn vị ở đây là centimet, nên 5000 là 50 mét</td></tr>
+    <tr><td><code>param show RTL_ALT_M</code></td><td>Xem một tham số. Dùng <code>*</code> để tìm: <code>param show RTL*</code></td></tr>
+    <tr><td><code>param set RTL_ALT_M 50</code></td><td>Đổi tham số. Trên 4.7.1 hậu tố <code>_M</code> nghĩa là <b>mét</b>, nên 50 là 50 mét. Tên cũ <code>RTL_ALT</code> (cm) <b>đã bị xoá</b>: đặt nó thì firmware im lặng bỏ qua, không báo lỗi</td></tr>
     <tr><td><code>wp list</code></td><td>Đọc danh sách waypoint đang nằm trong drone</td></tr>
     <tr><td><code>exit</code></td><td>Tắt drone ảo</td></tr>
   </tbody>

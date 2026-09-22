@@ -123,7 +123,7 @@ Nếu lỗi:
 | `LOITER` | Đứng yên một chỗ trên không, tự chống gió. Cần GPS tốt | `mode loiter`, buông cần, drone đứng im trên Map |
 | `GUIDED` | Máy tính ra lệnh "bay tới toạ độ này". **Đây là mode website của bạn sẽ dùng** | `mode guided`, `takeoff 20`, rồi chuột phải trên Map → `Fly To` |
 | `AUTO` | Chạy trọn một danh sách waypoint đã nạp sẵn xuống drone | Việc 03.4 |
-| `RTL` | Tự leo lên `RTL_ALT` rồi bay về điểm cất cánh và hạ | `mode rtl` |
+| `RTL` | Tự leo lên `RTL_ALT_M` (mét, 4.7+) rồi bay về điểm cất cánh và hạ | `mode rtl` |
 | `LAND` | Hạ ngay tại chỗ đang đứng, không bay đi đâu | `mode land` |
 
 Chuỗi bài tập đầy đủ, gõ trong **MAVProxy**:
@@ -256,7 +256,7 @@ Làm hết **bằng tay**, không nhờ ai làm hộ, không chép kết quả c
 - [ ] Khởi động SITL và nối Mission Planner vào **3 lần liên tiếp mà không cần xem lại hướng dẫn**.
 - [ ] Gây ra **3 lỗi pre-arm khác nhau** và tự sửa được cả 3. Chép nguyên văn cả 3 dòng lỗi vào sổ tay, kèm một câu giải thích mỗi dòng.
 - [ ] Cất cánh, giữ độ cao 20 m, bay một hình vuông cạnh ~50 m ở LOITER bằng lệnh `rc`, rồi RTL. Làm **2 lần**.
-- [ ] Đổi `RTL_ALT` từ mặc định sang 50 m, bay lại, **mô tả bằng lời** sự khác biệt quan sát được.
+- [ ] Đổi `RTL_ALT_M` từ mặc định `15` sang `50` (đơn vị **mét**), bay lại, **mô tả bằng lời** sự khác biệt quan sát được.
 - [ ] Vẽ và chạy trọn một mission 5 waypoint kết thúc bằng RTL; `wp list` khớp với bảng Mission Planner.
 - [ ] Thử một mission có waypoint `Alt` = 3 m, ghi lại ArduPilot xử lý thế nào.
 - [ ] Mở log của chuyến bay đó trên UAV Log Viewer, chỉ ra được đồ thị độ cao và các lần đổi mode.
@@ -314,7 +314,7 @@ Nếu bạn chưa tự trả lời được câu đó, **phase này chưa xong**
 - **GUIDED khác AUTO thế nào, và vì sao điều đó quyết định thiết kế website** — dẫn thẳng sang khái niệm dead-man ở Phase 06. Đây là ý quan trọng nhất của cả trang.
 - **Arm / disarm là gì, pre-arm check là gì** — vì sao ArduPilot từ chối quay cánh; cách đọc một dòng `PreArm:`; **vì sao không bao giờ tắt `ARMING_CHECK` cho nhanh** (viết in đậm).
 - **Ba dòng `PreArm:` của chính bạn** — nguyên văn, kèm giải thích tự viết.
-- **Param là gì (mức nhập môn)** — hàng nghìn công tắc nhỏ trong flight controller; ba cái đã nghịch (`RTL_ALT`, `WPNAV_SPEED`, `LAND_SPEED`) và cảm nhận khác biệt; đơn vị hay gây nhầm (cm so với m).
+- **Param là gì (mức nhập môn)** — hàng nghìn công tắc nhỏ trong flight controller; ba cái đã nghịch (`RTL_ALT_M`, `WPNAV_SPEED`, `LAND_SPEED`) và cảm nhận khác biệt; đơn vị hay gây nhầm (cm so với m).
 - **EKF là gì (mức rất nông)** — bộ lọc gộp GPS + gia tốc kế + la bàn thành một ước lượng vị trí; vì sao phải "đợi EKF hội tụ" mới arm được ở LOITER.
 - **Waypoint và mission** — mission là danh sách lệnh nạp xuống flight controller; `TAKEOFF` phải là lệnh đầu khi cất từ mặt đất; vì sao `wp list` là cách kiểm chứng đáng tin hơn nhìn màn hình.
 - **Log bay** — `.BIN` là gì, ghi lúc nào, đọc ở đâu (UAV Log Viewer là đường dễ nhất cho người mới); bốn thứ cơ bản phải tìm được và tên trường tương ứng; vì sao log không commit vào git.

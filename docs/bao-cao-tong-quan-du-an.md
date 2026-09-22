@@ -883,7 +883,7 @@ Dự án **không** được coi là hoàn thành khi "code xong". Dự án hoà
 | `BATT_AMP_PERVLT` | *tự hiệu chỉnh* | Mặc định 1 chắc chắn sai; phải đo bằng kìm ampe hoặc đối chiếu mAh đã nạp lại |
 | `FS_GCS_ENABLE` | 1 | Failsafe mất trạm mặt đất |
 | `FENCE_ENABLE` | 1 | Bật geofence |
-| `RTL_ALT` | 1500 | Độ cao RTL 15 m (đơn vị cm) |
+| `RTL_ALT_M` | 15 | Độ cao RTL tối thiểu 15 m (đơn vị **mét** trên ArduCopter 4.7+; tên cũ `RTL_ALT` đơn vị cm đã bị xoá) |
 
 ## 12.2. Danh mục linh kiện tóm tắt
 

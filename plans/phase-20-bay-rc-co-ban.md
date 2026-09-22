@@ -369,12 +369,27 @@ Changes since previous flight: (đổi tham số gì, sửa cơ khí gì)
 **Đặt tham số RTL trước khi bay** (Full Parameter List):
 
 ```text
-RTL_ALT       1500   cm = 15 m. Độ cao drone sẽ leo lên trước khi bay về.
+RTL_ALT_M       15   MÉT. Độ cao TỐI THIỂU drone leo lên trước khi bay về.
+                     Đang bay cao hơn ngưỡng thì nó KHÔNG leo thêm.
                      Phải CAO HƠN mọi vật cản trong bãi, và THẤP HƠN
                      FENCE_ALT_MAX (30 m).  <-- chưa xác minh, chỉnh theo bãi thật
-RTL_ALT_FINAL 0      cm = hạ cánh hẳn sau khi về tới home
+RTL_ALT_FINAL_M 0    MÉT = hạ cánh hẳn sau khi về tới home
 RTL_LOIT_TIME 5000   ms = dừng 5 giây phía trên home trước khi hạ
 ```
+
+> ⚠️ **Đã sửa 22/09/2026. Đọc kỹ chỗ này, nó hỏng im lặng.** Bản trước ghi
+> `RTL_ALT 1500` (cm) và `RTL_ALT_FINAL 0`. Firmware của dự án là **ArduCopter
+> 4.7.1** (`firmware/ardupilot/build-d450a747/custombuild.yaml` → `version.name`),
+> và trên bản đó hai tên **`RTL_ALT` / `RTL_ALT_FINAL` đã bị xoá**; 4.7 chuyển
+> sang hậu tố SI tường minh (`_M` = mét). Đo thật trên SITL cùng phiên bản:
+> `RTL_ALT_M = 15` cho đỉnh 20,0 m khi đang bay ở 19,4 m (không leo), `= 50`
+> cho đỉnh 50,0 m.
+>
+> **Vì sao phải cảnh báo:** đặt tên cũ thì flight controller **không báo lỗi
+> gì cả**, nó im lặng bỏ qua và `RTL_ALT_M` giữ nguyên mặc định 15 m. Bạn sẽ
+> tin là đã đặt RTL vượt vật cản trong khi chưa đặt được gì. Sau khi ghi, **đọc
+> ngược lại giá trị** trong Full Parameter List để xác nhận, đừng tin thao tác
+> ghi là đã xong.
 
 **Hiểu "home" là ở đâu:** home được ghi nhận **tại thời điểm arm** (với GPS fix tốt). Nghĩa là drone sẽ bay về **đúng chỗ nó cất cánh**, không phải chỗ bạn đang đứng. Ghi nhớ điều này và đứng cách điểm cất cánh ≥ 5 m.
 
@@ -386,7 +401,7 @@ RTL_LOIT_TIME 5000   ms = dừng 5 giây phía trên home trước khi hạ
 4. Buông cần, để drone đứng yên 5 giây.
 5. **Gạt `CH6` sang `RTL`.**
 6. **Không chạm cần nữa.** Quan sát.
-7. Drone phải: leo lên `RTL_ALT` (15 m) → bay ngang về phía home → dừng 5 giây phía trên home → hạ cánh xuống.
+7. Drone phải: leo lên `RTL_ALT_M` (15 m) → bay ngang về phía home → dừng 5 giây phía trên home → hạ cánh xuống.
 8. Sau khi chạm đất, drone tự disarm (hoặc disarm thủ công).
 
 **Cái cần nhìn:**
@@ -477,7 +492,7 @@ param: 05-loiter-good — sau khi F3 Loiter pass
 - [ ] Với **cả 4** bộ log: `VIBE` X/Y/Z < 30 m/s²; `Clip0` = `Clip1` = `Clip2` = **0**; EKF variance < 0.5; compass innovation dao động quanh 0 và độ lớn từ trường **không đổi theo ga**; `BAT.Volt` lúc treo **không** tụt dưới 14,0 V; 4 đường `RCOU` chụm.
 - [ ] `MOT_THST_HOVER` học được đã ghi lại; nếu > 0,65 thì đã xử lý (giảm payload) trước khi sang Phase 21.
 - [ ] `BATT_AMP_PERVLT` đã hiệu chỉnh ít nhất một vòng theo mAh sạc lại.
-- [ ] `RTL_ALT` đã đặt cao hơn mọi vật cản trong bãi và thấp hơn `FENCE_ALT_MAX`.
+- [ ] `RTL_ALT_M` (mét, **không phải** `RTL_ALT` cm) đã đặt cao hơn mọi vật cản trong bãi và thấp hơn `FENCE_ALT_MAX`; **đã đọc ngược lại giá trị để xác nhận firmware thật sự nhận**.
 - [ ] `firmware/ardupilot/params/05-loiter-good.param` đã lưu và commit với prefix `param:`.
 - [ ] `docs/test-log.md` có đủ 4 dòng F1–F4.
 - [ ] `docs/so-tay/20-bay-rc-co-ban.md` đã viết xong.
@@ -529,7 +544,7 @@ param: 05-loiter-good — sau khi F3 Loiter pass
 - **EKF là gì** (nói đơn giản: bộ lọc ghép nhiều cảm biến để đoán vị trí và tư thế), variance nghĩa là gì, vì sao variance cao là "EKF đang không tin cảm biến nào".
 - **Compass innovation** — hiệu giữa "la bàn nói" và "EKF đoán"; vì sao innovation trôi lệch một phía là dấu hiệu la bàn sai.
 - **Toilet bowl** — cơ chế, vì sao chỉ xuất hiện ở Loiter, và vì sao nó chặn Auto.
-- **RTL và "home"** — home ghi tại lúc arm, không phải chỗ người đứng; `RTL_ALT` phải cao hơn vật cản và thấp hơn geofence.
+- **RTL và "home"** — home ghi tại lúc arm, không phải chỗ người đứng; `RTL_ALT_M` phải cao hơn vật cản và thấp hơn geofence.
 - **Sụt áp (voltage sag) của pin LiPo** — vì sao điện áp lúc tải thấp hơn lúc nghỉ, và vì sao ngưỡng failsafe đặt theo điện áp dưới tải.
 - **`MOT_THST_HOVER` và `MOT_HOVER_LEARN`** — ga treo thật là chỉ số sức khoẻ của drone; đọc nó sau chuyến bay đầu thay vì tin bảng của hãng.
 - **Vì sao không chỉnh PID để chữa rung** — PID chữa triệu chứng, rung là nguyên nhân; chỉnh PID chỉ làm drone chậm phản ứng hơn với mọi thứ.

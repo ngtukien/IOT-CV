@@ -143,12 +143,25 @@ def _check_binaries() -> None:
 
 def _running_sitl_pids() -> list[str]:
     """Trả về danh sách dòng mô tả tiến trình sim_vehicle/arducopter đang sống."""
+    # -A (--ignore-ancestors) loai chinh ta va cac tien trinh cha. Khong co no,
+    # bat ky shell nao co chuoi "sim_vehicle.py" trong dong lenh -- ke ca cai
+    # shell dang goi runner nay -- deu bi tinh la mot phien SITL dang song, va
+    # guard tu choi chay du may sach. Da gap that ngay 22/09/2026.
     out = subprocess.run(
-        ["pgrep", "-af", "sim_vehicle.py|bin/arducopter"],
+        ["pgrep", "-af", "-A", "sim_vehicle.py|bin/arducopter"],
         capture_output=True,
         text=True,
         check=False,
     )
+    # pgrep: 0 = co khop, 1 = khong khop, >=2 = TU NO hong (sai co, thieu quyen).
+    # Khong phan biet thi ma loi tra ve stdout rong, guard im lang cho qua va
+    # tuong nhu may sach -- dung loai "bao xanh chung minh khong gi ca".
+    if out.returncode >= 2:
+        raise SitlError(
+            "Khong kiem duoc co phien SITL nao dang chay hay khong: pgrep thoat "
+            f"voi ma {out.returncode}.\n  stderr: {out.stderr.strip()}\n"
+            "Tu choi chay tiep, vi chay mu co the giam len phien ban dang mo tay."
+        )
     lines = [ln for ln in out.stdout.splitlines() if ln.strip()]
     return lines
 
@@ -322,7 +335,11 @@ class SitlInstance:
         # dòng lệnh — kể cả SITL người dùng vừa mở tay ở cửa sổ khác, hay một
         # `less`/editor đang mở đúng đường dẫn đó. `refuse_if_conflict()` chỉ
         # bảo đảm điều đó lúc start(), còn đây là vài phút sau.
-        mau = f"--use-dir={self.use_dir}"
+        # Mau KHONG duoc bat dau bang "--": pkill/pgrep coi no la TUY CHON,
+        # in usage roi thoat, nen ca khoi don dep duoi day thanh vo hieu ma
+        # khong he bao loi ("pkill: unrecognized option '--use-dir=...'").
+        # Bo hai gach dau dong; phan con lai van du dac hieu cho phien nay.
+        mau = f"use-dir={self.use_dir}"
         # SIGTERM TRƯỚC, rồi mới SIGKILL: ArduCopter cần cơ hội flush và đóng
         # log DataFlash. Giết thẳng bằng -9 là cắt cụt đuôi file .BIN mà
         # run_log_dump.py sinh ra để đọc.
