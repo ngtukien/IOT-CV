@@ -189,9 +189,7 @@ def test_lap_lai_goi_zero_chong_rot_goi_udp(tmp_path):
     deadman.tick(now=100.45)  # gói zero thứ 3
 
     so_goi_zero = sum(
-        1
-        for ten, p in fake.sent
-        if ten == "set_position_target_local_ned_send" and p["vx"] == 0.0
+        1 for ten, p in fake.sent if ten == "set_position_target_local_ned_send" and p["vx"] == 0.0
     )
     assert so_goi_zero == 3
     assert len(_doc_so_kiem(deadman.log_path)) == 1
@@ -337,3 +335,78 @@ def test_reason_la_khoa_dong_khong_nhan_gia_tri_la(tmp_path):
 
     with pytest.raises(ValueError, match="ZERO_REASONS"):
         deadman.trip("tu_dung_thoi")
+
+
+# ---------------------------------------------------------------------------
+# Hồi quy của hai lỗi bắt được trên SITL THẬT ngày 2026-09-22
+# ---------------------------------------------------------------------------
+def test_bat_web_control_xong_ma_chua_lai_thi_khong_tu_trip(tmp_path):
+    """Bật quyền lái rồi ngồi yên KHÔNG được làm mất quyền lái.
+
+    `SafetyState.should_send_zero_velocity()` trả True khi chưa có lệnh nào —
+    đúng cho riêng nó, nhưng nối thẳng vào vòng dead-man thì nhịp ĐẦU TIÊN sau
+    `cmd.web_control_enable` đã trip. Quan sát thật trong bảng sự kiện của
+    backend chạy với SITL:
+
+        web_control.enabled -> deadman.zero_velocity (deadman_timeout)
+
+    Tệ hơn: nó bắn một gói velocity ra dây khi drone CÒN TRÊN MẶT ĐẤT.
+
+    Không test đơn vị nào cũ bắt được, vì bài nào cũng gửi một lệnh velocity
+    trước khi bơm thời gian giả.
+    """
+    _hub, fake, _state, safety, deadman, _loi = _dung_canh(tmp_path)
+
+    for i in range(10):
+        deadman.tick(now=100.0 + i * 0.5)  # rất quá hạn, nhiều lần
+
+    assert _goi_velocity(fake) is None, "gui velocity khi chua ai lai lan nao"
+    assert safety.deadman_tripped is False
+    assert safety.web_control_enabled is True, "bat quyen lai xong lai mat quyen lai"
+    assert _doc_so_kiem(deadman.log_path) == []
+
+
+def test_nha_phim_roi_ngoi_yen_khong_bi_thu_quyen(tmp_path):
+    """Lệnh cuối đã là DỪNG thì hết hạn không phải sự cố.
+
+    Frontend gửi 0 khi nhả phím rồi thôi (xem `frontend/control.js`). Coi đó là
+    dead-man thì banner đỏ chớp sau MỖI nhịp gõ và quyền lái bị thu liên tục.
+    """
+    hub, fake, _state, safety, deadman, _loi = _dung_canh(tmp_path)
+    _gui_velocity(hub, vx=1.0)  # giữ W
+    _gui_velocity(hub, vx=0.0)  # nhả W
+    safety.note_manual_command(now=100.0)
+
+    deadman.tick(now=100.5)  # quá hạn rất xa
+
+    assert safety.deadman_tripped is False, "nha phim ma bi coi la dead-man"
+    assert safety.web_control_enabled is True, "nha phim ma bi thu quyen lai"
+    assert _doc_so_kiem(deadman.log_path) == []
+    # Vẫn phải gửi thêm một gói zero cho chắc.
+    assert _goi_velocity(fake)["vx"] == pytest.approx(0.0)
+
+
+def test_doi_sang_guided_khong_bi_quy_ket_la_thu_quyen(tmp_path):
+    """Khối mode-change chỉ được nhận công khi CHÍNH nó thu quyền.
+
+    GUIDED nằm trong whitelist nên `on_mode_change` không thu gì. Bản đầu vẫn
+    in "Mode đổi sang GUIDED — web mất quyền lái" khi quyền đã bị vòng dead-man
+    thu từ trước ở thread khác. Một dòng log đổ tội sai dẫn người đọc đi sai
+    hướng còn hại hơn không log.
+    """
+    from backend.events import BUS
+
+    hub, _fake, state, safety, _deadman, _loi = _dung_canh(tmp_path, mode="STABILIZE")
+    # Vòng dead-man (thread khác) đã thu quyền trước đó.
+    safety.disable_web_control()
+    state.mode = "GUIDED"
+    state.last_update = time.monotonic()
+
+    asyncio.run(hub._reconcile_control_ownership())
+
+    ly_do = [
+        e.detail.get("reason")
+        for e in BUS.recent(50)
+        if e.code == "web_control.revoked" and e.detail
+    ]
+    assert "mode_change" not in ly_do, f"quy ket sai cho mode change: {ly_do}"

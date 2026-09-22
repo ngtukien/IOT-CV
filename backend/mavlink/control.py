@@ -190,6 +190,38 @@ class FlightControl:
                 {"command": command_id, "result": result, "result_name": ten_ket_qua},
             )
 
+    def _cho_telemetry_xac_nhan(self, dieu_kien, mo_ta: str, han_chot: float) -> None:
+        """Chờ tới khi TELEMETRY phản ánh kết quả, không chỉ tới khi FC ack.
+
+        ┌─ ĐÃ ĐO TRÊN SITL, KHÔNG ĐOÁN (2026-09-22) ──────────────────────────┐
+        │ `COMMAND_ACK` accepted về trong vài mili-giây, nhưng cờ `armed` nằm │
+        │ ở `HEARTBEAT.base_mode` và HEARTBEAT chỉ về **1 Hz**. Chuỗi          │
+        │ arm -> takeoff qua WebSocket vì thế hỏng ngay lần chạy thật đầu      │
+        │ tiên: `cmd.arm` trả `ack done`, `cmd.takeoff` ngay sau đó đọc        │
+        │ `state.armed` vẫn còn False và trả                                   │
+        │ "Chua armed. Thu tu dung: GUIDED -> arm -> takeoff".                 │
+        │                                                                      │
+        │ Pytest KHÔNG bắt được lỗi này vì test đặt thẳng `state.armed=True`.  │
+        │ Đây đúng là thứ `scripts/sitl_deadman_check.py` sinh ra để bắt:      │
+        │ lỗi LẮP RÁP, không phải lỗi suy nghĩ.                                │
+        └──────────────────────────────────────────────────────────────────────┘
+
+        Hợp đồng nói `ack done` = "FC đã xác nhận". Với arm/disarm thì bằng
+        chứng xác nhận là HEARTBEAT, không phải COMMAND_ACK — nên `done` chỉ
+        được phát sau khi telemetry đồng ý.
+        """
+        if self.state is None:
+            return
+        while time.monotonic() < han_chot:
+            if dieu_kien(self.state):
+                return
+            time.sleep(0.05)
+        raise ControlError(
+            "timeout",
+            f"FC da nhan lenh nhung telemetry chua bao {mo_ta} — kiem nhip HEARTBEAT",
+            {"cho": mo_ta},
+        )
+
     # -- mode ---------------------------------------------------------------
     def set_mode(self, mode: str, timeout: float | None = None) -> None:
         """Đổi flight mode. Chỉ nhận mode trong `WEB_ALLOWED_MODES`.
@@ -298,15 +330,19 @@ class FlightControl:
         """
         self._require_link()
         self._kiem_tra_truoc_arm()
-        self._gui_va_cho_ack(
-            MAV_CMD_COMPONENT_ARM_DISARM, 1.0, ten_lenh="arm", timeout=timeout
+        han = config.COMMAND_ACK_TIMEOUT_S if timeout is None else timeout
+        self._gui_va_cho_ack(MAV_CMD_COMPONENT_ARM_DISARM, 1.0, ten_lenh="arm", timeout=han)
+        self._cho_telemetry_xac_nhan(
+            lambda st: getattr(st, "armed", False) is True, "armed", time.monotonic() + han
         )
 
     def disarm(self, timeout: float | None = None) -> None:
         """MAV_CMD_COMPONENT_ARM_DISARM param1=0. Xem cảnh báo force ở `arm`."""
         self._require_link()
-        self._gui_va_cho_ack(
-            MAV_CMD_COMPONENT_ARM_DISARM, 0.0, ten_lenh="disarm", timeout=timeout
+        han = config.COMMAND_ACK_TIMEOUT_S if timeout is None else timeout
+        self._gui_va_cho_ack(MAV_CMD_COMPONENT_ARM_DISARM, 0.0, ten_lenh="disarm", timeout=han)
+        self._cho_telemetry_xac_nhan(
+            lambda st: getattr(st, "armed", True) is False, "disarmed", time.monotonic() + han
         )
 
     # -- takeoff ------------------------------------------------------------
@@ -373,9 +409,7 @@ class FlightControl:
         self.set_mode("LOITER", timeout=timeout)
 
     # -- velocity -----------------------------------------------------------
-    def send_velocity_body(
-        self, vx: float, vy: float, vz: float, yaw_rate: float = 0.0
-    ) -> None:
+    def send_velocity_body(self, vx: float, vy: float, vz: float, yaw_rate: float = 0.0) -> None:
         """Gửi velocity trong MAV_FRAME_BODY_OFFSET_NED. KHÔNG chờ ack.
 
         Ba chỗ dễ sai, ghi lại để khỏi quên:
@@ -395,9 +429,7 @@ class FlightControl:
         """
         master = self.connection.master
         if master is None:
-            raise ControlError(
-                "not_connected", "Chua co link MAVLink — khong gui duoc velocity"
-            )
+            raise ControlError("not_connected", "Chua co link MAVLink — khong gui duoc velocity")
         self.connection.send(
             master.mav.set_position_target_local_ned_send,
             time_boot_ms=0,  # 0 = FC tự gán

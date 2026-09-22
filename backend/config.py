@@ -122,7 +122,13 @@ ZERO_VELOCITY_REPEAT = _env_int("ZERO_VELOCITY_REPEAT", 5)
 COMMAND_ACK_TIMEOUT_S = _env_float("COMMAND_ACK_TIMEOUT_S", 3.0)
 # Sổ kiểm cho mọi lần gửi zero-velocity. Đây là HỢP ĐỒNG với Phase 10 §10.7:
 # test Playwright đọc chính file này để đo độ trễ dead-man.
-DEADMAN_LOG_PATH = _env_str("DEADMAN_LOG_PATH", str(PROJECT_ROOT / "logs" / "deadman.jsonl"))
+#
+# Đường dẫn TƯƠNG ĐỐI được neo vào gốc repo, không vào CWD. Neo vào CWD thì
+# chạy backend từ thư mục khác là bằng chứng an toàn rơi sang chỗ khác — im
+# lặng, và chỉ phát hiện ra khi cần dựng lại một sự việc.
+DEADMAN_LOG_PATH = str(
+    (PROJECT_ROOT / _env_str("DEADMAN_LOG_PATH", "logs/deadman.jsonl")).resolve()
+)
 
 # Tránh vật cản (Phase 07). Khai báo ngay từ Phase 05 vì hợp đồng WebSocket
 # nói UI đọc MỌI ngưỡng từ `limits` — Phase 08 dựng UI trước khi Phase 07 xong.

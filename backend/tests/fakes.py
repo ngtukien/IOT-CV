@@ -128,9 +128,7 @@ def tu_dong_ack(conn, fake: FakeMAVLink, result: int = 0):
                 # args = (target_system, target_component, command_id, confirmation, p1..p7)
                 vi_tri = payload.get("args", ())
                 if len(vi_tri) >= 3:
-                    conn.route_ack(
-                        FakeMessage("COMMAND_ACK", command=vi_tri[2], result=result)
-                    )
+                    conn.route_ack(FakeMessage("COMMAND_ACK", command=vi_tri[2], result=result))
         return ket_qua
 
     conn.send = send

@@ -1,0 +1,7 @@
+// Chuoi takeoff toi thieu qua WebSocket — Phase 06 §6.1.
+// Chay:  uv run python scripts/ws_probe.py --script plans/samples/takeoff.jsonl
+// Thu tu GUIDED -> arm -> takeoff la BAT BUOC cua ArduCopter, dung dao.
+{"type": "cmd.web_control_enable", "data": {"enabled": true}}
+{"type": "cmd.mode", "data": {"mode": "GUIDED"}}
+{"type": "cmd.arm", "data": {"arm": true}}
+{"type": "cmd.takeoff", "data": {"altitude": 5}}

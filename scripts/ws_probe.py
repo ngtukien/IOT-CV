@@ -18,6 +18,9 @@ Ví dụ:
 
     # chỉ xem sự kiện, bỏ qua telemetry cho đỡ rối
     uv run python scripts/ws_probe.py --only event --count 5
+
+    # chạy cả một chuỗi lệnh, CHỜ ack giữa các bước (Phase 06 §6.1)
+    uv run python scripts/ws_probe.py --script plans/samples/takeoff.jsonl
 """
 
 from __future__ import annotations
@@ -27,6 +30,7 @@ import asyncio
 import json
 import sys
 import time
+from pathlib import Path
 
 DEFAULT_URL = "ws://127.0.0.1:8000/ws"
 
@@ -57,6 +61,87 @@ def _in(message: dict, pretty: bool) -> None:
         print(f"[{type_}] {json.dumps(data, ensure_ascii=False)}")
 
 
+async def _chay_kich_ban(socket, duong_dan: str, timeout: float) -> int:
+    """Gửi từng dòng của một file .jsonl, CHỜ ack/error rồi mới sang dòng sau.
+
+    Vì sao phải chờ chứ không bắn một loạt: thứ tự GUIDED -> arm -> takeoff là
+    thứ tự BẮT BUỘC của ArduCopter. Bắn dồn thì arm tới nơi trước khi FC kịp
+    sang GUIDED, bị từ chối, rồi takeoff cũng hỏng theo — và không nhìn ra
+    được là hỏng vì thứ tự hay vì lệnh sai.
+
+    Mỗi dòng là một phong bì hợp đồng đầy đủ. Dòng trống và dòng bắt đầu bằng
+    `//` được bỏ qua để file mẫu chú thích được cho người đọc.
+    """
+    duong = Path(duong_dan)
+    if not duong.is_file():
+        print(f"FAIL: khong thay file kich ban {duong}", file=sys.stderr)
+        return 1
+
+    buoc = 0
+    for so_dong, raw in enumerate(duong.read_text(encoding="utf-8").splitlines(), 1):
+        dong = raw.strip()
+        if not dong or dong.startswith("//"):
+            continue
+        try:
+            phong_bi = json.loads(dong)
+        except json.JSONDecodeError as exc:
+            print(f"FAIL: dong {so_dong} khong phai JSON: {exc}", file=sys.stderr)
+            return 1
+
+        buoc += 1
+        phong_bi.setdefault("v", 1)
+        phong_bi.setdefault("id", f"probe-{buoc}")
+        ten = phong_bi.get("type", "?")
+        await socket.send(json.dumps(phong_bi))
+        print(f"[{buoc}] -> {ten} {json.dumps(phong_bi.get('data', {}), ensure_ascii=False)}")
+
+        # `cmd.velocity` cố ý KHÔNG sinh ack (hợp đồng Phase 05) — chờ nó là
+        # treo vĩnh viễn. Chỉ lắng nghe error trong một khoảng ngắn.
+        if ten == "cmd.velocity":
+            ket_qua = await _cho_phan_hoi(socket, phong_bi["id"], timeout=0.3, can_ack=False)
+        else:
+            ket_qua = await _cho_phan_hoi(socket, phong_bi["id"], timeout=timeout, can_ack=True)
+
+        if ket_qua is not None:
+            print(f"    FAIL: {ket_qua}", file=sys.stderr)
+            return 1
+        print("    OK")
+
+    print()
+    print(f"KET QUA: PASS ({buoc} lenh)")
+    return 0
+
+
+async def _cho_phan_hoi(socket, ref: str, *, timeout: float, can_ack: bool) -> str | None:
+    """None = xong. Chuỗi = mô tả lỗi.
+
+    Chờ tới khi thấy `ack status=done` (hoặc `error`) MANG ĐÚNG `ref` của mình.
+    Lọc theo `ref` chứ không lấy ack đầu tiên gặp: telemetry vẫn chảy 8 Hz xen
+    giữa, và một `error` của lệnh trước có thể tới muộn.
+    """
+    han_chot = time.monotonic() + timeout
+    while True:
+        con_lai = han_chot - time.monotonic()
+        if con_lai <= 0:
+            return None if not can_ack else f"khong nhan duoc ack trong {timeout:.0f}s"
+        try:
+            raw = await asyncio.wait_for(socket.recv(), timeout=con_lai)
+        except TimeoutError:
+            return None if not can_ack else f"khong nhan duoc ack trong {timeout:.0f}s"
+
+        try:
+            message = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        data = message.get("data", {})
+        if data.get("ref") != ref:
+            continue
+        if message.get("type") == "error":
+            return f"{data.get('code')}: {data.get('message')}"
+        if message.get("type") == "ack" and data.get("status") == "done":
+            return None
+
+
 async def _run(args: argparse.Namespace) -> int:
     try:
         from websockets.asyncio.client import connect
@@ -79,6 +164,8 @@ async def _run(args: argparse.Namespace) -> int:
 
     print(f"Đã nối {args.url}")
     async with socket:
+        if args.script:
+            return await _chay_kich_ban(socket, args.script, args.ack_timeout)
         if args.send:
             await socket.send(args.send)
             print(f"-> {args.send}")
@@ -152,6 +239,10 @@ def main() -> int:
     parser.add_argument("--url", default=DEFAULT_URL, help=f"mặc định {DEFAULT_URL}")
     parser.add_argument("--count", type=int, default=10, help="in bao nhiêu message rồi thoát")
     parser.add_argument("--send", help="một message JSON gửi lên ngay sau khi nối")
+    parser.add_argument("--script", help="file .jsonl: gửi từng dòng, chờ ack giữa các bước")
+    parser.add_argument(
+        "--ack-timeout", type=float, default=10.0, help="chờ ack mỗi bước của --script"
+    )
     parser.add_argument("--pretty", action="store_true", help="in nguyên JSON thay vì tóm tắt")
     parser.add_argument("--only", help="chỉ in type này (telemetry, event, status, error...)")
     parser.add_argument("--measure-rate", action="store_true", help="đo nhịp telemetry thật")

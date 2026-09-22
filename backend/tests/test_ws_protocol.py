@@ -254,9 +254,7 @@ def test_lenh_phase_06_khong_con_not_implemented():
     """
     from backend.ws import COMMAND_HANDLERS
 
-    cua_phase_06 = [
-        ten for ten, phase in UPLINK_IMPLEMENTED_IN.items() if phase == 6
-    ]
+    cua_phase_06 = [ten for ten, phase in UPLINK_IMPLEMENTED_IN.items() if phase == 6]
     assert len(cua_phase_06) == 7
     thieu = [ten for ten in cua_phase_06 if ten not in COMMAND_HANDLERS]
     assert thieu == [], f"Phase 06 chua dang ky handler cho: {thieu}"

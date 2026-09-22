@@ -181,6 +181,49 @@ def test_fc_tu_choi_thi_bao_command_denied_chu_khong_im_lang():
     assert "DENIED" in loi.value.message
 
 
+def test_arm_cho_telemetry_bao_armed_chu_khong_chi_ack():
+    """Hồi quy của một lỗi bắt được trên SITL THẬT ngày 2026-09-22.
+
+    `COMMAND_ACK` về trong vài mili-giây; cờ `armed` nằm ở HEARTBEAT và chỉ về
+    1 Hz. Bản đầu trả `ack done` ngay sau ack, nên chuỗi arm -> takeoff qua
+    WebSocket hỏng: takeoff đọc `state.armed` vẫn False và báo "Chua armed".
+
+    Bài này CHẠY ĐƯỢC mà không có SITL vì nó dựng lại đúng độ trễ đó bằng một
+    thread lật cờ muộn. Trước khi có nó, mọi test của `arm` đều dùng state đã
+    `armed=True` sẵn nên không bài nào chạm tới đường chờ này.
+    """
+    import threading
+    import time
+
+    conn, fake, state, _safety, control = stack_gia(armed=False)
+    tu_dong_ack(conn, fake)
+
+    def _heartbeat_ve_muon():
+        time.sleep(0.25)
+        state.armed = True
+
+    threading.Thread(target=_heartbeat_ve_muon, daemon=True).start()
+    moc = time.monotonic()
+    control.arm(timeout=3.0)
+
+    assert time.monotonic() - moc >= 0.2, (
+        "arm() tra ve TRUOC khi telemetry xac nhan — `ack done` dang noi doi"
+    )
+    assert state.armed is True
+
+
+def test_arm_bao_timeout_khi_telemetry_khong_bao_gio_xac_nhan():
+    """FC ack nhưng drone không bao giờ armed -> `timeout`, không im lặng xong."""
+    conn, fake, _state, _safety, control = stack_gia(armed=False)
+    tu_dong_ack(conn, fake)
+
+    with pytest.raises(ControlError) as loi:
+        control.arm(timeout=0.2)
+
+    assert loi.value.code == "timeout"
+    assert "telemetry" in loi.value.message.lower()
+
+
 def test_ack_khong_ve_thi_bao_timeout():
     """Không có ai trả ack -> `timeout`, không treo vĩnh viễn ở 'accepted'."""
     conn, fake, _state, _safety, control = stack_gia()
@@ -284,9 +327,8 @@ def test_khong_co_ham_dieu_khien_muc_thap():
     )
 
     lenh_cam_co_mat = sorted(ma for ma in LENH_BI_CAM if float(ma) in so)
-    assert lenh_cam_co_mat == [], (
-        "control.py co MAV_CMD bi cam: "
-        + ", ".join(f"{ma} ({LENH_BI_CAM[ma]})" for ma in lenh_cam_co_mat)
+    assert lenh_cam_co_mat == [], "control.py co MAV_CMD bi cam: " + ", ".join(
+        f"{ma} ({LENH_BI_CAM[ma]})" for ma in lenh_cam_co_mat
     )
 
 

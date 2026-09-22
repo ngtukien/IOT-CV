@@ -572,19 +572,28 @@ class WebSocketHub:
             dang_lai = self.safety.web_control_enabled
             # SafetyState tự tắt web control khi mode ra khỏi whitelist.
             self.safety.on_mode_change(mode)
-            if dang_lai and not self.safety.web_control_enabled:
+            # CHÍNH lần đổi mode này có thu quyền hay không. Điều kiện phải là
+            # "đang lái VÀ giờ thì không", chứ không phải "giờ thì không" —
+            # quyền có thể đã bị vòng dead-man thu từ trước ở thread khác, và
+            # khi đó khối này nhận vơ. Đã quan sát thật trên SITL 2026-09-22:
+            # bảng sự kiện in "Mode đổi sang GUIDED — web mất quyền lái" trong
+            # khi GUIDED nằm TRONG whitelist và `on_mode_change` không hề thu
+            # gì. Một dòng log đổ tội sai dẫn người đọc đi sai hướng còn hại
+            # hơn không log.
+            mode_thu_quyen = dang_lai and not self.safety.web_control_enabled
+            if mode_thu_quyen:
                 # Pilot vừa gạt RC ra khỏi GUIDED. Thu quyền thôi thì CHƯA đủ:
                 # lệnh velocity cuối vẫn còn hiệu lực ~3 giây ở phía FC.
                 self._phanh("mode_changed")
-            if had_owner and not self.safety.web_control_enabled:
-                self.web_control_owner = None
-                self.bus.emit(
-                    "warn",
-                    "safety",
-                    "web_control.revoked",
-                    f"Mode đổi sang {mode} — web mất quyền lái, pilot đang cầm",
-                    {"reason": "mode_change", "mode": mode},
-                )
+                if had_owner:
+                    self.web_control_owner = None
+                    self.bus.emit(
+                        "warn",
+                        "safety",
+                        "web_control.revoked",
+                        f"Mode đổi sang {mode} — web mất quyền lái, pilot đang cầm",
+                        {"reason": "mode_change", "mode": mode},
+                    )
             changed = True
 
         if link_alive != self._last_link_alive:
@@ -716,9 +725,7 @@ def _quyen_ra_lenh(hub: WebSocketHub, socket_id: str) -> tuple[str, str] | None:
     return None
 
 
-async def _chay_lenh_cham(
-    hub: WebSocketHub, socket_id: str, envelope: Envelope, fn, *args
-) -> None:
+async def _chay_lenh_cham(hub: WebSocketHub, socket_id: str, envelope: Envelope, fn, *args) -> None:
     """`ack accepted` -> chạy ở thread khác -> `ack done` hoặc `error`.
 
     `asyncio.to_thread` chứ không gọi thẳng: các hàm này CHỜ `COMMAND_ACK` tới
@@ -799,9 +806,7 @@ async def _handle_velocity(hub: WebSocketHub, socket_id: str, envelope: Envelope
     duoc, ly_do = hub.safety.may_accept_web_command()
     if not duoc:
         code = "web_control_disabled" if not hub.safety.web_control_enabled else "wrong_mode"
-        await hub.send_error(
-            socket_id, code, ly_do, ref=envelope.id, command=envelope.type
-        )
+        await hub.send_error(socket_id, code, ly_do, ref=envelope.id, command=envelope.type)
         return
 
     # Điều kiện 3: một-người-lái. Ở đây CHẶT hơn `_quyen_ra_lenh` — lái tay thì
@@ -832,9 +837,7 @@ async def _handle_velocity(hub: WebSocketHub, socket_id: str, envelope: Envelope
     except (ControlError, ConnectionError) as exc:
         message = exc.message if isinstance(exc, ControlError) else str(exc)
         code = exc.code if isinstance(exc, ControlError) else "not_connected"
-        await hub.send_error(
-            socket_id, code, message, ref=envelope.id, command=envelope.type
-        )
+        await hub.send_error(socket_id, code, message, ref=envelope.id, command=envelope.type)
 
 
 COMMAND_HANDLERS: dict[str, Handler] = {

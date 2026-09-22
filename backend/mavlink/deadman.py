@@ -57,6 +57,15 @@ ZERO_REASONS = (
 )
 
 
+def _dang_di(lenh: tuple[float, float, float, float]) -> bool:
+    """Lệnh này có bảo drone chuyển động không?
+
+    So với 0 tuyệt đối, không có ngưỡng: `clamp_velocity` không tạo ra số lẻ,
+    và một ngưỡng ở đây sẽ lặng lẽ nuốt mất những lệnh lái rất chậm.
+    """
+    return any(thanh_phan != 0.0 for thanh_phan in lenh)
+
+
 class DeadmanLoop:
     """Vòng quét độc lập: phanh khi mất liên lạc, giữ lệnh khi còn liên lạc.
 
@@ -159,16 +168,43 @@ class DeadmanLoop:
         if not self.safety.web_control_enabled:
             return
 
-        # 2. Quá hạn dead-man -> PHANH.
-        if self.safety.should_send_zero_velocity(now=now, timeout_ms=self.timeout_ms):
-            self.trip("deadman_timeout")
-            return
-
-        # 3. Còn liên lạc -> gửi lại lệnh gần nhất, giữ cho nó còn hiệu lực.
+        # 2. Chưa có lệnh lái nào -> KHÔNG làm gì. Dead-man canh một lệnh ĐANG
+        #    CÓ HIỆU LỰC; chưa ai bảo drone đi thì không có gì để phanh.
+        #
+        #    ┌─ ĐÃ ĐO TRÊN SITL (2026-09-22) ────────────────────────────────┐
+        #    │ `SafetyState.should_send_zero_velocity()` trả **True** khi     │
+        #    │ `last_manual_command_time is None` — đúng cho chính nó (Phase  │
+        #    │ 05 có test cho hành vi đó), nhưng nối thẳng vào vòng này thì   │
+        #    │ nhịp ĐẦU TIÊN sau `cmd.web_control_enable` đã trip: operator   │
+        #    │ vừa bật quyền lái là mất quyền lái, và một gói velocity bay ra │
+        #    │ khi drone CÒN TRÊN MẶT ĐẤT. Quan sát thật trong bảng sự kiện:  │
+        #    │   web_control.enabled -> deadman.zero_velocity (deadman_timeout)│
+        #    │ Không test đơn vị nào bắt được, vì bài nào cũng gửi một lệnh   │
+        #    │ velocity trước khi bơm thời gian.                              │
+        #    └────────────────────────────────────────────────────────────────┘
         with self._lock:
             lenh = self._last
-        if lenh is not None:
-            self._gui(*lenh)
+        if lenh is None:
+            return
+
+        # 3. Quá hạn dead-man.
+        if self.safety.should_send_zero_velocity(now=now, timeout_ms=self.timeout_ms):
+            if _dang_di(lenh):
+                # Lệnh cuối là lệnh ĐI, mà liên lạc đã im -> đúng dead-man.
+                self.trip("deadman_timeout")
+            else:
+                # Lệnh cuối đã là DỪNG rồi. Hết hạn ở đây không phải sự cố —
+                # đó là người dùng nhả phím xong ngồi yên, đúng cách dùng bình
+                # thường. Gửi thêm một gói zero cho chắc rồi im: coi nó là
+                # dead-man thì banner đỏ chớp sau MỖI lần nhả phím, và quyền
+                # lái bị thu sau mỗi nhịp gõ.
+                self._gui_zero()
+                with self._lock:
+                    self._last = None
+            return
+
+        # 4. Còn liên lạc -> gửi lại lệnh gần nhất, giữ cho nó còn hiệu lực.
+        self._gui(*lenh)
 
     # -- API cho phần còn lại của backend -----------------------------------
     def note_velocity(self, vx: float, vy: float, vz: float, yaw_rate: float = 0.0) -> None:

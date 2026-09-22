@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 05 (hợp đồng WS + khoá ghi MAVLink + `FakeMAVLink`) | ~10 giờ | Không |
+| ĐÃ XONG (2026-09-22) | Phase 05 (hợp đồng WS + khoá ghi MAVLink + `FakeMAVLink`) | ~10 giờ | Không |
 
 ## Mục tiêu
 
@@ -29,7 +29,7 @@ Phạm vi đã tìm: `backend/mavlink/*.py`, `backend/tests/*.py`, `frontend/con
 |---|---|---|
 | `backend/mavlink/control.py` (76 dòng) | **Toàn bộ 8 method là `NotImplementedError`**: `set_mode`, `arm`, `disarm`, `takeoff`, `land`, `rtl`, `loiter`, `send_velocity_body`. Đã có `KEY_VELOCITY_MAP` (`w/s/a/d/r/f` → tuple vx,vy,vz) **đúng quy ước NED** (`r` = lên = `vz -0.5`). Docstring đã ghi đúng ba luật: chỉ lệnh mức cao, **không có `send_motor_pwm()`**, velocity phải gửi lặp | Implement toàn bộ (6.1–6.4) |
 | `backend/mavlink/safety.py` (95 dòng) | **Đã chạy đủ và đã có test**: `note_manual_command(now=)`, `should_send_zero_velocity(now=, timeout_ms=)`, `enable/disable_web_control()`, `on_mode_change()` (rời GUIDED → mất quyền), `on_web_disconnected()`, `may_accept_web_command()` → `(bool, lý do)`, `clamp_velocity()`, `WEB_CONTROLLABLE_MODES = {"GUIDED"}`, `as_dict()` | **Giữ nguyên logic cũ**; chỉ **thêm** 2 trường (6.5.4) |
-| `backend/tests/test_safety.py` (80 dòng) | 4 test đang xanh: web không tự giành quyền · chỉ lái được trong GUIDED · được phép khi đã bật + GUIDED · dead-man timeout gửi zero (dùng `now=100.0` / `now=100.4`, thời gian giả) | Giữ nguyên, không sửa |
+| `backend/tests/test_safety.py` (80 dòng) | **9 test** đang xanh (plan bản đầu ghi 4 — đếm sai): web không tự giành quyền · chỉ lái được trong GUIDED · được phép khi đã bật + GUIDED · dead-man timeout · chưa bật thì không gửi · bật mà chưa có lệnh · RC đổi mode thì mất quyền · đóng browser thì mất quyền · clamp velocity. Dùng thời gian giả `now=` | Giữ nguyên, không sửa — cả 9 vẫn xanh sau Phase 06 |
 | `backend/mavlink/connection.py` | Sau Phase 05 đã có `send(fn, *args)` bọc `threading.Lock` | **Bắt buộc** dùng; cấm gọi thẳng `master.mav.*_send` |
 | `backend/tests/fakes.py` | Sau Phase 05 có `FakeMAVLink` ghi lại mọi `*_send()` vào `.sent` và `last(name)` | Nền của mọi test phase này |
 | `frontend/control.js` (18 dòng, **đã bị Phase 01 thay bằng Vite**) | Bản vanilla cũ chỉ in `"Control chưa bật"`, nhưng comment của nó ghi lại đúng 3 điều kiện mở khoá và đúng luật "keydown gửi liên tục, keyup gửi 0" | Không đụng. Phase 10 làm phần web |
@@ -44,7 +44,7 @@ Phạm vi đã tìm: `backend/mavlink/*.py`, `backend/tests/*.py`, `frontend/con
 - `backend/mavlink/safety.py` (chỉ **thêm** trường, không đổi hàm cũ)
 - `backend/mavlink/connection.py` (chỉ thêm helper gửi lệnh nếu cần)
 - `backend/ws.py` (đăng ký handler `cmd.*`)
-- `backend/config.py` (thêm `DEADMAN_TICK_MS`, `ZERO_VELOCITY_REPEAT`)
+- `backend/config.py` — `DEADMAN_TICK_MS` **Phase 05 đã thêm rồi**; phase này thêm `ZERO_VELOCITY_REPEAT`, `COMMAND_ACK_TIMEOUT_S`, `DEADMAN_LOG_PATH`, `MAX_YAW_RATE`
 - `backend/app.py` (khởi động/dừng vòng dead-man trong lifespan)
 - `.env.example`
 
@@ -117,6 +117,8 @@ Ba hàm này chỉ là `set_mode("LAND" / "RTL" / "LOITER")` — dùng đổi mo
 
   (`takeoff.jsonl` là 4 dòng: `cmd.web_control_enable`, `cmd.mode GUIDED`, `cmd.arm true`, `cmd.takeoff 5`.)
 
+  > Cờ `--script` và thư mục `plans/samples/` **chưa tồn tại khi viết plan** — Phase 06 tạo cả hai. `--script` gửi từng dòng rồi CHỜ `ack done` mới sang dòng sau: bắn dồn thì `arm` tới nơi trước khi FC kịp sang GUIDED và cả chuỗi hỏng mà không nhìn ra vì sao.
+
 - Kết quả mong đợi: mỗi lệnh nhận `ack accepted` rồi `ack done`; console MAVProxy hiện `GUIDED > ARMED`; `relative_alt` trong telemetry bò lên ≈ 5 m trong 15 s.
 - Nếu lỗi:
   - *`arm` bị từ chối, STATUSTEXT báo `PreArm: Need 3D Fix`* — SITL chưa có fix. Chờ ~30 s sau khi `sim_vehicle.py` khởi động. **Không** tắt pre-arm check.
@@ -171,7 +173,7 @@ Trước khi gửi **bất kỳ** velocity nào, gọi `SAFETY.may_accept_web_co
 
 Điều kiện 1 là hiện thực trực tiếp của `SAFETY.md` mục 4: *"Web không được tự giành quyền: operator phải chủ động bật WEB CONTROL ENABLE."*
 
-Điều kiện 2 được bảo trì tự động: `TelemetryReader` gọi `SAFETY.on_mode_change(mode)` mỗi khi `HEARTBEAT` báo mode đổi; hàm đó (đã có) tự `disable_web_control()` khi mode rời GUIDED. Nghĩa là **phi công gạt RC sang Loiter là web mất quyền ngay lập tức**, không cần ai làm gì thêm. Nối dây này trong `telemetry.py` là việc của 6.3 (một dòng).
+Điều kiện 2 được bảo trì tự động, và **dây này Phase 05 đã nối rồi** — ở `ws.py::_reconcile_control_ownership`, không phải ở `telemetry.py` như bản đầu của plan viết. Chỗ đặt đó là cố ý: mọi thay đổi của `SafetyState` và `web_control_owner` nằm trên MỘT luồng (event loop) nên không cần khoá và không có race. **Nối thêm một lần nữa trong `telemetry.py` là tự tạo ra hai người ghi** — đừng làm. Kết quả vẫn đúng như mô tả: phi công gạt RC sang Loiter là web mất quyền ngay lập tức.
 
 Khi quyền bị thu hồi vì bất kỳ lý do gì: phát `event` mức `warn` + đẩy `status` mới xuống để UI đổi banner ngay.
 
@@ -225,6 +227,13 @@ Bước 3 quan trọng không kém bước 2: ArduPilot **hủy lệnh movement 
 
 `reason` ∈ `web_disconnected` · `deadman_timeout` · `mode_changed` · `link_lost` · `operator_disabled`.
 
+> **Một dòng cho MỘT LẦN trip, không phải một dòng cho mỗi gói lặp.** Câu "mỗi
+> lần gửi zero-velocity ghi đúng một dòng" ở trên đọc được theo hai nghĩa; chốt
+> nghĩa thứ hai. Lý do: `ZERO_VELOCITY_REPEAT` gói là MỘT hành động an toàn,
+> chỉ lặp để chống rơi gói UDP — ghi 5 dòng giống nhau cách nhau 50 ms thì
+> Phase 10 đọc file để đo độ trễ sẽ phải đoán lấy dòng nào. Số lần lặp nằm ở
+> trường `repeat`, và có thêm `sent` (bool) nói gói có ra được dây không.
+
 > **Đây là hợp đồng với Phase 10.** Test Playwright E2E đọc chính file này để đo độ trễ. Đổi định dạng thì phải sửa cả `plans/phase-10-web-dieu-khien-obstacle-video.md` §10.7 trong cùng commit.
 
 **6.4.5 — thêm trường vào `SafetyState`.** Chỉ **thêm**, không đổi hàm cũ (4 test hiện có phải tiếp tục xanh):
@@ -248,7 +257,7 @@ Viết trong `backend/tests/test_deadman.py`, chạy với `FakeMAVLink` — **k
 
 | # | Tên | Khẳng định |
 |---|---|---|
-| 1 | `test_giu_W_thi_gui_velocity_tien` | Sau `cmd.velocity(vx=1)`, `FakeMAVLink.last("set_position_target_local_ned")` có `vx≈1.0`, `coordinate_frame==9`, `type_mask==0x0DC7` |
+| 1 | `test_giu_W_thi_gui_velocity_tien` | Sau `cmd.velocity(vx=1)`, `FakeMAVLink.last("set_position_target_local_ned_send")` có `vx≈1.0`, `coordinate_frame==9`, `type_mask==0x0DC7`. **Tên có hậu tố `_send`** — `_FakeMav.__getattr__` ghi lại theo tên đầy đủ, bỏ hậu tố thì `last()` trả `None` và bài test xanh vờ |
 | 2 | `test_tha_W_thi_gui_velocity_zero` | Sau `cmd.velocity(vx=0)`, gói cuối có `vx==0.0` |
 | 3 | `test_dong_browser_khi_dang_giu_W_thi_dung` | Đang gửi `vx=1`; gọi `on_web_disconnected()`; gói **kế tiếp** là `(0,0,0)` **và** `logs/deadman.jsonl` có dòng `reason="web_disconnected"` |
 
@@ -264,7 +273,7 @@ Thêm vào `test_control.py`:
 
 | Test | Khẳng định |
 |---|---|
-| `test_mode_ngoai_whitelist_bi_tu_choi` | `cmd.mode ACRO` → `command_denied` |
+| `test_mode_ngoai_whitelist_bi_tu_choi` | `FlightControl.set_mode("ACRO")` → `command_denied`. **Qua WebSocket thì là `bad_payload`**, không phải `command_denied`: hợp đồng Phase 05 khai `CmdMode.mode` là `Literal[WEB_MODE_WHITELIST]` nên ACRO rụng ở tầng validate. Giữ nguyên hợp đồng (Phase 08 sinh thẳng enum TypeScript từ đó, dropdown không đẻ ra được mode sai) và sửa plan cho khớp, thay vì nới `Literal` thành `str` — nới thì phải sửa 4 file ở 2 phase, đổi lại chỉ được một chữ mã lỗi |
 | `test_takeoff_khi_chua_armed_bi_tu_choi` | → `validation_failed`, message có chữ `"armed"` |
 | `test_takeoff_vuot_max_alt_bi_tu_choi_khong_im_lang_kep` | `altitude=50` → `error`, và `FakeMAVLink` **không** nhận lệnh 22 nào |
 | `test_velocity_bi_kep_theo_max_velocity` | Xin `vx=5` với `MAX_VELOCITY=1` → gói gửi ra có `vx==1.0` |
@@ -276,7 +285,7 @@ Thêm vào `test_control.py`:
   uv run pytest backend/tests/test_deadman.py backend/tests/test_control.py -v
   ```
 
-- Kết quả mong đợi: **6 + 5 = 11 PASSED**, trong đó có đủ 3 test bắt buộc của `SAFETY.md`.
+- Kết quả THẬT (2026-09-22): **17 + 17 = 34 PASSED**, gồm đủ 3 test bắt buộc của `SAFETY.md` §5. (Plan bản đầu ghi "6 + 5 = 11" ở đây nhưng "6 + 6" ở cổng pass — hai chỗ đã lệch nhau từ đầu.)
 - Nếu lỗi:
   - *Test 5 đỏ* — vòng dead-man đang nằm trong asyncio. Chuyển sang `threading.Thread` (6.4.1). Đây là điều test này sinh ra để bắt.
   - *Test 3 đỏ vì file trống* — đang ghi file qua `asyncio.to_thread`, test đọc trước khi ghi xong. Ghi đồng bộ + `flush()`.
@@ -331,18 +340,35 @@ uv run python scripts/sitl_deadman_check.py --url ws://127.0.0.1:8000/ws
 
 - Kết quả mong đợi:
 
+  Kết quả THẬT ngày 2026-09-22 (script có thêm bước `[0/6]` chờ 3D fix + EKF —
+  thiếu nó thì script đỏ vì chạy sớm, không phải vì dead-man hỏng, và một cổng
+  đỏ sai lý do dạy người đọc bỏ qua màu đỏ):
+
   ```text
-  [1/6] web control ON         OK
-  [2/6] mode GUIDED            OK
-  [3/6] armed                  OK
-  [4/6] takeoff 5m  -> alt 4.9 OK
-  [5/6] vx=1.0 trong 2.0s      ground_speed = 0.98 m/s
-  [6/6] socket closed          zero-velocity sau 31 ms -> ground_speed 0.04 m/s sau 2.1 s
+  [0/6] SITL san sang      OK  (3D fix + EKF)
+  [1/6] web control ON     OK
+  [2/6] mode GUIDED        OK
+  [3/6] armed              OK
+  [4/6] takeoff 5m         OK  -> alt 5.1 m, on dinh
+  [5/6] vx=1.0 trong 4.0s  ground_speed = 0.99 m/s
+  [6/6] socket closed      reason=web_disconnected · zero-velocity sau 0.0 ms
+                           -> ground_speed 0.19 m/s
   KET QUA: PASS
   ```
 
 - Nếu lỗi:
-  - *Bước 5 `ground_speed` = 0* — chưa takeoff xong, hoặc `type_mask` sai, hoặc nhịp gửi < 1 Hz nên FC hủy lệnh ngay. ArduCopter ở GUIDED **trên mặt đất** bỏ qua velocity, đó không phải bug.
+  - *Bước 5 `ground_speed` = 0* — **đã gặp thật.** Nguyên nhân: script chờ
+    `alt >= 0.9 * mục tiêu` rồi gửi velocity ngay, mà ArduCopter **bỏ qua
+    velocity trong lúc GUIDED takeoff còn chạy**. Gửi đúng lệnh đó sau khi
+    takeoff ổn định cho 0.993 m/s. Điều kiện đúng là tới đủ độ cao **VÀ**
+    `climb_rate` đã về ~0. Các khả năng còn lại: drone còn trên mặt đất (GUIDED
+    trên mặt đất bỏ qua velocity, không phải bug), `type_mask` sai, hoặc nhịp
+    gửi < 1 Hz.
+  - *Bước 5 báo "drone không đi" nhưng thật ra backend TỪ CHỐI lệnh* — bản đầu
+    của script chỉ gửi rồi đọc `ground_speed`, không hề đọc frame `error`. Một
+    lệnh bị từ chối hiện ra y hệt một lệnh bị FC bỏ qua, và script đổ tội cho
+    `type_mask`. Script bây giờ vét frame trả về giữa các lần gửi và đỏ ngay
+    khi thấy `error`.
   - *Bước 6 độ trễ > 300 ms* — `on_web_disconnected()` chưa gửi zero ngay mà đang chờ hết hạn 300 ms. Sửa theo 6.4.3.
   - *Bước 6 `ground_speed` vẫn > 0.2 sau 3 s* — velocity 0 có gửi nhưng bị rớt gói. Tăng `ZERO_VELOCITY_REPEAT`, và kiểm tra xem hai thread có đang ghi socket không qua `MavlinkConnection.send()` không.
 
@@ -354,10 +380,12 @@ Bốn bài, ghi kết quả vào `docs/test-log.md`:
 
 | # | Bài | Cách làm | Đạt khi |
 |---|---|---|---|
-| 1 | Takeoff từ web | `ws_probe --script takeoff.jsonl` | `relative_alt` ≈ 5 m trong 15 s |
-| 2 | **W → tiến** | Gửi `cmd.velocity {vx:1}` lặp 5 Hz trong 3 s | `ground_speed` ≈ 1.0 m/s; bản đồ MAVProxy thấy drone dịch **theo hướng mũi** |
-| 3 | **Thả → dừng** | Gửi `cmd.velocity {vx:0}` một lần rồi ngưng | `ground_speed` < 0.2 m/s trong 3 s |
-| 4 | **Đóng trình duyệt → dừng** | `sitl_deadman_check.py` | Độ trễ zero-velocity < 300 ms; `ground_speed` < 0.2 m/s trong 3 s |
+| 1 | Takeoff từ web | `ws_probe --script takeoff.jsonl` | ✅ `relative_alt` = **5.00 m**, GUIDED, armed |
+| 2 | **W → tiến** | Gửi `cmd.velocity {vx:1}` lặp 10 Hz | ✅ `ground_speed` = **0.993 m/s** (xin 1.0, kẹp `MAX_VELOCITY`) |
+| 3 | **Thả → dừng** | Ngừng gửi velocity | ✅ 0.993 → 0.094 → **0.018 m/s** trong ~2 s |
+| 4 | **Đóng trình duyệt → dừng** | `sitl_deadman_check.py` | ✅ zero-velocity sau **< 1 ms**; `ground_speed` về 0.19 m/s |
+
+Số đo đầy đủ, môi trường và cấu hình: `docs/test-log.md`.
 
 Bài 2, 3, 4 **chính là** ba test của `SAFETY.md` §5 chạy trên hệ thống thật (pytest ở 6.5 là bản chạy trên logic). Cả hai đều bắt buộc — một cái bắt lỗi suy nghĩ, một cái bắt lỗi lắp ráp.
 
@@ -367,17 +395,40 @@ Bài 5 (RC lấy lại quyền từ web) **không** làm ở đây vì SITL khô
 
 ## Cổng pass
 
-- [ ] `uv run pytest backend/tests/test_deadman.py -v` → **6 PASSED**, gồm đủ 3 test bắt buộc của `SAFETY.md` §5.
-- [ ] `uv run pytest backend/tests/test_control.py -v` → **6 PASSED** (5 hành vi + 1 canh gác hàm cấm).
-- [ ] 4 test cũ trong `test_safety.py` **vẫn xanh** (không được phá vốn đang chạy).
-- [ ] Chuyển thử `DeadmanLoop` vào asyncio → test #5 phải **đỏ**. (Bằng chứng test có tác dụng; hoàn nguyên sau khi thử.)
-- [ ] `scripts/sitl_deadman_check.py` in `KET QUA: PASS`, độ trễ zero-velocity **< 300 ms**.
-- [ ] 4 bài nghiệm thu tay ở 6.8 đều đạt; ghi `docs/test-log.md`.
-- [ ] `grep -rniE "send_motor_pwm|rc_channels_override|21196|do_motor_test|actuator_control|set_attitude_target" backend/` chỉ ra các dòng **ghi chú cấm**, không có lời gọi thật nào.
-- [ ] `grep -rn "\.mav\." backend/mavlink/control.py` — mọi lời gọi đều nằm trong `connection.send(...)`, không gọi thẳng.
-- [ ] Xin `takeoff 50` (vượt `MAX_ALT=10`) → nhận `error`, và **không** có lệnh 22 nào được gửi (kiểm bằng log MAVProxy).
-- [ ] `uv run ruff check .` sạch; `uv run pytest` xanh toàn bộ.
-- [ ] `docs/so-tay/06-backend-dieu-khien-deadman.md` đã viết, có giải thích NED + `type_mask` + ba lớp dead-man.
+Tất cả đã chạy thật ngày 2026-09-22 trên ArduCopter SITL 4.7-dev headless
+(`--speedup=1`, vì mấy cổng dưới ĐO THỜI GIAN). Số đo đầy đủ: `docs/test-log.md`.
+
+- [x] `uv run pytest backend/tests/test_deadman.py` → **17 PASSED**, gồm đủ 3 test bắt buộc của `SAFETY.md` §5.
+- [x] `uv run pytest backend/tests/test_control.py` → **17 PASSED** (gồm 2 bài canh gác hàm cấm).
+- [x] **9** test cũ trong `test_safety.py` vẫn xanh (không được phá vốn đang chạy).
+- [x] Chuyển thử `DeadmanLoop` vào asyncio → test #5 **đỏ**. Đã thử thật.
+      ⚠️ Lần thử ĐẦU **không** làm nó đỏ, và đó mới là bài học: bản đầu của test gọi
+      `deadman.start()` TRƯỚC `asyncio.run(...)`, nên một bản asyncio đặt ở thread riêng
+      vẫn qua — test khi đó không canh gì cả. Phải chẹn ĐÚNG cái loop mà bản asyncio sẽ
+      bám vào. Cũng đã phá thử hai chỗ khác và cả hai đều đỏ đúng lý do (bảng trong
+      `docs/test-log.md`).
+- [x] `scripts/sitl_deadman_check.py` in `KET QUA: PASS`, độ trễ zero-velocity **< 1 ms**
+      (đường đóng-socket chạy đồng bộ trong event loop; bảo đảm CÔNG BỐ vẫn là 350 ms).
+- [x] 4 bài nghiệm thu tay ở 6.8 đều đạt; đã ghi `docs/test-log.md`.
+- [x] `grep -rniE "send_motor_pwm|rc_channels_override|21196|do_motor_test|actuator_control|set_attitude_target" backend/` chỉ ra dòng **ghi chú cấm** và danh sách của chính bài test canh gác; không lời gọi thật nào.
+- [x] `grep -n "\.mav\." backend/mavlink/control.py` — 2 kết quả, cả hai là **tham số** của `self.connection.send(...)`.
+- [x] Xin `takeoff 50` (vượt `MAX_ALT=10`) trên SITL → `validation_failed`, `relative_alt` giữ nguyên **5.02 m**; không lệnh 22 nào được gửi.
+- [x] `uv run ruff check .` sạch; `uv run pytest` → **131 passed** (trước phase: 96).
+- [x] `docs/so-tay/06-backend-dieu-khien-deadman.md` đã viết (11 mục, gồm NED + `type_mask` + ba lớp dead-man).
+
+### Ba lỗi chỉ lộ ra khi chạy máy thật
+
+Pytest xanh toàn bộ trong khi cả ba đang sống. Đây là lý do §6.7 tồn tại bên
+cạnh §6.5 — và là bằng chứng cho câu "một cái xanh không thay được cái kia".
+
+| Lỗi | Triệu chứng | Vì sao pytest mù |
+|---|---|---|
+| `ack done` của `cmd.arm` nói dối | arm OK rồi takeoff ngay sau báo "Chua armed" | Cờ `armed` ở HEARTBEAT (1 Hz); test đặt thẳng `state.armed=True` |
+| Dead-man nổ ngay khi bật WEB CONTROL | Bắn velocity **khi drone còn trên mặt đất** → ArduCopter từ chối `NAV_TAKEOFF` với `MAV_RESULT_FAILED` | Test nào cũng gửi một lệnh velocity trước khi bơm thời gian giả |
+| Sự kiện đổ tội sai | `"Mode đổi sang GUIDED — web mất quyền lái"` trong khi GUIDED nằm TRONG whitelist | Không test nào đọc `detail.reason` của sự kiện |
+
+Cả ba đã sửa, đều có test hồi quy chạy được **không cần SITL**, và cả ba test
+hồi quy đó đã được chứng minh là đỏ được với code cũ.
 
 ## Rủi ro
 
