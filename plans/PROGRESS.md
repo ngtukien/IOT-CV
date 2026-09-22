@@ -467,11 +467,23 @@ gói trong test #1 thiếu hậu tố `_send` nên `last()` trả `None` và bà
 
 **SonarCloud đỏ, đã xử (lặp lại tiền lệ Phase 01).** Gate hỏng ở
 `new_reliability_rating=3` (1 BUG: so bằng trên float ở `_dang_di`) và
-`new_security_rating=3` (3 cảnh báo path-traversal ở hai script CLI). Cả 21
-issue đều đã sửa, không tắt luật nào. Cách xử path-traversal: neo đường dẫn
+`new_security_rating=3` (3 cảnh báo path-traversal ở hai script CLI).
+
+Kết quả sau khi sửa: **gate OK, cả 5 điều kiện xanh, mọi rating = 1** — 0 bug,
+0 vulnerability. Không tắt luật nào. Cách xử path-traversal: neo đường dẫn
 `--script` / `--log` vào gốc repo. Ràng buộc đó đúng độc lập với máy quét — file
 kịch bản và sổ kiểm là *tang chứng của một lần chạy*, để ngoài repo thì không ai
 xem lại được; cùng lý do với `DEADMAN_LOG_PATH` trong `backend/config.py`.
+
+**Còn 10 code smell CHƯA sửa, nói rõ ra thay vì để trống:** 7 cái thuộc luật
+"đừng nhận tham số `timeout`, để người gọi bọc `asyncio.timeout()`" và 3 cái
+đòi hạ độ rối từ 17/18/20 xuống 15. Tất cả đều nằm ở hai script CLI dev, đều
+là MAJOR/CRITICAL *code smell* chứ không phải bug hay lỗ hổng, và không kéo
+rating nào khỏi 1. Dừng ở đây là đúng bằng vạch của tiền lệ Phase 01 (vòng 5:
+0 vulnerability), không phải là hạ vạch. Luật `timeout` thật ra đáng làm — bỏ
+tham số đó xoá luôn mấy dòng tính hạn chót thủ công — nhưng nó động vào đúng
+hai script vừa được nghiệm thu chạy thật trên SITL, nên để thành một việc
+riêng có nghiệm thu riêng, đừng nhét vào cuối một PR đã xanh.
 
 ## Phase 07 — Backend mission + proximity + safety
 
