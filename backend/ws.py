@@ -61,6 +61,11 @@ log = logging.getLogger(__name__)
 # client đang spam ta.
 _RATE_ERROR_COOLDOWN_S = 1.0
 
+# Luật một-người-lái: cùng một câu ở ba chỗ từ chối khác nhau. Một hằng số để
+# ba chỗ không trôi ra ba câu khác nhau — UI lọc theo `code`, nhưng người đọc
+# bảng log thì đọc câu này.
+MSG_TAB_KHAC_DANG_LAI = "Mot tab khac dang giu quyen lai"
+
 # Vòng đệm sự kiện chờ đẩy ra socket. Đầy thì bỏ cái cũ nhất: thà mất một dòng
 # log còn hơn chặn thread telemetry.
 _EVENT_QUEUE_MAX = 256
@@ -656,7 +661,7 @@ async def _handle_web_control_enable(
             await hub.send_error(
                 socket_id,
                 "command_denied",
-                "Mot tab khac dang giu quyen lai",
+                MSG_TAB_KHAC_DANG_LAI,
                 ref=envelope.id,
                 command=command,
                 detail={"owner": owner},
@@ -680,7 +685,7 @@ async def _handle_web_control_enable(
             await hub.send_error(
                 socket_id,
                 "command_denied",
-                "Mot tab khac dang giu quyen lai",
+                MSG_TAB_KHAC_DANG_LAI,
                 ref=envelope.id,
                 command=command,
                 detail={"owner": owner},
@@ -721,7 +726,7 @@ def _quyen_ra_lenh(hub: WebSocketHub, socket_id: str) -> tuple[str, str] | None:
         return "not_connected", "Chua co link MAVLink toi flight controller"
     owner = hub.web_control_owner
     if owner is not None and owner != socket_id:
-        return "command_denied", "Mot tab khac dang giu quyen lai"
+        return "command_denied", MSG_TAB_KHAC_DANG_LAI
     return None
 
 

@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 01 (repo đã tái cấu trúc, uv + Python 3.13), Phase 02 (WSL2 + SITL chạy được) | ~10 giờ | Không |
+| ĐÃ XONG (2026-09-22, PR #28) | Phase 01 (repo đã tái cấu trúc, uv + Python 3.13), Phase 02 (WSL2 + SITL chạy được) | ~10 giờ | Không |
 
 ## Mục tiêu
 

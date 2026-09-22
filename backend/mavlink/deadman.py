@@ -57,13 +57,20 @@ ZERO_REASONS = (
 )
 
 
-def _dang_di(lenh: tuple[float, float, float, float]) -> bool:
-    """Lệnh này có bảo drone chuyển động không?
+# Dưới ngưỡng này thì coi như số 0. KHÔNG phải giới hạn vật lý — 1 mm/s (và
+# 0,001 độ/giây) không phải chuyển động theo bất kỳ nghĩa nào — mà là sàn nhiễu
+# dấu phẩy động: so `!= 0.0` trực tiếp trên một số trôi qua JSON rồi qua
+# `clamp_velocity` là so bằng trên float, thứ không bao giờ nên tin.
+#
+# Hướng sai của ngưỡng này là hướng AN TOÀN: một giá trị cực nhỏ bị coi là
+# "đang đi" thì cùng lắm ta trip thừa một lần (gửi zero, ghi một dòng sổ kiểm);
+# coi nhầm theo chiều ngược lại mới là giấu mất một lần dead-man.
+NGUONG_COI_NHU_DUNG = 1e-3
 
-    So với 0 tuyệt đối, không có ngưỡng: `clamp_velocity` không tạo ra số lẻ,
-    và một ngưỡng ở đây sẽ lặng lẽ nuốt mất những lệnh lái rất chậm.
-    """
-    return any(thanh_phan != 0.0 for thanh_phan in lenh)
+
+def _dang_di(lenh: tuple[float, float, float, float]) -> bool:
+    """Lệnh này có bảo drone chuyển động không?"""
+    return any(abs(thanh_phan) > NGUONG_COI_NHU_DUNG for thanh_phan in lenh)
 
 
 class DeadmanLoop:
@@ -309,4 +316,6 @@ class DeadmanLoop:
         except OSError as exc:
             # Không ghi được sổ kiểm KHÔNG được ngăn việc phanh (đã phanh xong
             # ở trên rồi), nhưng phải kêu to: mất bằng chứng là mất cổng pass.
-            log.error("Khong ghi duoc so kiem dead-man %s: %s", self.log_path, exc)
+            # `exception()` chứ không `error()`: mất sổ kiểm là mất bằng chứng
+            # an toàn, lúc đó cần cả traceback để biết hỏng ở đâu.
+            log.exception("Khong ghi duoc so kiem dead-man %s: %s", self.log_path, exc)

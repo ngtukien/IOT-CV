@@ -34,6 +34,35 @@ from pathlib import Path
 
 DEFAULT_URL = "ws://127.0.0.1:8000/ws"
 
+# Gốc repo — mọi đường dẫn người dùng đưa vào đều được neo vào đây.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def duong_dan_trong_repo(tho: str) -> Path:
+    """Giải một đường dẫn từ dòng lệnh và BẮT nó nằm trong repo.
+
+    Hai lý do, lý do thứ hai mới là lý do chính:
+
+    1. Máy quét bảo đây là path traversal. Với một CLI chạy bằng quyền của
+       chính người gõ thì đó là báo động quá mức — không có ranh giới quyền nào
+       bị vượt.
+    2. Nhưng ràng buộc này ĐÚNG về mặt dự án, độc lập với máy quét: file kịch
+       bản và sổ kiểm là **tang chứng của một lần chạy**. Một kịch bản nằm ở
+       `/tmp` sinh ra kết quả mà không ai khác xem lại được. Cùng lý do với
+       `DEADMAN_LOG_PATH` trong `backend/config.py`.
+
+    Đường dẫn tương đối được neo vào gốc repo (không vào CWD), nên lệnh chạy
+    được giống nhau dù gõ từ thư mục nào.
+    """
+    duong = Path(tho)
+    if not duong.is_absolute():
+        duong = PROJECT_ROOT / duong
+    duong = duong.resolve()
+    if not duong.is_relative_to(PROJECT_ROOT):
+        raise ValueError(f"'{tho}' nam ngoai repo {PROJECT_ROOT} — khong nhan")
+    return duong
+
+
 # Dải nhịp telemetry được coi là đạt, với TELEMETRY_HZ=8 (cổng pass §5.6 bài 3).
 HZ_MIN = 7.5
 HZ_MAX = 8.5
@@ -61,7 +90,7 @@ def _in(message: dict, pretty: bool) -> None:
         print(f"[{type_}] {json.dumps(data, ensure_ascii=False)}")
 
 
-async def _chay_kich_ban(socket, duong_dan: str, timeout: float) -> int:
+async def _chay_kich_ban(socket, duong: Path, timeout: float) -> int:
     """Gửi từng dòng của một file .jsonl, CHỜ ack/error rồi mới sang dòng sau.
 
     Vì sao phải chờ chứ không bắn một loạt: thứ tự GUIDED -> arm -> takeoff là
@@ -72,11 +101,6 @@ async def _chay_kich_ban(socket, duong_dan: str, timeout: float) -> int:
     Mỗi dòng là một phong bì hợp đồng đầy đủ. Dòng trống và dòng bắt đầu bằng
     `//` được bỏ qua để file mẫu chú thích được cho người đọc.
     """
-    duong = Path(duong_dan)
-    if not duong.is_file():
-        print(f"FAIL: khong thay file kich ban {duong}", file=sys.stderr)
-        return 1
-
     buoc = 0
     for so_dong, raw in enumerate(duong.read_text(encoding="utf-8").splitlines(), 1):
         dong = raw.strip()
@@ -125,7 +149,8 @@ async def _cho_phan_hoi(socket, ref: str, *, timeout: float, can_ack: bool) -> s
         if con_lai <= 0:
             return None if not can_ack else f"khong nhan duoc ack trong {timeout:.0f}s"
         try:
-            raw = await asyncio.wait_for(socket.recv(), timeout=con_lai)
+            async with asyncio.timeout(con_lai):
+                raw = await socket.recv()
         except TimeoutError:
             return None if not can_ack else f"khong nhan duoc ack trong {timeout:.0f}s"
 
@@ -143,6 +168,19 @@ async def _cho_phan_hoi(socket, ref: str, *, timeout: float, can_ack: bool) -> s
 
 
 async def _run(args: argparse.Namespace) -> int:
+    # Xác thực tham số TRƯỚC khi mở socket: hỏng ở dòng lệnh thì đừng bắt
+    # backend và mạng chịu trận, và đừng in "Đã nối" rồi mới báo lỗi tham số.
+    kich_ban: Path | None = None
+    if args.script:
+        try:
+            kich_ban = duong_dan_trong_repo(args.script)
+        except ValueError as exc:
+            print(f"FAIL: {exc}", file=sys.stderr)
+            return 1
+        if not kich_ban.is_file():
+            print(f"FAIL: khong thay file kich ban {kich_ban}", file=sys.stderr)
+            return 1
+
     try:
         from websockets.asyncio.client import connect
     except ImportError:  # websockets < 13 để ở chỗ khác
@@ -155,7 +193,8 @@ async def _run(args: argparse.Namespace) -> int:
     from websockets.exceptions import WebSocketException
 
     try:
-        socket = await asyncio.wait_for(connect(args.url), timeout=args.timeout)
+        async with asyncio.timeout(args.timeout):
+            socket = await connect(args.url)
     except (TimeoutError, OSError, WebSocketException) as exc:
         print(f"FAIL: không nối được {args.url} ({exc})", file=sys.stderr)
         print("Backend đã chạy chưa?  uv run uvicorn backend.app:app", file=sys.stderr)
@@ -164,48 +203,58 @@ async def _run(args: argparse.Namespace) -> int:
 
     print(f"Đã nối {args.url}")
     async with socket:
-        if args.script:
-            return await _chay_kich_ban(socket, args.script, args.ack_timeout)
+        if kich_ban is not None:
+            return await _chay_kich_ban(socket, kich_ban, args.ack_timeout)
         if args.send:
             await socket.send(args.send)
             print(f"-> {args.send}")
 
-        moc_telemetry: list[float] = []
-        da_in = 0
-        han_chot = time.monotonic() + args.duration if args.measure_rate else None
+        ma_loi, moc_telemetry = await _vong_doc(socket, args)
 
-        while True:
-            if han_chot is not None and time.monotonic() >= han_chot:
-                break
-            if han_chot is None and da_in >= args.count:
-                break
-
-            try:
-                raw = await asyncio.wait_for(socket.recv(), timeout=args.timeout)
-            except TimeoutError:
-                print(f"FAIL: im lặng quá {args.timeout}s", file=sys.stderr)
-                return 1
-
-            try:
-                message = json.loads(raw)
-            except json.JSONDecodeError:
-                print(f"FAIL: server gửi thứ không phải JSON: {raw[:200]!r}", file=sys.stderr)
-                return 1
-
-            if message.get("type") == "telemetry":
-                moc_telemetry.append(time.monotonic())
-
-            if args.only and message.get("type") != args.only:
-                continue
-            if args.measure_rate:
-                continue
-
-            _in(message, args.pretty)
-            da_in += 1
-
+    if ma_loi:
+        return ma_loi
     if args.measure_rate:
         return _bao_cao_nhip(moc_telemetry, args.duration)
     return 0
+
+
+async def _vong_doc(socket, args) -> tuple[int, list[float]]:
+    """Đọc message tới khi đủ `--count` (hoặc hết `--duration` khi đo nhịp).
+
+    Trả `(mã lỗi, mốc thời gian các frame telemetry)`. Mã 0 là bình thường —
+    tách khỏi `_run` để chỗ đó chỉ còn lo việc nối và việc chọn chế độ.
+    """
+    moc_telemetry: list[float] = []
+    da_in = 0
+    han_chot = time.monotonic() + args.duration if args.measure_rate else None
+
+    while True:
+        if han_chot is not None and time.monotonic() >= han_chot:
+            return 0, moc_telemetry
+        if han_chot is None and da_in >= args.count:
+            return 0, moc_telemetry
+
+        try:
+            async with asyncio.timeout(args.timeout):
+                raw = await socket.recv()
+        except TimeoutError:
+            print(f"FAIL: im lặng quá {args.timeout}s", file=sys.stderr)
+            return 1, moc_telemetry
+
+        try:
+            message = json.loads(raw)
+        except json.JSONDecodeError:
+            print(f"FAIL: server gửi thứ không phải JSON: {raw[:200]!r}", file=sys.stderr)
+            return 1, moc_telemetry
+
+        if message.get("type") == "telemetry":
+            moc_telemetry.append(time.monotonic())
+
+        if (args.only and message.get("type") != args.only) or args.measure_rate:
+            continue
+
+        _in(message, args.pretty)
+        da_in += 1
 
 
 def _bao_cao_nhip(moc: list[float], giay: float) -> int:

@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 00 | ~5 giờ | Không |
+| ĐÃ XONG (2026-09-21, PR #27) | Phase 00 | ~5 giờ | Không |
 
 ## Mục tiêu
 

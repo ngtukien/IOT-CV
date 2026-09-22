@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| ĐÃ XONG (2026-09-22) | Phase 05 (hợp đồng WS + khoá ghi MAVLink + `FakeMAVLink`) | ~10 giờ | Không |
+| ĐÃ XONG (2026-09-22, PR #31) | Phase 05 (hợp đồng WS + khoá ghi MAVLink + `FakeMAVLink`) | ~10 giờ | Không |
 
 ## Mục tiêu
 

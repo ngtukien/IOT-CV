@@ -262,7 +262,8 @@ def test_khong_gui_velocity_khi_chua_bat_web_control(tmp_path):
     deadman.tick(now=200.0)  # quá hạn rất xa — vẫn không được gửi gì
 
     assert _goi_velocity(fake) is None, "khong duoc co goi velocity nao"
-    assert loi and loi[0][0] == "web_control_disabled"
+    assert loi, "khong nhan duoc loi nao"
+    assert loi[0][0] == "web_control_disabled"
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +275,8 @@ def test_khong_lai_duoc_ngoai_guided(tmp_path):
     _gui_velocity(hub, vx=1.0)
 
     assert _goi_velocity(fake) is None
-    assert loi and loi[0][0] == "wrong_mode"
+    assert loi, "khong nhan duoc loi nao"
+    assert loi[0][0] == "wrong_mode"
 
 
 def test_tab_khac_khong_lai_duoc(tmp_path):
@@ -284,7 +286,8 @@ def test_tab_khac_khong_lai_duoc(tmp_path):
     asyncio.run(_handle_velocity(hub, "s-2", _PhongBi(), CmdVelocity(vx=1.0)))
 
     assert _goi_velocity(fake) is None
-    assert loi and loi[0][0] == "command_denied"
+    assert loi, "khong nhan duoc loi nao"
+    assert loi[0][0] == "command_denied"
 
 
 def test_velocity_bi_kep_theo_max_velocity(tmp_path):
