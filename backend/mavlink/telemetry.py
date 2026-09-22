@@ -32,6 +32,7 @@ log = logging.getLogger(__name__)
 # đổi import. Định nghĩa thật nằm ở schemas.py cùng chỗ với hợp đồng.
 __all__ = [
     "COPTER_MODES",
+    "MODE_IDS",
     "EKF_ATTITUDE",
     "EKF_CONST_POS_MODE",
     "EKF_POS_HORIZ_ABS",
@@ -76,6 +77,10 @@ COPTER_MODES: dict[int, str] = {
     26: "AUTOROTATE",
     27: "AUTO_RTL",
 }
+
+# Bảng ĐẢO: tên mode -> custom_mode. Dựng từ COPTER_MODES chứ không gõ tay lần
+# hai — hai bảng tay sẽ lệch nhau đúng vào hôm ai đó thêm một mode.
+MODE_IDS: dict[str, int] = {name: value for value, name in COPTER_MODES.items()}
 
 # STATUSTEXT.severity theo thang syslog: 0 emergency .. 7 debug.
 _SEVERITY_ERROR_MAX = 3
@@ -410,6 +415,15 @@ class TelemetryReader:
             if msg.get_type() == "STATUSTEXT":
                 event = statustext_event(msg)
                 self.bus.emit(event.level, event.source, event.code, event.message, event.detail)
+                continue
+
+            # COMMAND_ACK phải đi qua ĐÂY, không phải `state`. Chỉ MỘT thread
+            # được đọc socket, nên hàm `FlightControl.*` chờ ack ở thread khác
+            # KHÔNG tự gọi `recv_match` được — hai bên đọc cùng socket thì mỗi
+            # bên nuốt mất message của bên kia. Thread này nhét ack vào hàng
+            # đợi của người đang chờ (Phase 06, việc 6.1.1).
+            if msg.get_type() == "COMMAND_ACK":
+                self.connection.route_ack(msg)
                 continue
 
             update_state(self.state, msg)

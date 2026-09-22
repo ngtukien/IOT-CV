@@ -27,6 +27,8 @@ from fastapi.staticfiles import StaticFiles
 
 from backend import __version__, config
 from backend.api import build_router
+from backend.mavlink.control import FlightControl
+from backend.mavlink.deadman import DeadmanLoop
 from backend.mavlink.safety import SafetyState
 from backend.mavlink.telemetry import TelemetryReader, TelemetryState
 from backend.ws import WebSocketHub, websocket_endpoint
@@ -37,7 +39,12 @@ log = logging.getLogger(__name__)
 STATE = TelemetryState()
 SAFETY = SafetyState()
 READER = TelemetryReader(state=STATE)
-HUB = WebSocketHub(state=STATE, safety=SAFETY)
+# Dùng CHUNG một `MavlinkConnection` với reader: đó là cửa ghi duy nhất, và
+# cái khoá trong nó là thứ giữ cho thread telemetry và vòng dead-man không
+# ghi đan byte vào nhau (xem khối LUẬT ở đầu connection.py).
+CONTROL = FlightControl(READER.connection, state=STATE)
+DEADMAN = DeadmanLoop(CONTROL, SAFETY)
+HUB = WebSocketHub(state=STATE, safety=SAFETY, control=CONTROL, deadman=DEADMAN)
 
 
 def _autostart_enabled() -> bool:
@@ -51,9 +58,18 @@ async def lifespan(app: FastAPI):
     HUB.start_background()
     if _autostart_enabled():
         READER.start()
+        # Sau READER.start(): vòng dead-man gửi qua cùng một connection, bật
+        # trước thì nó chỉ ném ConnectionError vào log cho tới khi link lên.
+        #
+        # TELEMETRY_AUTOSTART=0 phải tắt LUÔN vòng dead-man. Bật nó khi không
+        # có link nghĩa là mỗi bộ test để lại một thread lang thang ghi cảnh
+        # báo — và `conftest.py` đặt biến đó chính là để chuyện này không xảy ra.
+        DEADMAN.start()
     try:
         yield
     finally:
+        # Ngược thứ tự lúc bật: dừng người GHI trước, người ĐỌC sau.
+        DEADMAN.stop()
         READER.stop()
         await HUB.stop_background()
 

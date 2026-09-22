@@ -33,6 +33,8 @@ from pydantic import BaseModel, ValidationError
 
 from backend import __version__, config
 from backend.events import BUS
+from backend.mavlink.control import ControlError, FlightControl
+from backend.mavlink.deadman import DeadmanLoop
 from backend.mavlink.safety import SafetyState
 from backend.mavlink.telemetry import build_telemetry, is_link_alive
 from backend.schemas import (
@@ -127,10 +129,16 @@ class WebSocketHub:
         state: TelemetryState,
         safety: SafetyState,
         bus=BUS,
+        control: FlightControl | None = None,
+        deadman: DeadmanLoop | None = None,
     ) -> None:
         self.state = state
         self.safety = safety
         self.bus = bus
+        # Cả hai để None được: test hợp đồng ở Phase 05 dựng hub trần và chỉ
+        # kiểm hình dạng message, không cần lớp MAVLink.
+        self.control = control
+        self.deadman = deadman
 
         self._clients: dict[str, _Client] = {}
         self._seq = itertools.count(1)
@@ -165,10 +173,16 @@ class WebSocketHub:
         if client is not None:
             client.dead = True
         if self.web_control_owner == socket_id:
-            # Socket đóng = mất quyền lái. Đây CHÍNH LÀ cơ chế an toàn, không
-            # phải dọn dẹp phụ trợ: Phase 06 nối thêm "gửi velocity 0" vào đây.
+            # Socket đóng = mất quyền lái, VÀ drone phải dừng.
+            #
+            # Đường này là đường NHANH (< 50 ms): gửi zero NGAY tại đây chứ
+            # không chờ hết hạn 300 ms. Và nó BẮT BUỘC phải gửi trước khi tắt
+            # cờ `web_control_enabled`: `should_send_zero_velocity()` trả False
+            # ngay khi cờ đó tắt, nên nếu chỉ tắt cờ thì lệnh dừng rơi vào
+            # khoảng trống — không ai gửi, và drone giữ nguyên vận tốc cho tới
+            # khi ArduPilot tự huỷ lệnh sau ~3 giây.
             self.web_control_owner = None
-            self.safety.on_web_disconnected()
+            self._phanh("web_disconnected", socket_id=socket_id)
             self.bus.emit(
                 "warn",
                 "safety",
@@ -178,6 +192,19 @@ class WebSocketHub:
             )
             await self.broadcast("status", self.build_status())
         log.info("WebSocket %s đóng (còn %d)", socket_id, len(self._clients))
+
+    # -- phanh ---------------------------------------------------------------
+    def _phanh(self, reason: str, *, socket_id: str | None = None) -> None:
+        """Gửi velocity 0 + ghi sổ kiểm, qua vòng dead-man.
+
+        Vòng dead-man là NƠI DUY NHẤT gửi zero và ghi `logs/deadman.jsonl` —
+        một chỗ, một định dạng. Không có vòng đó (hub trần trong test hợp đồng)
+        thì ít nhất vẫn phải thu quyền lái.
+        """
+        if self.deadman is not None:
+            self.deadman.trip(reason, socket_id=socket_id)
+        else:
+            self.safety.on_web_disconnected()
 
     # -- gửi ----------------------------------------------------------------
     async def send_to(
@@ -253,9 +280,8 @@ class WebSocketHub:
                 web_control_owner=self.web_control_owner,
                 current_mode=self.safety.current_mode,
                 rc_available=self.safety.rc_available,
-                # Hai trường dưới là chỗ trống Phase 06 điền.
-                deadman_tripped=False,
-                last_zero_velocity_reason=None,
+                deadman_tripped=self.safety.deadman_tripped,
+                last_zero_velocity_reason=self.safety.last_zero_velocity_reason,
             ),
             limits=LimitsPayload(**config.safety_limits()),
             mission=MissionStatus(),  # Phase 07
@@ -543,8 +569,13 @@ class WebSocketHub:
         if mode != self._last_mode:
             self._last_mode = mode
             had_owner = self.web_control_owner is not None
+            dang_lai = self.safety.web_control_enabled
             # SafetyState tự tắt web control khi mode ra khỏi whitelist.
             self.safety.on_mode_change(mode)
+            if dang_lai and not self.safety.web_control_enabled:
+                # Pilot vừa gạt RC ra khỏi GUIDED. Thu quyền thôi thì CHƯA đủ:
+                # lệnh velocity cuối vẫn còn hiệu lực ~3 giây ở phía FC.
+                self._phanh("mode_changed")
             if had_owner and not self.safety.web_control_enabled:
                 self.web_control_owner = None
                 self.bus.emit(
@@ -560,7 +591,10 @@ class WebSocketHub:
             self._last_link_alive = link_alive
             if not link_alive and self.web_control_owner is not None:
                 self.web_control_owner = None
-                self.safety.disable_web_control()
+                # Gọi `_phanh` chứ không chỉ `disable_web_control`: gói zero
+                # gần như chắc chắn không tới nơi (link chết rồi), nhưng dòng
+                # sổ kiểm thì tới — và đó là thứ ta cần khi dựng lại sự việc.
+                self._phanh("link_lost")
                 self.bus.emit(
                     "warn",
                     "safety",
@@ -568,6 +602,22 @@ class WebSocketHub:
                     "Mất link MAVLink — thu hồi quyền lái của web",
                     {"reason": "link_lost"},
                 )
+            changed = True
+
+        # Vòng dead-man chạy ở THREAD KHÁC và tự thu quyền khi hết hạn. Nó
+        # không với tới `web_control_owner` (biến này chỉ được sửa trên event
+        # loop, đó là lý do cả hàm này không cần khoá), nên đồng bộ lại ở đây.
+        # Trễ tối đa một nhịp telemetry — chỉ ảnh hưởng cái banner, còn lệnh
+        # zero thì đã bay đi từ trước đó rồi.
+        if self.web_control_owner is not None and not self.safety.web_control_enabled:
+            self.web_control_owner = None
+            self.bus.emit(
+                "warn",
+                "safety",
+                "web_control.revoked",
+                "Dead-man đã thu quyền lái của web",
+                {"reason": self.safety.last_zero_velocity_reason},
+            )
             changed = True
 
         if changed:
@@ -605,6 +655,10 @@ async def _handle_web_control_enable(
             return
         hub.web_control_owner = socket_id
         hub.safety.enable_web_control()
+        # Bật lại = operator xác nhận đã thấy lần mất lái trước đó. Đây là chỗ
+        # DUY NHẤT tắt `deadman_tripped`; xem chú thích ở `SafetyState`.
+        if hub.deadman is not None:
+            hub.deadman.clear_trip()
         hub.bus.emit(
             "info",
             "safety",
@@ -625,7 +679,9 @@ async def _handle_web_control_enable(
             return
         if owner == socket_id:
             hub.web_control_owner = None
-            hub.safety.disable_web_control()
+            # Trả quyền cũng phải dừng drone: operator bấm tắt trong lúc còn
+            # đang giữ W thì lệnh cuối vẫn hiệu lực ~3 giây ở phía FC.
+            hub._phanh("operator_disabled", socket_id=socket_id)
             hub.bus.emit(
                 "info",
                 "safety",
@@ -638,9 +694,159 @@ async def _handle_web_control_enable(
     await hub.broadcast("status", hub.build_status())
 
 
+# ---------------------------------------------------------------------------
+# Handler điều khiển — Phase 06
+# ---------------------------------------------------------------------------
+def _quyen_ra_lenh(hub: WebSocketHub, socket_id: str) -> tuple[str, str] | None:
+    """Điều kiện chung cho MỌI lệnh bay. Trả `(code, message)` nếu bị chặn.
+
+    Quy tắc chủ sở hữu ở đây cố ý LỎNG hơn của `cmd.velocity`: khi CHƯA ai giữ
+    quyền lái thì mọi tab đều gửi được `cmd.mode` / `cmd.rtl` / `cmd.land`.
+    Lý do: RTL và LAND là lệnh dừng khẩn; bắt người ta bấm WEB CONTROL ENABLE
+    trước mới được hạ cánh là đặt một cái cửa ngay trên đường thoát hiểm. Khi
+    ĐÃ có người giữ quyền thì luật một-người-lái quay lại đầy đủ.
+    """
+    if hub.control is None:
+        return "internal", "Backend chua nap lop dieu khien MAVLink"
+    if not (hub.state.connected and is_link_alive(hub.state)):
+        return "not_connected", "Chua co link MAVLink toi flight controller"
+    owner = hub.web_control_owner
+    if owner is not None and owner != socket_id:
+        return "command_denied", "Mot tab khac dang giu quyen lai"
+    return None
+
+
+async def _chay_lenh_cham(
+    hub: WebSocketHub, socket_id: str, envelope: Envelope, fn, *args
+) -> None:
+    """`ack accepted` -> chạy ở thread khác -> `ack done` hoặc `error`.
+
+    `asyncio.to_thread` chứ không gọi thẳng: các hàm này CHỜ `COMMAND_ACK` tới
+    3 giây. Chờ ngay trên event loop là đứng nguyên vòng telemetry của TẤT CẢ
+    socket trong 3 giây — HUD của mọi tab đứng hình vì một lệnh arm.
+    """
+    chan = _quyen_ra_lenh(hub, socket_id)
+    if chan is not None:
+        code, message = chan
+        await hub.send_error(socket_id, code, message, ref=envelope.id, command=envelope.type)
+        return
+
+    await hub.send_ack(socket_id, envelope.type, "accepted", ref=envelope.id)
+    try:
+        await asyncio.to_thread(fn, *args)
+    except ControlError as exc:
+        await hub.send_error(
+            socket_id,
+            exc.code,
+            exc.message,
+            ref=envelope.id,
+            command=envelope.type,
+            detail=exc.detail or None,
+        )
+        return
+    except ConnectionError as exc:
+        await hub.send_error(
+            socket_id,
+            "not_connected",
+            f"Mat link MAVLink giua chung: {exc}",
+            ref=envelope.id,
+            command=envelope.type,
+        )
+        return
+
+    await hub.send_ack(socket_id, envelope.type, "done", ref=envelope.id)
+    await hub.broadcast("status", hub.build_status())
+
+
+async def _handle_mode(hub: WebSocketHub, socket_id: str, envelope: Envelope, payload) -> None:
+    await _chay_lenh_cham(hub, socket_id, envelope, hub.control.set_mode, payload.mode)
+
+
+async def _handle_arm(hub: WebSocketHub, socket_id: str, envelope: Envelope, payload) -> None:
+    fn = hub.control.arm if payload.arm else hub.control.disarm
+    await _chay_lenh_cham(hub, socket_id, envelope, fn)
+
+
+async def _handle_takeoff(hub: WebSocketHub, socket_id: str, envelope: Envelope, payload) -> None:
+    await _chay_lenh_cham(hub, socket_id, envelope, hub.control.takeoff, payload.altitude)
+
+
+async def _handle_hold(hub: WebSocketHub, socket_id: str, envelope: Envelope, _payload) -> None:
+    await _chay_lenh_cham(hub, socket_id, envelope, hub.control.loiter)
+
+
+async def _handle_rtl(hub: WebSocketHub, socket_id: str, envelope: Envelope, _payload) -> None:
+    await _chay_lenh_cham(hub, socket_id, envelope, hub.control.rtl)
+
+
+async def _handle_land(hub: WebSocketHub, socket_id: str, envelope: Envelope, _payload) -> None:
+    await _chay_lenh_cham(hub, socket_id, envelope, hub.control.land)
+
+
+async def _handle_velocity(hub: WebSocketHub, socket_id: str, envelope: Envelope, payload) -> None:
+    """Lái tay. Bốn điều kiện cộng dồn, rồi kẹp, rồi gửi NGAY.
+
+    KHÔNG sinh `ack` (hợp đồng Phase 05): lệnh này chạy 5-20 Hz, ack sẽ làm
+    ngập socket. Chỉ khi bị từ chối mới có `error`.
+    """
+    chan = _quyen_ra_lenh(hub, socket_id)
+    if chan is not None:
+        code, message = chan
+        await hub.send_error(socket_id, code, message, ref=envelope.id, command=envelope.type)
+        return
+
+    # Điều kiện 1 (operator đã bật) + 2 (đang GUIDED) — `SafetyState` giữ cả hai.
+    duoc, ly_do = hub.safety.may_accept_web_command()
+    if not duoc:
+        code = "web_control_disabled" if not hub.safety.web_control_enabled else "wrong_mode"
+        await hub.send_error(
+            socket_id, code, ly_do, ref=envelope.id, command=envelope.type
+        )
+        return
+
+    # Điều kiện 3: một-người-lái. Ở đây CHẶT hơn `_quyen_ra_lenh` — lái tay thì
+    # phải đúng người đã bật WEB CONTROL, không có ngoại lệ "chưa ai giữ".
+    if hub.web_control_owner != socket_id:
+        await hub.send_error(
+            socket_id,
+            "command_denied",
+            "Socket nay khong phai nguoi dang giu quyen lai",
+            ref=envelope.id,
+            command=envelope.type,
+            detail={"owner": hub.web_control_owner},
+        )
+        return
+
+    # Kẹp IM LẶNG, cố ý — khác hẳn takeoff. Người giữ phím W không có kỳ vọng
+    # con số nào, họ chỉ cần drone đi chậm; người gõ "20 m" thì có.
+    vx = hub.safety.clamp_velocity(payload.vx)
+    vy = hub.safety.clamp_velocity(payload.vy)
+    vz = hub.safety.clamp_velocity(payload.vz)
+    yaw_rate = hub.safety.clamp_yaw_rate(payload.yaw_rate)
+
+    hub.safety.note_manual_command()
+    if hub.deadman is not None:
+        hub.deadman.note_velocity(vx, vy, vz, yaw_rate)
+    try:
+        hub.control.send_velocity_body(vx, vy, vz, yaw_rate)
+    except (ControlError, ConnectionError) as exc:
+        message = exc.message if isinstance(exc, ControlError) else str(exc)
+        code = exc.code if isinstance(exc, ControlError) else "not_connected"
+        await hub.send_error(
+            socket_id, code, message, ref=envelope.id, command=envelope.type
+        )
+
+
 COMMAND_HANDLERS: dict[str, Handler] = {
     "ping": _handle_ping,
     "cmd.web_control_enable": _handle_web_control_enable,
+    "cmd.mode": _handle_mode,
+    "cmd.arm": _handle_arm,
+    "cmd.takeoff": _handle_takeoff,
+    "cmd.velocity": _handle_velocity,
+    "cmd.hold": _handle_hold,
+    "cmd.rtl": _handle_rtl,
+    "cmd.land": _handle_land,
 }
 
 

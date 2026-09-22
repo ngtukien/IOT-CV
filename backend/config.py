@@ -106,10 +106,23 @@ MAX_WAYPOINTS = _env_int("MAX_WAYPOINTS", 10)
 
 # Manual control qua web (GIAI ĐOẠN 10, 11, 64)
 MAX_VELOCITY = _env_float("MAX_VELOCITY", 1.0)
+# Tốc độ xoay tối đa, ĐỘ/GIÂY. Có khoá riêng vì `MAX_VELOCITY` tính bằng m/s —
+# dùng chung một hằng số cho hai đơn vị là kẹp yaw xuống 1 độ/giây, tức là
+# xoay nửa vòng mất ba phút. Lỗi lẫn đơn vị kiểu này không báo gì cả.
+MAX_YAW_RATE = _env_float("MAX_YAW_RATE", 45.0)
 MANUAL_COMMAND_TIMEOUT_MS = _env_int("MANUAL_COMMAND_TIMEOUT_MS", 300)
 # Vòng dead-man của Phase 06 quét mỗi chừng này ms. Phải NHỎ HƠN HẲN
 # MANUAL_COMMAND_TIMEOUT_MS, nếu không timeout 300 ms sẽ thành 300+tick ms.
 DEADMAN_TICK_MS = _env_int("DEADMAN_TICK_MS", 50)
+# Một lần dead-man nổ thì gửi (0,0,0) bao nhiêu nhịp liên tiếp. MAVLink chạy
+# trên UDP: một gói rơi là lệnh dừng biến mất không dấu vết. Lặp 5 nhịp ở 20 Hz
+# = 250 ms, rẻ hơn nhiều so với cái giá của việc drone không dừng.
+ZERO_VELOCITY_REPEAT = _env_int("ZERO_VELOCITY_REPEAT", 5)
+# Chờ COMMAND_ACK của flight controller tối đa bao lâu (mode / arm / takeoff).
+COMMAND_ACK_TIMEOUT_S = _env_float("COMMAND_ACK_TIMEOUT_S", 3.0)
+# Sổ kiểm cho mọi lần gửi zero-velocity. Đây là HỢP ĐỒNG với Phase 10 §10.7:
+# test Playwright đọc chính file này để đo độ trễ dead-man.
+DEADMAN_LOG_PATH = _env_str("DEADMAN_LOG_PATH", str(PROJECT_ROOT / "logs" / "deadman.jsonl"))
 
 # Tránh vật cản (Phase 07). Khai báo ngay từ Phase 05 vì hợp đồng WebSocket
 # nói UI đọc MỌI ngưỡng từ `limits` — Phase 08 dựng UI trước khi Phase 07 xong.

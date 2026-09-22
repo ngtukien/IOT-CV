@@ -21,6 +21,7 @@ from backend.app import HUB, SAFETY, app
 from backend.schemas import (
     CONTRACT_VERSION,
     DOWNLINK_MODELS,
+    UPLINK_IMPLEMENTED_IN,
     UPLINK_MODELS,
     Envelope,
     contract_json_schema,
@@ -229,13 +230,36 @@ def test_version_khac_1_bi_tu_choi():
 
 
 def test_lenh_cua_phase_sau_tra_not_implemented():
+    """Lệnh có trong hợp đồng nhưng chưa ai hiện thực -> nói RÕ phase nào làm.
+
+    Dùng `cmd.mission.upload` (Phase 07). Bài này vốn dùng `cmd.arm`, nhưng
+    Phase 06 đã hiện thực arm nên nó chuyển sang trả `not_connected` — đúng
+    hành vi mới, sai bài test cũ. Đổi sang một lệnh THẬT SỰ còn chờ thay vì hạ
+    yêu cầu: nhánh `not_implemented` vẫn phải có người canh.
+    """
     with TestClient(app) as client, client.websocket_connect("/ws") as ws:
-        gui(ws, "cmd.arm", {"arm": True}, id_="c-3")
+        gui(ws, "cmd.mission.upload", {"waypoints": []}, id_="c-3")
 
         loi = nhan_den_khi(ws, "error")
         assert loi["data"]["code"] == "not_implemented"
         # Message phải nói RÕ phase nào sẽ làm, không chỉ "chưa hỗ trợ".
-        assert "06" in loi["data"]["message"]
+        assert "07" in loi["data"]["message"]
+
+
+def test_lenh_phase_06_khong_con_not_implemented():
+    """Cổng canh chiều ngược lại: 7 lệnh của Phase 06 phải RỜI KHỎI nhánh đó.
+
+    Không có bài này thì việc quên đăng ký một handler sẽ lặng lẽ trôi qua —
+    người dùng nhận `not_implemented` cho một lệnh mà plan bảo là đã xong.
+    """
+    from backend.ws import COMMAND_HANDLERS
+
+    cua_phase_06 = [
+        ten for ten, phase in UPLINK_IMPLEMENTED_IN.items() if phase == 6
+    ]
+    assert len(cua_phase_06) == 7
+    thieu = [ten for ten in cua_phase_06 if ten not in COMMAND_HANDLERS]
+    assert thieu == [], f"Phase 06 chua dang ky handler cho: {thieu}"
 
 
 def test_mot_nguoi_lai():
