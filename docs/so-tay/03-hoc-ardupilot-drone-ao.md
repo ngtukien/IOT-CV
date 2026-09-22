@@ -103,15 +103,18 @@ Flight controller lưu hành vi bay bằng hàng nghìn "param": mỗi param là
 công tắc hoặc một con số điều chỉnh một hành vi cụ thể. Ba param đầu tiên cần
 biết:
 
-- `RTL_ALT`: khi gọi RTL, drone leo lên độ cao này trước rồi mới bay về điểm
-  cất cánh. Đặt thấp quá thì trên đường về có thể đụng cây hoặc vật cản.
+- `RTL_ALT_M`: khi gọi RTL, drone leo lên **tối thiểu** độ cao này trước rồi
+  mới bay về điểm cất cánh. Đặt thấp quá thì trên đường về có thể đụng cây
+  hoặc vật cản. Đang bay cao hơn ngưỡng thì nó không leo thêm (xem mục 10).
 - `WPNAV_SPEED`: tốc độ bay giữa các waypoint trong mission hoặc GUIDED.
 - `LAND_SPEED`: tốc độ hạ ở đoạn cuối cùng khi tiếp đất. Nhanh quá thì đập đất.
 
-**Bẫy đơn vị:** hầu hết param về độ cao và tốc độ dùng đơn vị **centimet**, không
-phải mét. `RTL_ALT 1500.0` nghĩa là 15 mét, không phải 1500 mét. Nhìn thấy một
-con số param lớn bất thường, việc đầu tiên là kiểm tra lại đơn vị trước khi kết
-luận có gì sai.
+**Bẫy đơn vị:** nhiều param về độ cao và tốc độ dùng đơn vị **centimet**, không
+phải mét, nên một con số lớn bất thường thì việc đầu tiên là kiểm tra đơn vị.
+Nhưng ArduPilot 4.7 đã chuyển dần sang **hậu tố SI tường minh**: `_M` là mét,
+`_MS` là mét trên giây. `RTL_ALT_M = 15` nghĩa là 15 mét, không phải 15 cm.
+Gặp một tên param đọc trên mạng mà firmware không nhận, đọc mục 10 trước khi
+kết luận mình gõ sai.
 
 ## 6. EKF là gì (rất nông)
 

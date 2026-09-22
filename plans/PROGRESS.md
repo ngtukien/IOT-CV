@@ -283,6 +283,30 @@ RTL — `RTL_ALT_M = 15` cho đỉnh **20,0 m** (không leo, vì đang cao hơn 
 `RTL_ALT_M = 50` cho đỉnh **50,0 m**. Chênh **30,0 m**. Kết luận cho sổ tay:
 `RTL_ALT_M` là độ cao **tối thiểu**, không phải bắt buộc.
 
+**22/09/2026, vòng hai — hai lỗi nữa trong `harness.py`, cùng loại im lặng.**
+Tìm ra khi chạy lại nghiệm thu độc lập; cả hai đều để lộ qua 28 dòng usage của
+`pkill` lẫn trong output của một lần chạy PASS.
+
+1. **Toàn bộ đoạn dọn dẹp có chủ đích là code chết.** Mẫu tìm là
+   `--use-dir=<đường dẫn>`, bắt đầu bằng `--`, nên `pkill`/`pgrep` coi nó là
+   **tuỳ chọn** chứ không phải mẫu: `pkill: unrecognized option '--use-dir=...'`
+   rồi in usage. Ba lời gọi đều vô hiệu. Nó sống sót chỉ nhờ `terminate()` và
+   mẫu `xterm.*` đứng cạnh. Sửa: bỏ hai gạch đầu, khớp `use-dir=<đường dẫn>`.
+2. **`refuse_if_conflict()` báo nhầm, và không thể báo đúng khi hỏng.** `pgrep -af`
+   khớp cả shell đang gọi nếu dòng lệnh của nó có chứa chuỗi `sim_vehicle.py` —
+   đã chặn oan một lần chạy hợp lệ. Thêm `-A` (`--ignore-ancestors`). Đồng thời
+   hàm cũ nuốt luôn mã thoát: `pgrep` tự hỏng thì `stdout` rỗng, guard lặng lẽ
+   cho qua y như khi máy sạch. Nay mã thoát ≥ 2 thì **ném lỗi**. Đã bẻ gãy có
+   chủ đích (stub `pgrep` exit 2) để xem nó đỏ thật, rồi bỏ stub xem nó xanh lại.
+
+**Bản sửa `RTL_ALT` → `RTL_ALT_M` lan chưa hết, rò sang Phase 20.** Vòng một chỉ
+sửa plan 03 và sổ tay 03. Còn sót 15 chỗ, nặng nhất là `phase-20` dòng 372: bảo
+đặt `RTL_ALT 1500` trên **drone thật**, kèm chú thích "phải cao hơn mọi vật cản".
+Firmware dự án là ArduCopter 4.7.1 (`build-d450a747/custombuild.yaml`), đúng bản
+đã chứng minh tham số đó không tồn tại. Đặt nó thì FC im lặng bỏ qua, người vận
+hành tin RTL đã vượt vật cản trong khi chưa đặt được gì. Đã sửa hết và thêm cảnh
+báo "đọc ngược lại giá trị để xác nhận" vào cổng pass Phase 20.
+
 **Sửa `.gitignore` (bắt buộc, không phải tuỳ chọn):** cổng pass đòi commit
 `logs/sitl/.gitkeep` nhưng luật `logs/*` ở dòng 58 chặn luôn cả thư mục con, nên gate
 đó vốn KHÔNG thể đạt. Đã thêm ba dòng `!logs/sitl/` + `logs/sitl/*` + `!logs/sitl/.gitkeep`.
@@ -709,7 +733,7 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] Với **cả 4** bộ log: `VIBE` X/Y/Z < 30 m/s²; `Clip0` = `Clip1` = `Clip2` = **0**; EKF variance < 0.5; compass innovation dao động quanh 0 và độ lớn từ trường **không đổi theo ga**; `BAT.Volt` lúc treo **không** tụt dưới 14,0 V; 4 đường `RCOU` chụm.
 - [ ] `MOT_THST_HOVER` học được đã ghi lại; nếu > 0,65 thì đã xử lý (giảm payload) trước khi sang Phase 21.
 - [ ] `BATT_AMP_PERVLT` đã hiệu chỉnh ít nhất một vòng theo mAh sạc lại.
-- [ ] `RTL_ALT` đã đặt cao hơn mọi vật cản trong bãi và thấp hơn `FENCE_ALT_MAX`.
+- [ ] `RTL_ALT_M` (mét, **không phải** `RTL_ALT` cm) đã đặt cao hơn mọi vật cản trong bãi và thấp hơn `FENCE_ALT_MAX`; **đã đọc ngược lại giá trị để xác nhận**.
 - [ ] `firmware/ardupilot/params/05-loiter-good.param` đã lưu và commit với prefix `param:`.
 - [ ] `docs/test-log.md` có đủ 4 dòng F1–F4.
 - [ ] `docs/so-tay/20-bay-rc-co-ban.md` đã viết xong.
