@@ -79,5 +79,9 @@ jobs:
         working-directory: frontend
       - run: pnpm lint
         working-directory: frontend
+      # Gồm test chống trôi: sinh lại protocol.generated.ts từ
+      # backend/ws-contract.schema.json và so với bản đã commit.
+      - run: pnpm test
+        working-directory: frontend
       - run: pnpm build
         working-directory: frontend
