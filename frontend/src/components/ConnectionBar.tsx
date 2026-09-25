@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useWebControlToggle } from "@/hooks/useWebControlToggle";
 import { NO_VALUE, formatClock, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useTelemetryStore } from "@/store/telemetry";
@@ -156,6 +157,7 @@ export function ConnectionBar() {
   const endpoint = useTelemetryStore((s) => s.status?.endpoint);
   const version = useTelemetryStore((s) => s.status?.backend_version);
   const webControl = useTelemetryStore((s) => s.status?.safety.web_control_enabled);
+  const control = useWebControlToggle();
   const link1 = useBrowserBackend();
   const link2 = useBackendDrone();
   const LockIcon = webControl ? LockOpen : Lock;
@@ -197,13 +199,25 @@ export function ConnectionBar() {
       <div className="ml-auto flex items-center gap-2">
         <Chip title="Backend đang nối drone qua đâu">{endpoint ?? NO_VALUE}</Chip>
         <Chip title="Phiên bản backend">v{version ?? NO_VALUE}</Chip>
-        <Chip
-          title="Web có đang được phép ra lệnh bay không. Phase 10 làm cho nút này bấm được."
-          className={cn("flex items-center gap-1.5", webControl && "border-hud-amber/50 bg-hud-amber/10 text-hud-amber")}
+        {/* Bấm được (Phase 10). Màu theo `status` của backend, KHÔNG đổi ngay khi bấm. */}
+        <button
+          type="button"
+          data-testid="web-control-badge"
+          disabled={control.disabled}
+          onClick={() => control.toggle(!control.on)}
+          title={
+            control.on
+              ? "Web đang giữ quyền lái — bấm để trả quyền (drone dừng ngay)"
+              : (control.blocker ?? "Bấm để bật WEB CONTROL: cho phép lái bằng bàn phím")
+          }
+          className={cn(
+            "flex items-center gap-1.5 rounded-md border border-border bg-white/5 px-2 py-1 font-mono text-[11px] text-muted-foreground transition-colors enabled:cursor-pointer enabled:hover:bg-white/10 disabled:opacity-70",
+            webControl && "border-hud-amber/50 bg-hud-amber/10 text-hud-amber",
+          )}
         >
           <LockIcon className="size-3" aria-hidden />
-          WEB CONTROL: {webControl === undefined ? NO_VALUE : webControl ? "ON" : "OFF"}
-        </Chip>
+          WEB CONTROL: {webControl === undefined ? NO_VALUE : webControl ? (control.on ? "ON" : "ON (tab khác)") : "OFF"}
+        </button>
         <div className="mx-1 h-6 w-px bg-border" />
         <Clock />
       </div>

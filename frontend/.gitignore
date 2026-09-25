@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright (Phase 10): kết quả chạy E2E, không commit
+test-results
+playwright-report

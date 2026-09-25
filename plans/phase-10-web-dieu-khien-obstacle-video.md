@@ -391,6 +391,8 @@ Bài **RC lấy lại quyền từ web** không làm ở đây (SITL không có 
 | `avoid_state` lên `ACTIVE` ở GUIDED | 07 §7.6.4 | Sai thiết kế — panel sẽ nói sai về an toàn |
 | `detection` không bám hình chữ nhật của nguồn giả | 07 §7.8.2 | Không kiểm chứng được quy đổi toạ độ overlay |
 | `cmd.velocity` trả `rate_limited` ở 10 Hz | 05 hợp đồng (giới hạn 30/s) | Kiểm lại bộ đếm nhịp phía backend |
+| `detection.frame_ts` là đồng hồ của NGUỒN (`X-Timestamp-Ms`, đếm từ lúc thiết bị khởi động), trong khi ví dụ trong hợp đồng Phase 05 ghi epoch (`1758412345.02`) | 05 hợp đồng · 07 §7.8.3 | Phát hiện lúc làm 10.5.3 (25/09/2026). Web không so được `frame_ts` với đồng hồ trình duyệt, nên đo "box cũ" theo lúc NHẬN message. Cần sửa ví dụ/mô tả trong hợp đồng cho khớp `docs/hop-dong-mjpeg.md` §2; không chặn cổng pass |
+| Nguồn giả không có "hình chữ nhật chạy" trong ảnh: ảnh là video mẫu lặp, box chạy vòng một quỹ đạo lùi vào 1/16 khung (`fake_stream.py`) | 07 §7.8.3 | Mô tả ở 10.5 và cổng pass "trùng khít hình chữ nhật" viết theo bản cũ. Nghiệm thu đo thay bằng điểm ảnh canvas: box rộng 19% khung, trong lề 1/16, ở 2 cỡ cửa sổ (`acceptance.spec.ts`) |
 
 ---
 

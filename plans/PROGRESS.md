@@ -629,24 +629,30 @@ Ghi chú:
 
 Plan: plans/phase-10-web-dieu-khien-obstacle-video.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/09/2026 · Ngày xong: 25/09/2026
 
-- [ ] `pnpm tsc --noEmit`, `pnpm vitest run`, `pnpm build` đều sạch.
-- [ ] **`deadman.spec.ts` xanh, độ trễ đo được < 300 ms** — ba test của `SAFETY.md` §5 đã chạy trên cả chuỗi trình duyệt→backend→FC.
-- [ ] Alt-Tab giữa lúc giữ `W` → drone dừng (bẫy `blur` có test đơn vị + bài nghiệm thu #5).
-- [ ] `keydown` **không** gửi lệnh; chỉ `setInterval` gửi, nhịp 10 Hz (≥ 5 Hz theo yêu cầu).
-- [ ] Công tắc WEB CONTROL chỉ đổi màu **sau** khi `status` từ backend đổi, không đổi ngay khi bấm.
-- [ ] `SafetyBanner` hiện suốt thời gian web giữ quyền, không đóng được.
-- [ ] ARM / TAKEOFF / AUTO / DISARM có hộp xác nhận; **RTL / LAND / HOLD không có** (nút thoát hiểm).
-- [ ] Panel vật cản hiện **đúng dòng cảnh báo "chế độ này KHÔNG tự tránh vật cản"** khi ở AUTO/GUIDED/RTL.
-- [ ] Cung không có dữ liệu vẽ **gạch chéo**, không vẽ xanh.
-- [ ] Box nhận diện **trùng khít** hình chữ nhật của nguồn MJPEG giả ở ít nhất 2 kích thước cửa sổ khác nhau (chứng minh quy đổi toạ độ đúng, không gõ cứng 320×240).
-- [ ] Tắt nguồn video → telemetry, điều khiển, bản đồ **không bị ảnh hưởng** (`SAFETY.md` mục 9).
-- [ ] Bay trọn chuyến SITL từ web: cất cánh → lái tay → mission AUTO → RTL. 9 bài ở 10.8 đều đạt, ghi `docs/test-log.md`.
-- [ ] `grep -rn "320\|240" frontend/src/components/VideoPanel` — không có kích thước nào gõ cứng.
-- [ ] `docs/so-tay/10-web-dieu-khien-obstacle-video.md` đã viết.
+- [x] `pnpm tsc --noEmit`, `pnpm vitest run`, `pnpm build` đều sạch.
+- [x] **`deadman.spec.ts` xanh, độ trễ đo được < 300 ms** — ba test của `SAFETY.md` §5 đã chạy trên cả chuỗi trình duyệt→backend→FC.
+- [x] Alt-Tab giữa lúc giữ `W` → drone dừng (bẫy `blur` có test đơn vị + bài nghiệm thu #5).
+- [x] `keydown` **không** gửi lệnh; chỉ `setInterval` gửi, nhịp 10 Hz (≥ 5 Hz theo yêu cầu).
+- [x] Công tắc WEB CONTROL chỉ đổi màu **sau** khi `status` từ backend đổi, không đổi ngay khi bấm.
+- [x] `SafetyBanner` hiện suốt thời gian web giữ quyền, không đóng được.
+- [x] ARM / TAKEOFF / AUTO / DISARM có hộp xác nhận; **RTL / LAND / HOLD không có** (nút thoát hiểm).
+- [x] Panel vật cản hiện **đúng dòng cảnh báo "chế độ này KHÔNG tự tránh vật cản"** khi ở AUTO/GUIDED/RTL.
+- [x] Cung không có dữ liệu vẽ **gạch chéo**, không vẽ xanh.
+- [x] Box nhận diện **trùng khít** hình chữ nhật của nguồn MJPEG giả ở ít nhất 2 kích thước cửa sổ khác nhau (chứng minh quy đổi toạ độ đúng, không gõ cứng 320×240).
+- [x] Tắt nguồn video → telemetry, điều khiển, bản đồ **không bị ảnh hưởng** (`SAFETY.md` mục 9).
+- [x] Bay trọn chuyến SITL từ web: cất cánh → lái tay → mission AUTO → RTL. 9 bài ở 10.8 đều đạt, ghi `docs/test-log.md`.
+- [x] `grep -rn "320\|240" frontend/src/components/VideoPanel` — không có kích thước nào gõ cứng.
+- [x] `docs/so-tay/10-web-dieu-khien-obstacle-video.md` đã viết.
 
-Ghi chú: 
+Ghi chú: số đo 9 bài ở `docs/test-log.md` mục Phase 10 (dead-man đóng tab: 6 ms và
+7 ms). Tay cầm game (10.2) đã làm, KHÔNG cắt — nhưng chỉ có unit test (vùng chết,
+ánh xạ trục, bàn phím ưu tiên); chưa thử với tay cầm thật vì máy không có. Cổng
+"box trùng khít hình chữ nhật" đo bằng điểm ảnh canvas thay cho nhìn mắt, vì nguồn
+giả hiện là video mẫu + box chạy quỹ đạo, không còn hình chữ nhật trong ảnh (ghi ở
+"Việc trả về backend" của plan). STABILIZE được xếp vào nhóm có hộp xác nhận (plan
+không nêu): mode tay, ga lấy từ RC, SITL không có RC là rơi.
 
 ## Phase 11 — Firmware ArduPilot + param
 

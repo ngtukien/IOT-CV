@@ -15,7 +15,7 @@
 import { z } from "zod";
 
 import contract from "../../../backend/ws-contract.schema.json";
-import type { DownlinkPayloads, DownlinkType, ErrorCode, EventPayload } from "./protocol.generated";
+import type { CmdMode, DownlinkPayloads, DownlinkType, ErrorCode, EventPayload } from "./protocol.generated";
 import { CONTRACT_VERSION, DOWNLINK_TYPES } from "./protocol.generated";
 
 export * from "./protocol.generated";
@@ -125,12 +125,20 @@ export const GPS_FIX_LABEL = {
 /** Fix đủ tốt để bay dựa vào GPS: từ 3D trở lên. */
 export const GPS_FIX_3D = 3;
 
+/** Chữ hiển thị cho `avoid_state` — plan Phase 10 §10.4.2. Backend tính trạng thái, web chỉ đọc. */
 export const AVOID_STATE_LABEL = {
   OFF: "Trống",
-  NEAR: "Gần",
-  ACTIVE: "Đang tránh",
-  UNKNOWN: "Không rõ",
+  NEAR: "Gần vật cản",
+  ACTIVE: "FC đang tránh",
+  UNKNOWN: "Không đọc được",
 } as const;
+
+/**
+ * Mode web được phép xin, đúng thứ tự của whitelist backend (Phase 06 §6.1.1).
+ * Đọc THẲNG từ hợp đồng — không gõ lại danh sách: hai bản sẽ lệch nhau đúng vào
+ * hôm ai đó thêm một mode.
+ */
+export const WEB_MODES = contract.$defs.CmdMode.properties.mode.enum as readonly CmdMode["mode"][];
 
 export const ERROR_CODE_LABEL: Record<ErrorCode, string> = {
   unknown_type: "Loại message không có trong hợp đồng",
