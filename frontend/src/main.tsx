@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./app/App";
+// Thiếu dòng này thì bản đồ hiện ô xám lệch chồng nhau, không báo lỗi gì.
+import "leaflet/dist/leaflet.css";
 import "./index.css";
 
 // StrictMode giữ nguyên, CỐ Ý: ở dev nó chạy effect hai lần để lộ lỗi quên dọn

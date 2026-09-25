@@ -1,0 +1,7 @@
+// Bay mission 4 WP quanh home CMAC cua SITL trong AUTO — nghiem thu Phase 09 §9.8 bai 1, 3, 4.
+// CHI DUNG TREN SITL. Mission nay la mission web da nap ngay 25/09/2026 (MP Read WPs khop).
+// Chay:  uv run python scripts/ws_probe.py --script plans/samples/bay-mission-auto.jsonl
+// Khong bat WEB CONTROL: dong socket xong dead-man khong chen vao, AUTO bay tiep toi RTL.
+{"type": "cmd.mode", "data": {"mode": "GUIDED"}}
+{"type": "cmd.arm", "data": {"arm": true}}
+{"type": "cmd.mission.upload", "data": {"waypoints": [{"seq": 1, "lat": -35.3632621, "lon": 149.1652374, "alt": 5.0, "command": 22}, {"seq": 2, "lat": -35.36304646737307, "lon": 149.1654391858104, "alt": 5.0, "command": 16}, {"seq": 3, "lat": -35.36334417174784, "lon": 149.1655035675443, "alt": 5.0, "command": 16}, {"seq": 4, "lat": -35.36337919571977, "lon": 149.1650099742509, "alt": 5.0, "command": 16}, {"seq": 5, "lat": -35.363063979425505, "lon": 149.16498851367294, "alt": 5.0, "command": 16}, {"seq": 6, "lat": 0.0, "lon": 0.0, "alt": 0.0, "command": 20}], "auto_start": true}}

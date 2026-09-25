@@ -38,3 +38,11 @@ export async function fetchEvents(limit: number, init?: RequestInit) {
   const body = await restGet("GET /api/events", `?limit=${limit}`, init);
   return body.events;
 }
+
+/**
+ * Mission backend đang giữ. `waypoints` chỉ đáng tin khi `source === "readback"`
+ * (đã đọc ngược từ FC và khớp) — người gọi phải tự kiểm `source`.
+ */
+export async function fetchMission(init?: RequestInit) {
+  return restGet("GET /api/mission", "", init);
+}

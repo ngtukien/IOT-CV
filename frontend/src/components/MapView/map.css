@@ -1,0 +1,107 @@
+/*
+ * Kiểu vẽ trên bản đồ. Màu nét đặt bằng CLASS (option `className` của Leaflet)
+ * chứ không truyền `color` vào Leaflet: Leaflet ghi màu thành thuộc tính SVG
+ * `stroke="…"`, và `var(--hud-…)` trong thuộc tính SVG không chạy ổn định trên
+ * mọi trình duyệt. Luật CSS thì luôn thắng thuộc tính trình bày.
+ *
+ * Hai lớp mission KHÔNG BAO GIỜ được giống nhau (plan Phase 09 §9.3):
+ *   bản nháp  — vàng, nét đứt, mảnh, mờ, marker RỖNG
+ *   đã nạp    — xanh lá, nét liền, dày, đậm, marker ĐẶC
+ */
+
+.leaflet-container {
+  background: oklch(0.2 0.02 256);
+  font-family: var(--font-sans);
+}
+
+/* ---- đường ---------------------------------------------------------------- */
+
+.map-trail {
+  stroke: var(--hud-cyan);
+  stroke-opacity: 0.8;
+}
+
+.map-geofence {
+  stroke: var(--hud-amber);
+  stroke-opacity: 0.9;
+  fill: none;
+}
+
+.map-mission-draft {
+  stroke: var(--hud-amber);
+  stroke-opacity: 1;
+  /* Viền tối mảnh để nét vàng không chìm vào nền cỏ xanh nhạt của OSM. */
+  filter: drop-shadow(0 0 1px oklch(0 0 0 / 80%));
+}
+
+.map-mission-readback {
+  stroke: var(--hud-green);
+  stroke-opacity: 1;
+}
+
+/* ---- marker (L.divIcon) --------------------------------------------------- */
+
+.map-icon {
+  background: none;
+  border: none;
+}
+
+.map-drone {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  filter: drop-shadow(0 0 4px oklch(0 0 0 / 70%));
+}
+
+.map-drone svg {
+  width: 100%;
+  height: 100%;
+}
+
+.map-home {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 6px;
+  background: var(--hud-cyan);
+  color: oklch(0.18 0.03 250);
+  font: 700 12px/1 var(--font-sans);
+  box-shadow: 0 0 0 2px oklch(0 0 0 / 45%);
+}
+
+.map-wp {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  border-radius: 9999px;
+  font: 700 11px/1 var(--font-mono);
+}
+
+.map-wp--draft {
+  border: 2px dashed var(--hud-amber);
+  background: oklch(0.2 0.02 256 / 55%);
+  color: var(--hud-amber);
+}
+
+.map-wp--draft.map-wp--error {
+  border-color: var(--hud-red);
+  color: var(--hud-red);
+}
+
+.map-wp--readback {
+  border: 2px solid white;
+  background: var(--hud-green);
+  color: oklch(0.18 0.03 250);
+  box-shadow: 0 0 0 2px oklch(0 0 0 / 45%);
+}
+
+.leaflet-tooltip.map-tooltip {
+  max-width: 18rem;
+  white-space: normal;
+  font-size: 12px;
+  line-height: 1.4;
+}

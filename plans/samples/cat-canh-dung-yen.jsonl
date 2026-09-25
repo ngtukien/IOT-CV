@@ -1,0 +1,9 @@
+// Cat canh GUIDED len 5 m roi DUNG YEN tren khong — nghiem thu Phase 09 §9.8 bai 3
+// ("dung yen 1 phut -> vet duong khong dai them"). CHI DUNG TREN SITL.
+// Chay:  uv run python scripts/ws_probe.py --script plans/samples/cat-canh-dung-yen.jsonl
+// KHAC takeoff.jsonl: KHONG bat WEB CONTROL, nen dong socket xong dead-man khong gui
+// velocity 0 va GUIDED khong huy lenh takeoff — may bay treo o 5 m tu toi khi co lenh moi.
+// Ha canh:  --send '{"v":1,"type":"cmd.land","id":"c-land","data":{}}'
+{"type": "cmd.mode", "data": {"mode": "GUIDED"}}
+{"type": "cmd.arm", "data": {"arm": true}}
+{"type": "cmd.takeoff", "data": {"altitude": 5}}

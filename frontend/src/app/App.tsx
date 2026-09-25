@@ -5,21 +5,27 @@
  * chỉ thay NỘI DUNG ô, không phải sắp xếp lại lưới.
  *
  * Phase 08 chỉ NHÌN: chưa có nút nào gửi lệnh bay (SAFETY.md mục 1).
+ * Phase 09 thêm bản đồ và trình soạn mission. Lệnh duy nhất nó gửi là NẠP
+ * mission (`auto_start: false`) — nạp không làm drone bay.
  */
-import { Crosshair, Map, Radar, Route, Video } from "lucide-react";
+import { Crosshair, Radar, Video } from "lucide-react";
 
 import { ComingSoon } from "@/components/ComingSoon";
 import { ConnectionBar } from "@/components/ConnectionBar";
 import { EventLog } from "@/components/EventLog";
 import { Hud } from "@/components/Hud/Hud";
+import { MapView } from "@/components/MapView/MapView";
+import { MissionEditor } from "@/components/MissionEditor/MissionEditor";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useMissionReadback } from "@/hooks/useMissionReadback";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
 import "./layout.css";
 
 export default function App() {
   useWebSocket();
+  useMissionReadback();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -27,13 +33,7 @@ export default function App() {
         <ConnectionBar />
         <main className="gcs-grid mx-auto w-full max-w-[1920px] p-3">
           <Hud style={{ gridArea: "hud" }} />
-          <ComingSoon
-            title="Bản đồ"
-            icon={Map}
-            phase="09"
-            description="Vị trí drone, điểm cất cánh và đường bay trên bản đồ vệ tinh. Bấm lên bản đồ để đặt waypoint."
-            style={{ gridArea: "map" }}
-          />
+          <MapView style={{ gridArea: "map" }} />
           <ComingSoon
             title="Video"
             icon={Video}
@@ -41,13 +41,7 @@ export default function App() {
             description="Hình từ camera trên drone, kèm khung nhận diện vật thể vẽ đè lên."
             style={{ gridArea: "video" }}
           />
-          <ComingSoon
-            title="Soạn mission"
-            icon={Route}
-            phase="09"
-            description="Danh sách waypoint: độ cao từng điểm, kiểm tra giới hạn, nạp xuống drone."
-            style={{ gridArea: "mission" }}
-          />
+          <MissionEditor style={{ gridArea: "mission" }} />
           <ComingSoon
             title="Chế độ bay"
             icon={Crosshair}

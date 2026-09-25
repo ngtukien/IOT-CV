@@ -20,7 +20,9 @@
   display: grid;
   gap: 0.75rem;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  grid-template-rows: minmax(480px, auto) 380px 260px 260px;
+  /* Hai hàng dưới `minmax(…, auto)` từ Phase 09: bảng mission dài theo số
+     waypoint (tối đa `max_waypoints` item), trang dài ra chứ ô không cuộn lồng. */
+  grid-template-rows: minmax(480px, auto) 380px minmax(260px, auto) minmax(260px, auto);
   grid-template-areas:
     "hud     map"
     "log     video"

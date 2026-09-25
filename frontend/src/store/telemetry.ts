@@ -9,9 +9,15 @@
  *     về home thì component tính lúc hiển thị.
  *  3. `events` giới hạn 200, mới nhất ở đầu — khớp vòng đệm EventBus của backend.
  *  4. Không có ngưỡng nào ở đây. Giới hạn đọc từ `status.limits` (`useLimits`).
+ *
+ * `trail` (Phase 09) là LỊCH SỬ vị trí, không phải giá trị dẫn xuất: không tính
+ * lại được từ gói telemetry hiện tại. Luật lọc (chỉ khi armed, dịch > 2 m, tối
+ * đa 2000 điểm) nằm ở `nextTrail` trong `lib/geo.ts`.
  */
 import { create } from "zustand";
 
+import { nextTrail } from "@/lib/geo";
+import type { LatLon } from "@/lib/geo";
 import type { DetectionPayload, EventPayload, StatusPayload, Telemetry } from "@/lib/protocol";
 
 export const EVENTS_MAX = 200;
@@ -44,6 +50,8 @@ interface TelemetryStore {
   /** Khi nào thử nối lại (ms, `Date.now()`), `null` khi không chờ. Để hiện đếm ngược. */
   nextRetryAt: number | null;
   lastMessageAt: number | null;
+  /** Vệt đường đã bay, cũ trước mới sau. Giữ qua lúc mất socket: đó là lịch sử. */
+  trail: readonly LatLon[];
 
   applyTelemetry(t: Telemetry): void;
   applyStatus(s: StatusPayload): void;
@@ -52,6 +60,7 @@ interface TelemetryStore {
   applyDetection(d: DetectionPayload): void;
   setConnection(c: ConnectionState, nextRetryAt?: number | null): void;
   markMessage(at: number): void;
+  clearTrail(): void;
 }
 
 /**
@@ -88,8 +97,10 @@ export const useTelemetryStore = create<TelemetryStore>((set, get) => ({
   connection: "connecting",
   nextRetryAt: null,
   lastMessageAt: null,
+  trail: [],
 
-  applyTelemetry: (telemetry) => set({ telemetry }),
+  applyTelemetry: (telemetry) => set({ telemetry, trail: nextTrail(get().trail, telemetry) }),
+  clearTrail: () => set({ trail: [] }),
   applyStatus: (status) => set({ status }),
   applyDetection: (detection) => set({ detection }),
   markMessage: (lastMessageAt) => set({ lastMessageAt }),
