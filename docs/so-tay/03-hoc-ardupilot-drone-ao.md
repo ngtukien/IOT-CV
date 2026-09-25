@@ -276,3 +276,37 @@ trọi không nói lý do.
 
 `harness.wait_ready()` chờ đủ hai điều kiện trước khi cho đi tiếp: EKF có lời
 giải vị trí tuyệt đối, và GPS đạt 3D fix với ít nhất 6 vệ tinh.
+
+## 11. Nghiệm thu bằng máy — Mission Planner và UAV Log Viewer (25/09/2026)
+
+Hai cổng pass trước đây ghi "còn nợ phần người: nhìn bằng mắt" đã được kiểm bằng
+computer use (`cua-driver`), đối chiếu từng trường chứ không chỉ nhìn qua.
+
+**Bảng waypoint của Mission Planner khớp mission trên flight controller.**
+Script nạp mission 5 lệnh của `run_mission_auto.py` vào SITL rồi đọc ngược từ FC;
+Mission Planner nối vào cùng SITL (TCP 5762), vào `PLAN → Read`. Cả 5 hàng khớp
+lệnh, lat, lon, alt, frame với bản đọc ngược. Hàng RTL hiện `Absolute`: lệnh
+không mang toạ độ nên ArduPilot chuẩn hoá frame về 0, đúng như mục 10 đã ghi.
+
+![Mission Planner, màn PLAN sau khi Read](anh/03-mp-wp-list.png)
+
+**Log `.BIN` mở trên UAV Log Viewer thấy đủ độ cao và các lần đổi mode.** Log
+của `run_mode_chain.py` trên https://plot.ardupilot.org, trường `CTUN → Alt`:
+đồ thị độ cao phủ lên các dải màu có nhãn mode. Bản đồ phía dưới còn thấy hình
+vuông bay tay ở LOITER (vệt vàng).
+
+![UAV Log Viewer: CTUN.Alt và các dải mode](anh/03-log-viewer.png)
+
+Tự làm lại phần này để học: nối Mission Planner vào SITL, vẽ mission bằng tay rồi
+`Write`, so với `wp list` trong MAVProxy — đó vẫn là bài tập 03.6 của bạn.
+
+### Chạy lại toàn bộ runner bằng một lệnh
+
+```bash
+cd /mnt/d/Coding/IOT-CV
+bash scripts/sitl/run-all.sh                  # 7 runner Phase 03 + 04, ~6 phút
+bash scripts/sitl/run-all.sh --chi run_mode_chain,run_log_dump
+```
+
+Script chạy tuần tự, in bảng tổng, trả mã khác 0 nếu có runner hỏng hoặc để sót
+tiến trình SITL. Log từng runner nằm ở `~/.cache/iot-cv-sitl/run-all/`.

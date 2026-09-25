@@ -1,6 +1,6 @@
 # 01 - sau khi nap 01-base-draft.param va reboot.
 # SITL ArduCopter 4.7.1 (build tu nguon, Phase 02) - KHONG nap file nay len board that.
-# Sinh boi scripts/sitl/run_param_load.py, 25/09/2026 11:08.
+# Sinh boi scripts/sitl/run_param_load.py, 25/09/2026 12:02.
 ACRO_BAL_PITCH,1
 ACRO_BAL_ROLL,1
 ACRO_OPTIONS,0

@@ -117,6 +117,50 @@ def ap_dung(d: Path, param: dict[str, float]) -> list[str]:
     return sorted(con)
 
 
+class BoGhiMau:
+    """Gom các gói MAVLink thành từng mẫu, mỗi gói vị trí là một mẫu. Tốc độ và
+    số TFmini đến ở gói riêng, nên giữ giá trị mới nhất của chúng tới khi có
+    gói vị trí kế tiếp."""
+
+    def __init__(self, sitl: SitlInstance) -> None:
+        self.sitl = sitl
+        self.mau: list[dict] = []
+        self.xong = False
+        self._gs = 0.0
+        self._tfmini: tuple[float, float] | None = None  # (lúc nhận, mét)
+        self._t0: float | None = None
+
+    def nhan(self, m) -> None:
+        loai = m.get_type()
+        if loai == "STATUSTEXT":
+            self.sitl.statustext_log.append(m.text)
+        elif loai == "VFR_HUD":
+            self._gs = m.groundspeed
+        elif loai == "DISTANCE_SENSOR" and m.orientation == 0:
+            # orientation 0 = nhìn thẳng trước = TFmini (RNGFND1_ORIENT 0)
+            self._tfmini = (time.monotonic(), m.current_distance / 100)
+        elif loai == "GLOBAL_POSITION_INT":
+            self._them_mau(m)
+
+    def _them_mau(self, m) -> None:
+        t = m.time_boot_ms / 1000
+        self._t0 = t if self._t0 is None else self._t0
+        n, e = ne(m.lat / 1e7, m.lon / 1e7)
+        moi = self._tfmini is not None and time.monotonic() - self._tfmini[0] < 1.0
+        self.mau.append(
+            {
+                "t": round(t - self._t0, 2),
+                "bac_m": round(n, 2),
+                "dong_m": round(e, 2),
+                "toc_do_ms": round(self._gs, 2),
+                "be_mat_cot_m": round(khoang_cach_be_mat(n, e), 2),
+                "tfmini_m": self._tfmini[1] if moi else None,
+                "cao_m": round(m.relative_alt / 1000, 2),
+            }
+        )
+        self.xong = t - self._t0 >= GIU_CAN_S or n > COT_DICH_BAC + 10
+
+
 def bay_toi_cot(sitl: SitlInstance) -> list[dict]:
     """LOITER, giữ cần tiến GIU_CAN_S giây mô phỏng, lấy mẫu mỗi gói vị trí."""
     sitl.wait_ready(timeout=150)
@@ -126,12 +170,9 @@ def bay_toi_cot(sitl: SitlInstance) -> list[dict]:
     sitl.set_mode("LOITER")
     giua = {1: 1500, 2: 1500, 3: 1500, 4: 1500}
     tien = {**giua, 2: PWM_TIEN}
-    mau: list[dict] = []
-    gs = 0.0
-    tfmini: tuple[float, float] | None = None  # (lúc nhận, mét)
-    t0 = None
+    ghi = BoGhiMau(sitl)
     gui = 0.0
-    while True:
+    while not ghi.xong:
         if time.monotonic() - gui > 0.2:
             sitl.rc_override(tien)
             gui = time.monotonic()
@@ -140,37 +181,10 @@ def bay_toi_cot(sitl: SitlInstance) -> list[dict]:
             blocking=True,
             timeout=0.2,
         )
-        if m is None:
-            continue
-        loai = m.get_type()
-        if loai == "STATUSTEXT":
-            sitl.statustext_log.append(m.text)
-        elif loai == "VFR_HUD":
-            gs = m.groundspeed
-        elif loai == "DISTANCE_SENSOR":
-            # orientation 0 = nhìn thẳng trước = TFmini (RNGFND1_ORIENT 0)
-            if m.orientation == 0:
-                tfmini = (time.monotonic(), m.current_distance / 100)
-        else:
-            t = m.time_boot_ms / 1000
-            t0 = t if t0 is None else t0
-            n, e = ne(m.lat / 1e7, m.lon / 1e7)
-            doc = tfmini[1] if tfmini and time.monotonic() - tfmini[0] < 1.0 else None
-            mau.append(
-                {
-                    "t": round(t - t0, 2),
-                    "bac_m": round(n, 2),
-                    "dong_m": round(e, 2),
-                    "toc_do_ms": round(gs, 2),
-                    "be_mat_cot_m": round(khoang_cach_be_mat(n, e), 2),
-                    "tfmini_m": doc,
-                    "cao_m": round(m.relative_alt / 1000, 2),
-                }
-            )
-            if t - t0 >= GIU_CAN_S or n > COT_DICH_BAC + 10:
-                break
+        if m is not None:
+            ghi.nhan(m)
     sitl.rc_override(giua)
-    return mau
+    return ghi.mau
 
 
 def danh_gia(mau: list[dict], ky_vong: str, param: dict[str, float]) -> dict:

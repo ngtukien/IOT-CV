@@ -81,9 +81,11 @@ SERIAL3, bay LOITER và giữ `rc 2 1300` về phía một cột ảo suốt 40 
 | | Đối chứng (`AVOID_ENABLE 0`) | File avoid của dự án |
 |---|---|---|
 | Vượt qua cột? | **Có**, xuyên qua ở ~4 m/s sau 10,75 s | **Không**, suốt 40 s giữ cần |
-| Gần bề mặt cột nhất | −0,82 m (đi vào trong cột) | **1,01 m** |
-| 20 s cuối | — | dao động **1,39–3,18 m**, chu kỳ ~4 s |
-| TFmini ảo lệch so với khoảng cách tính từ GPS | 1,61 m (12 mẫu, đang lao 4 m/s) | 0,36 m (133 mẫu) |
+| Gần bề mặt cột nhất | −0,82 / −0,83 m (đi vào trong cột) | **1,01–1,12 m** |
+| 20 s cuối | — | dao động trong **1,35–3,18 m**, chu kỳ ~4 s |
+| TFmini ảo lệch so với khoảng cách tính từ GPS | 1,61–1,64 m (12 mẫu, đang lao 4 m/s) | 0,28–0,36 m (133–934 mẫu) |
+
+Khoảng giá trị qua 4 lần bay ngày 25/09/2026 (đối chứng: 2 lần). Chạy lại: `bash scripts/sitl/run-all.sh --chi run_avoid_brake`.
 
 Đồ thị: `docs/so-tay/anh/04-avoid-phanh.png`. Ảnh chụp Mission Planner lúc drone bị chặn:
 `docs/so-tay/anh/04-mp-avoid-phanh.png`. Diễn giải: sổ tay 04, mục 9.

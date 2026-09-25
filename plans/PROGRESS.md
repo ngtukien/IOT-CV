@@ -198,17 +198,23 @@ Máy: Ubuntu 24.04.4, 32 core, 19 GB RAM, ổ WSL `/dev/sdd` còn 915 GB.
 
 Plan: plans/phase-03-hoc-ardupilot-drone-ao.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 21/09/2026 · Ngày xong: ______ *(còn 3 cổng của người học)*
 
 - [x] Bay trọn `GUIDED` → `LOITER` → `ALT_HOLD` → `RTL` → `DISARMED`, không crash.
-      *(`run_mode_chain.py`: 7/7 mode, hai chuyến, không crash, RTL về home 0,0 m.)*
-- [ ] Chạy được mission 5 waypoint (`TAKEOFF` → 3 `WAYPOINT` → `RTL`) ở `AUTO`; `wp list` khớp Mission Planner.
-      *Phần script XONG (`run_mission_auto.py`: tới đủ waypoint [1,2,3,4,5], đọc lại khớp từng
-      trường). Còn nợ phần người: mở Mission Planner đối chiếu `wp list` bằng mắt.*
+      *(`run_mode_chain.py`: 7/7 mode, hai chuyến, không crash, RTL về home 0,0 m. Từ 25/09/2026
+      runner còn **bay tay thật** ở LOITER — hình vuông 4 chặng 15,2–15,4 m bằng RC override — và
+      giữ ALT_HOLD với ga ở giữa, lệch 0,3 m. Trước đó phần bay tay chưa từng chạy, xem Ghi chú.)*
+- [x] Chạy được mission 5 waypoint (`TAKEOFF` → 3 `WAYPOINT` → `RTL`) ở `AUTO`; `wp list` khớp Mission Planner.
+      *(`run_mission_auto.py`: tới đủ waypoint [1,2,3,4,5], đọc lại khớp từng trường. 25/09/2026:
+      Mission Planner nối vào cùng SITL, `PLAN → Read`, bảng 5 lệnh khớp **từng trường** (lệnh, lat,
+      lon, alt, frame) với mission đọc ngược từ FC — ảnh `docs/so-tay/anh/03-mp-wp-list.png`, sổ tay
+      03 mục 11. Hướng kiểm là script nạp → MP đọc; tự vẽ mission trong MP vẫn là bài tập 03.6.)*
 - [ ] Có **3 dòng `PreArm:` khác nhau** chép nguyên văn vào sổ tay, mỗi dòng kèm giải thích tự viết.
-- [ ] Mở được log `.BIN` trên UAV Log Viewer; chỉ ra đồ thị độ cao **và** các lần đổi mode.
-      *Phần script XONG (`run_log_dump.py` rút 1218 mẫu `CTUN` + các lần đổi mode ra CSV).
-      Còn nợ phần người: mở `.BIN` trên plot.ardupilot.org và tự chỉ ra hai thứ đó.*
+- [x] Mở được log `.BIN` trên UAV Log Viewer; chỉ ra đồ thị độ cao **và** các lần đổi mode.
+      *(25/09/2026: log của `run_mode_chain.py` mở trên plot.ardupilot.org, đồ thị `CTUN.Alt`
+      (max 20,03 m) phủ 8 dải mode có nhãn GUIDED → ALT_HOLD → LOITER → GUIDED → AUTO → LAND →
+      GUIDED → RTL — ảnh `docs/so-tay/anh/03-log-viewer.png`. `run_log_dump.py` rút cùng dữ liệu
+      ra CSV và từ nay FAIL nếu log không có lần đổi mode nào.)*
 - [ ] 9 dòng checklist bài tập ở việc 03.6 tick hết.
 - [ ] Viết được câu trả lời tự luận "GUIDED khác AUTO ở chỗ nào" **trước khi** đọc đáp án.
 - [x] `logs/sitl/.gitkeep` đã commit; không file `.BIN` nào lọt vào git.
@@ -216,6 +222,16 @@ Ngày bắt đầu: ______ · Ngày xong: ______
       CSV vừa sinh bị `logs/sitl/*` chặn đúng như thiết kế.)*
 
 Ghi chú:
+
+**25/09/2026 — rà soát lại toàn bộ Phase 03 + 04, chạy lại trọn bộ runner.** Ba cổng còn trống
+(`PreArm:` tự giải thích, checklist 03.6, câu trả lời GUIDED/AUTO) là **bài của người học**, cố ý
+không tick hộ. Hai lỗi đã sửa trong runner Phase 03, cả hai cùng kiểu "báo xanh không chứng minh":
+(1) `run_mode_chain.py` in "KHÔNG TỚI ĐƯỢC" khi AUTO không tới waypoint mà vẫn PASS → nay FAIL;
+(2) `run_log_dump.py` PASS với log 0 lần đổi mode và tự lấy `.BIN` mới nhất của bất kỳ runner nào
+(thường là log Phase 04) → nay ưu tiên log `run_mode_chain` và FAIL nếu không có lần đổi mode.
+Cổng "LOITER bay tay" trước đây được tick trong khi hàm bay tay `square_via_rc()` chưa từng chạy
+được (harness nối sysid 250, ArduPilot bỏ qua RC override) — nay runner bay tay thật và kiểm quãng.
+Chạy lại cả bộ bằng `bash scripts/sitl/run-all.sh`: 7/7 PASS trong ~5,5 phút.
 
 **21/09/2026 — phạm vi Phase 03 đã đổi, chủ dự án quyết.** Plan gốc bắt tự bay hết
 ~6 giờ. Nay cắt đôi: phần cơ học lặp lại do script chạy, người học giữ đúng ba việc
@@ -357,7 +373,7 @@ nhìn xuống. Bài OA BendyRuler (tuỳ chọn) không làm: `OA_TYPE 0` trên 
 không có (chỉ board ChibiOS có). `AVOID_ANG_MAX` không được biên dịch trong 4.7.1 mặc định, tức
 tránh vật cản ở AltHold nhiều khả năng không có trên drone thật.
 
-**Phát hiện cho Phase 22 (bay thật):** lao tới 3,8 m/s thì lấn margin ~1 m (dừng ở 1,01 m thay
+**Phát hiện cho Phase 22 (bay thật):** lao tới 3,8 m/s thì lấn margin ~1 m (dừng ở 1,01–1,12 m thay
 vì 2 m); giữ cần thì dao động tới–lùi 1,4–3,2 m, chu kỳ ~4 s, do `AVOID_BACKUP_SPD 0.75`. Ô "Sonar
 Range" của Mission Planner **luôn 0** với TFmini nhìn thẳng trước (ArduPilot chỉ gửi gói
 `RANGEFINDER` cho rangefinder nhìn xuống) — không phải cảm biến hỏng.

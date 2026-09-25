@@ -17,13 +17,19 @@ cd /mnt/d/Coding/IOT-CV
 
 | Script | Trả lời câu hỏi gì | Việc trong plan |
 |---|---|---|
-| `run_mode_chain.py` | Cả 7 mode có đổi được và có tác dụng thật không? | 03.3 |
+| `run_mode_chain.py` | Cả 7 mode có đổi được và có tác dụng thật không? Bay tay hình vuông ở LOITER, giữ độ cao ở ALT_HOLD, AUTO phải tới waypoint | 03.3 |
 | `run_rtl_alt.py` | `RTL_ALT_M` 15 m khác 50 m ở chỗ nào, tính bằng mét? | 03.5 |
 | `run_mission_auto.py` | Mission 5 waypoint nạp xuống có đúng và chạy được ở AUTO không? | 03.4 |
 | `run_mission_low_alt.py` | FC có chặn waypoint thấp 3 m không, hay backend phải tự chặn? | Phase 07 |
-| `run_log_dump.py` | Rút độ cao + các lần đổi mode từ `.BIN` ra CSV | 03.6 |
-| `run_param_load.py` | Param nào của dự án SITL nhận, param nào từ chối, param nào FC tự đổi sau reboot? Ghi snapshot `00`/`01` | 04.1–04.3 |
+| `run_log_dump.py` | Rút độ cao + các lần đổi mode từ `.BIN` ra CSV. Mặc định lấy log của `run_mode_chain.py`; FAIL nếu log không có lần đổi mode | 03.6 |
+| `run_param_load.py` | Param nào của dự án SITL nhận, param nào từ chối, param nào FC tự đổi sau reboot? Ghi snapshot `00`/`01`. So kết quả với mốc trong `params/sitl/README.md` theo tên, hai chiều | 04.1–04.3 |
 | `run_avoid_brake.py` | TFmini Plus ảo + file avoid của dự án có làm drone phanh trước cột không (có đối chứng AVOID tắt)? Ghi snapshot `02` + đồ thị | 04.4–04.5 |
+
+**Chạy cả bộ một lần:** `bash scripts/sitl/run-all.sh` — tuần tự, ~6 phút, in bảng
+tổng, mã thoát khác 0 nếu có runner hỏng hoặc để sót tiến trình SITL. Chỉ vài
+runner: `--chi run_mode_chain,run_log_dump`. Lưu ý `run_param_load.py` và
+`run_avoid_brake.py` ghi đè các file đã commit (snapshot param, đồ thị); xem
+`git diff` rồi mới commit.
 
 Mỗi script in một khối `## KET QUA` dạng bảng và kết bằng `KET QUA: PASS` /
 `KET QUA: FAIL`, **mã thoát khác 0 khi hỏng** — cắm được vào CI.

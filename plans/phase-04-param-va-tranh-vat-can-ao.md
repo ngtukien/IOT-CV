@@ -356,15 +356,15 @@ Ghi vào `plans/PROGRESS.md` mục Phase 04: kết luận một dòng — *"SITL
 
 ## Cổng pass
 
-- [ ] `firmware/ardupilot/params/sitl/` có đủ 3 file snapshot (`00-sitl-default`, `01-sitl-base-loaded`, `02-sitl-avoid`) và đã commit.
-- [ ] `firmware/ardupilot/params/sitl/README.md` có bảng "SITL nhận / từ chối" điền đủ **9 dòng**, mỗi dòng là quan sát thực tế; mục "Param SITL từ chối" hoặc liệt kê hoặc ghi rõ "không có".
-- [ ] Nạp được bộ param nền vào SITL và có **ảnh chụp cửa sổ so sánh** của Mission Planner (hoặc log `param load` của MAVProxy) trong sổ tay.
-- [ ] `graph RANGEFINDER.distance` (hoặc ô `Sonar Range` trên HUD) hiện số liệu đổi theo độ cao.
-- [ ] **Thấy AVOID phanh máy bay trước vật cản ảo ở LOITER**: giữ `rc 2 1300` mà drone dừng lại; có ảnh chụp màn hình trong `docs/so-tay/04-param-va-tranh-vat-can-ao.md`.
-  - *Hoặc*: nếu bản SITL thiếu `PRX_*`/`AVOID_*`, ghi rõ vào PROGRESS là **hoãn sang Phase 22** kèm bằng chứng (thông báo lỗi nguyên văn). Không tick ô này khi chưa thấy.
-- [ ] Ghi được vào sổ tay ba giá trị `RNGFND1_TYPE` và dùng ở đâu (`1` SITL analog / `100` SITL-external / `20` TFmini Plus thật).
-- [ ] `plans/PROGRESS.md` mục Phase 04 có dòng kết luận về `PRX_*`, đã tick và commit.
-- [ ] `git status --short` sạch; không có file nào ngoài danh sách sở hữu bị sửa.
+- [x] `firmware/ardupilot/params/sitl/` có đủ 3 file snapshot (`00-sitl-default`, `01-sitl-base-loaded`, `02-sitl-avoid`) và đã commit.
+- [x] `firmware/ardupilot/params/sitl/README.md` có bảng "SITL nhận / từ chối" điền đủ **9 dòng**, mỗi dòng là quan sát thực tế; mục "Param SITL từ chối" hoặc liệt kê hoặc ghi rõ "không có".
+- [x] Nạp được bộ param nền vào SITL và có **ảnh chụp cửa sổ so sánh** của Mission Planner (hoặc log `param load` của MAVProxy) trong sổ tay.
+- [x] **TFmini Plus ảo** đọc số đổi theo khoảng cách tới vật cản. *(Viết lại 25/09/2026: dự án chỉ có TFmini nhìn thẳng trước, không có rangefinder nhìn xuống. Ô `Sonar Range` của Mission Planner luôn 0 với TFmini — xem sổ tay 04 mục 9.)*
+- [x] **Thấy AVOID phanh máy bay trước vật cản ảo ở LOITER**: giữ `rc 2 1300` mà drone dừng lại; có ảnh chụp màn hình trong `docs/so-tay/04-param-va-tranh-vat-can-ao.md`.
+  - *Hoặc*: nếu bản SITL thiếu `PRX_*`/`AVOID_*`, ghi rõ vào PROGRESS là **hoãn sang Phase 22** kèm bằng chứng (thông báo lỗi nguyên văn). Không tick ô này khi chưa thấy. *(Không cần: SITL có đủ `PRX_*`/`AVOID_*`, đã thấy phanh với TFmini ảo.)*
+- [x] Ghi được vào sổ tay ba giá trị `RNGFND1_TYPE` và dùng ở đâu (`1` SITL analog / `100` SITL-external / `20` TFmini Plus thật).
+- [x] `plans/PROGRESS.md` mục Phase 04 có dòng kết luận về `PRX_*`, đã tick và commit.
+- [x] `git status --short` sạch; không có file nào ngoài danh sách sở hữu bị sửa.
 
 ## Rủi ro
 

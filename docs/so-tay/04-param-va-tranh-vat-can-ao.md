@@ -166,13 +166,17 @@ chuyến bay giống hệt nhau, chỉ khác một param:
   lý do nào khác (cần không vào, LOITER không nhận lệnh…), đúng cái bẫy đã gặp
   thật ở mục 10.
 - **Xanh, nguyên file avoid của dự án:** tăng tốc tới 3,8 m/s, bắt đầu hãm khi
-  còn ~5 m, **không bao giờ vượt cột**, gần nhất là **1,01 m**, dù cần vẫn giữ
+  còn ~5 m, **không bao giờ vượt cột**, gần nhất là **1,01–1,12 m**, dù cần vẫn giữ
   nguyên.
+
+*Số đo lặp lại qua **4 lần bay** ngày 25/09/2026 (hai lần chạy `run_avoid_brake.py`,
+hai lần bay dài 180 s và 240 s khi chụp Mission Planner). Mọi con số dưới đây là
+khoảng giá trị qua các lần đó, không phải một lần may mắn.*
 
 **Ba điều cần mang sang Phase 22 (drone thật):**
 
 1. **Lấn vào margin khoảng 1 m.** Margin 2 m nhưng lao tới ở 3,8 m/s thì drone
-   vào tới 1,01 m trước khi dừng được. Bay thật nên đi chậm khi gần vật cản, hoặc
+   vào tới 1,01–1,12 m trước khi dừng được. Bay thật nên đi chậm khi gần vật cản, hoặc
    tăng `AVOID_MARGIN`.
 2. **Không đứng yên mà dao động tới–lùi** trong khoảng 1,4–3,2 m, chu kỳ ~4 s,
    biên độ không tăng. Lý do: `AVOID_BACKUP_SPD 0.75` cho lùi khi lấn vào margin,
@@ -181,8 +185,8 @@ chuyến bay giống hệt nhau, chỉ khác một param:
    ở Phase 22: thử giảm `AVOID_BACKUP_SPD` hoặc tăng `AVOID_BACKUP_DZ`, **đo lại**,
    đừng chỉnh đoán.
 3. **TFmini đọc trễ khi bay nhanh.** Lúc đứng gần cột, số TFmini ảo lệch trung
-   bình 0,36 m so với khoảng cách thật tính từ GPS. Lúc lao 4 m/s thì lệch
-   1,61 m. Cảm biến thật cũng có độ trễ, nên thêm một lý do để bay chậm gần vật cản.
+   bình 0,28–0,36 m so với khoảng cách thật tính từ GPS. Lúc lao 4 m/s thì lệch
+   1,61–1,64 m. Cảm biến thật cũng có độ trễ, nên thêm một lý do để bay chậm gần vật cản.
 
 ## 10. Log nạp param, và năm cái bẫy SITL đã gặp thật
 

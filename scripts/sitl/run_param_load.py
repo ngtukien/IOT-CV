@@ -85,6 +85,21 @@ KHONG_XAC_NHAN = "tồn tại nhưng FC không xác nhận"
 # lại là 115: AP_SerialManager ép cứng 115200 cho cổng ESC telemetry.
 DOI_SAU_REBOOT = "nhận lúc nạp, FC TỰ ĐỔI sau reboot"
 
+# Mọi dòng KHÔNG "nhận" ngay, đúng như firmware/ardupilot/params/sitl/README.md
+# ghi (đo 25/09/2026). Đây là mốc cố định: runner so THEO TÊN, cả hai chiều. Có
+# dòng mới lệch -> README thiếu; dòng cũ hết lệch -> README nói sai. Cả hai đều
+# phải sửa README trước; KHÔNG sửa danh sách này cho khớp số đo mà chưa hiểu vì sao
+# nó đổi (firmware đổi? file param đổi?).
+KY_VONG_KHONG_NHAN = {
+    "base:SERIAL5_BAUD": DOI_SAU_REBOOT,
+    "base:SERVO_BLH_POLES": KHONG_TON_TAI,
+    "base:SERVO_BLH_TRATE": KHONG_TON_TAI,
+    "avoid:RNGFND1_ORIENT": NHAN_SAU_REBOOT,
+    "avoid:RNGFND1_MIN": NHAN_SAU_REBOOT,
+    "avoid:RNGFND1_MAX": NHAN_SAU_REBOOT,
+    "avoid:AVOID_ANG_MAX": KHONG_TON_TAI,
+}
+
 
 def gan(a: float, b: float) -> bool:
     return abs(a - b) <= max(1e-4, abs(b) * 1e-5)
@@ -184,14 +199,8 @@ def thu_bay(sitl: SitlInstance) -> dict:
     return ket
 
 
-def main() -> int:
-    SITL_DIR.mkdir(parents=True, exist_ok=True)
-    file_base = chon_file_base()
-    base = harness.read_param_file(file_base)
-    avoid = harness.read_param_file(AVOID)
-    d = harness.run_dir(USE_DIR)
-
-    # Lượt 1 — EEPROM trắng.
+def luot_1(d: Path, base: list[tuple[str, float]]) -> dict:
+    """EEPROM trắng: snapshot 00, đặt tham số mô phỏng, nạp base."""
     sitl = bat(d, wipe=True)
     try:
         sitl.wait_ready(timeout=120)
@@ -204,28 +213,40 @@ def main() -> int:
         print(f"[param_load] snapshot gốc: {len(goc)} tham số", flush=True)
         for ten, gia_tri in SITL_THAY_PARAM.items():
             sitl.set_param(ten, gia_tri)
-        kq_base = nap(sitl, goc, base)
+        return nap(sitl, goc, base)
     finally:
         sitl.stop()
 
-    # Lượt 2 — reboot sau base.
+
+def luot_2(d: Path, kq_base: dict, avoid: list[tuple[str, float]], file_base: Path) -> dict:
+    """Reboot sau base: kiểm base, snapshot 01, nạp avoid."""
     sitl = bat(d, wipe=False)
     try:
         sitl.wait_ready(timeout=120)
-        sau_base = sitl.fetch_all_params()
-        kiem_sau_reboot(sitl, sau_base, kq_base)
+        kiem_sau_reboot(sitl, sitl.fetch_all_params(), kq_base)
         sau_base = sitl.fetch_all_params()
         harness.write_param_file(
             SITL_DIR / "01-sitl-base-loaded.param",
             sau_base,
             header(f"01 - sau khi nap {file_base.name} va reboot."),
         )
-        kq_avoid = nap(sitl, sau_base, avoid)
+        return nap(sitl, sau_base, avoid)
     finally:
         sitl.stop()
 
-    # Lượt 3 (+4 nếu có param mới xuất hiện) — reboot sau avoid.
-    bay: dict = {}
+
+def thu_bay_co_bu_rc(sitl: SitlInstance, sau: dict[str, float]) -> dict:
+    """Thử bay nguyên bản; không cất cánh được thì bù đúng bit RC ảo và thử lại."""
+    bay = {"nguyen_ban": thu_bay(sitl)}
+    if bay["nguyen_ban"].get("cat_canh") != "OK":
+        rc = int(sau.get("RC_PROTOCOLS", 1)) | BIT_RC_SITL_UDP
+        sitl.set_param("RC_PROTOCOLS", rc)
+        bay[f"sau_khi_bu_RC_PROTOCOLS={rc}"] = thu_bay(sitl)
+    return bay
+
+
+def luot_cuoi(d: Path, kq_base: dict, kq_avoid: dict) -> dict:
+    """Reboot sau avoid (thêm một lần nếu có param mới xuất hiện), rồi thử bay."""
     for luot in (3, 4):
         sitl = bat(d, wipe=False)
         try:
@@ -233,14 +254,66 @@ def main() -> int:
             sau = sitl.fetch_all_params()
             nap_lai = kiem_sau_reboot(sitl, sau, kq_avoid) + kiem_sau_reboot(sitl, sau, kq_base)
             if not nap_lai or luot == 4:
-                bay = {"nguyen_ban": thu_bay(sitl)}
-                if bay["nguyen_ban"].get("cat_canh") != "OK":
-                    rc = int(sau.get("RC_PROTOCOLS", 1)) | BIT_RC_SITL_UDP
-                    sitl.set_param("RC_PROTOCOLS", rc)
-                    bay[f"sau_khi_bu_RC_PROTOCOLS={rc}"] = thu_bay(sitl)
-                break
+                return thu_bay_co_bu_rc(sitl, sau)
         finally:
             sitl.stop()
+    return {}
+
+
+def mo_ta(bg: dict) -> str:
+    """Trạng thái một dòng param, kèm con số khi FC không giữ đúng giá trị nạp."""
+    chi_tiet = bg["trang_thai"]
+    if bg.get("fc") is not None and not gan(bg["fc"], bg["yeu_cau"]):
+        chi_tiet += f" (gửi {bg['yeu_cau']:g}, FC trả {bg['fc']:g})"
+    if bg["trang_thai"] == DOI_SAU_REBOOT:
+        chi_tiet += f" (nạp {bg['yeu_cau']:g}, sau reboot {bg.get('sau_reboot')})"
+    return chi_tiet
+
+
+def bang_ket_qua(
+    file_base: Path, kq_base: dict, kq_avoid: dict, tat_ca: dict, bay: dict, ket_json: Path
+) -> list[tuple[str, str]]:
+    rows: list[tuple[str, str]] = [("File base đã nạp", file_base.name)]
+    for ten, nguon, ghi_chu in BANG_9:
+        bg = (kq_base if nguon == "base" else kq_avoid).get(ten)
+        chi_tiet = "KHÔNG CÓ trong file nguồn" if bg is None else mo_ta(bg)
+        rows.append((f"`{ten}` ({nguon}) {ghi_chu}", chi_tiet))
+    khong_nhan = [f"{k} [{mo_ta(v)}]" for k, v in tat_ca.items() if v["trang_thai"] != NHAN]
+    rows.append(("Mọi dòng KHÔNG phải 'nhận' ngay", ", ".join(khong_nhan) or "không có"))
+    rows.append(("Thử bay với bộ param này", json.dumps(bay, ensure_ascii=False)))
+    rows.append(("Chi tiết từng dòng", str(ket_json)))
+    return rows
+
+
+def kiem_moc(tat_ca: dict, bay: dict) -> str | None:
+    """So kết quả với mốc README, theo tên, hai chiều. Trả câu lỗi hoặc None."""
+    chua_ro = [k for k, v in tat_ca.items() if v["trang_thai"] == KHONG_XAC_NHAN]
+    if chua_ro:
+        return f"Có tham số tồn tại mà FC không xác nhận: {chua_ro}"
+    thuc_te = {k: v["trang_thai"] for k, v in tat_ca.items() if v["trang_thai"] != NHAN}
+    moi = {k: v for k, v in thuc_te.items() if KY_VONG_KHONG_NHAN.get(k) != v}
+    het = {k: v for k, v in KY_VONG_KHONG_NHAN.items() if thuc_te.get(k) != v}
+    if moi or het:
+        return (
+            "Kết quả nạp param KHÁC mốc trong firmware/ardupilot/params/sitl/README.md.\n"
+            f"  lệch mới / đổi trạng thái: {moi}\n"
+            f"  trước lệch, nay không còn: {het}\n"
+            "Sửa README (và tìm hiểu vì sao) trước, rồi mới cập nhật KY_VONG_KHONG_NHAN."
+        )
+    # README khẳng định: bộ param dự án cất cánh được trên SITL khi bù đúng bit RC ảo.
+    if not any(lan.get("cat_canh") == "OK" for lan in bay.values()):
+        return f"Bộ param dự án không cất cánh được trên SITL kể cả khi bù RC: {bay}"
+    return None
+
+
+def main() -> int:
+    SITL_DIR.mkdir(parents=True, exist_ok=True)
+    file_base = chon_file_base()
+    d = harness.run_dir(USE_DIR)
+
+    kq_base = luot_1(d, harness.read_param_file(file_base))
+    kq_avoid = luot_2(d, kq_base, harness.read_param_file(AVOID), file_base)
+    bay = luot_cuoi(d, kq_base, kq_avoid)
 
     tat_ca = {
         **{f"base:{k}": v for k, v in kq_base.items()},
@@ -255,45 +328,12 @@ def main() -> int:
         ),
         encoding="utf-8",
     )
-
-    # -- In kết quả -----------------------------------------------------
-    rows: list[tuple[str, str]] = [("File base đã nạp", file_base.name)]
-    for ten, nguon, ghi_chu in BANG_9:
-        bg = (kq_base if nguon == "base" else kq_avoid).get(ten)
-        if bg is None:
-            rows.append((f"`{ten}` ({nguon})", "KHÔNG CÓ trong file nguồn"))
-            continue
-        chi_tiet = bg["trang_thai"]
-        if bg.get("fc") is not None and not gan(bg["fc"], bg["yeu_cau"]):
-            chi_tiet += f" (gửi {bg['yeu_cau']:g}, FC trả {bg['fc']:g})"
-        if bg["trang_thai"] == DOI_SAU_REBOOT:
-            chi_tiet += f" (nạp {bg['yeu_cau']:g}, sau reboot {bg['sau_reboot']})"
-        rows.append((f"`{ten}` ({nguon}) {ghi_chu}", chi_tiet))
-    tu_choi = [k for k, v in tat_ca.items() if v["trang_thai"] != NHAN]
-    rows.append(
-        (
-            "Mọi dòng KHÔNG phải 'nhận' ngay",
-            ", ".join(
-                f"{k} [{tat_ca[k]['trang_thai']}"
-                + (
-                    f": nạp {tat_ca[k]['yeu_cau']:g} -> {tat_ca[k]['sau_reboot']:g}"
-                    if tat_ca[k]["trang_thai"] == DOI_SAU_REBOOT
-                    and tat_ca[k].get("sau_reboot") is not None
-                    else ""
-                )
-                + "]"
-                for k in tu_choi
-            )
-            or "không có",
-        )
-    )
-    rows.append(("Thử bay với bộ param này", json.dumps(bay, ensure_ascii=False)))
-    rows.append(("Chi tiết từng dòng", str(ket_json)))
+    rows = bang_ket_qua(file_base, kq_base, kq_avoid, tat_ca, bay, ket_json)
     print_ket_qua(rows, title="Nạp param dự án vào SITL (Phase 04, việc 04.1–04.3)")
 
-    chua_ro = [k for k, v in tat_ca.items() if v["trang_thai"] == KHONG_XAC_NHAN]
-    if chua_ro:
-        print(f"Có tham số tồn tại mà FC không xác nhận: {chua_ro}", file=sys.stderr)
+    loi = kiem_moc(tat_ca, bay)
+    if loi:
+        print(loi, file=sys.stderr)
         return 1
     print("KET QUA: PASS")
     return 0
