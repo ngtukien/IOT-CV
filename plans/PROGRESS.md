@@ -585,21 +585,25 @@ Ghi chú:
 
 Plan: plans/phase-08-web-khung-hud.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/09/2026 · Ngày xong: 25/09/2026
 
-- [ ] `pnpm tsc --noEmit` không lỗi; `pnpm build` thành công; `pnpm vitest run` xanh.
-- [ ] Mở `http://127.0.0.1:8000` (bản build) thấy HUD chạy với dữ liệu SITL thật.
-- [ ] DevTools → Network → WS: **đúng một** kết nối (không bị `StrictMode` nhân đôi).
-- [ ] Tắt SITL → chỉ ô "Backend ↔ Drone" đỏ; tắt backend → chỉ ô "Trình duyệt ↔ Backend" đỏ. Hai ô độc lập.
-- [ ] Nối lại tự động trong ≤ 10 s sau khi backend sống lại; EventLog ghi nhận.
-- [ ] Gửi message rác → giao diện không sập, có cảnh báo trong EventLog.
-- [ ] `protocol.ts` có dòng ghi nguồn sinh, và test chống-trôi so với `ws-contract.schema.json` đang xanh.
-- [ ] `grep -rn "127.0.0.1:8000\|localhost:8000" frontend/src` → **không kết quả** (mọi thứ dùng đường dẫn tương đối).
-- [ ] Không có ngưỡng an toàn nào hardcode trong `frontend/src` — tất cả đọc từ `status.limits`.
-- [ ] `null` hiện `—`, không có ô nào hiện `0` khi chưa có số đo.
-- [ ] `docs/so-tay/08-web-khung-hud.md` đã viết.
+- [x] `pnpm typecheck` (`tsc -b`) không lỗi; `pnpm build` thành công; `pnpm test` xanh **43/43** (5 file).
+- [x] Mở `http://127.0.0.1:8000` (bản build) thấy HUD chạy với dữ liệu SITL thật. Takeoff 5 m qua `ws_probe`: độ cao 0.0 → 5.0 m trên trang; ô "Tuổi link" đổi **40 lần / 5 s = 8 Hz**. Ảnh `docs/so-tay/anh/08-gcs-hud-sitl.png`.
+- [x] **Đúng một** WebSocket `/ws` ở `pnpm dev` (StrictMode bật): đếm bằng cách bọc hàm dựng `WebSocket` trong trang → 1; backend log `s-4 mở (tổng 1)`. Cố ý phá (bỏ nhịp trễ) → **2**, nên phép đếm có nghĩa.
+- [x] Tắt SITL → chỉ đoạn "Backend ↔ Drone" đỏ (sau **1,9 s**), đoạn "Trình duyệt ↔ Backend" xanh suốt, nhật ký có `link.lost`. Tắt backend → đoạn 1 đỏ sau **90 ms**, có đếm ngược. Hai đoạn độc lập.
+- [x] Backend sống lại → trang tự nối trong một nhịp backoff (≤ 10 s); nhật ký ghi "Mất kết nối…" và "Đã nối lại với backend".
+- [x] 6 frame rác chen vào đúng kết nối thật (Playwright `routeWebSocket`) → 5 cảnh báo `ws.bad_message`, frame `type` lạ bỏ qua im lặng, không sập, không toast. Ảnh `docs/so-tay/anh/08-message-rac.png`.
+- [x] `protocol.generated.ts` có dòng ghi nguồn sinh; test chống-trôi sinh lại và so với bản commit — đã thử phá, test đỏ đúng chỗ.
+- [x] `grep -rn "127.0.0.1:8000\|localhost:8000" frontend/src` → không kết quả.
+- [x] Không ngưỡng an toàn nào hardcode: `max_alt` chỉ đọc qua `useLimits()` (`status.limits`); ngưỡng tô màu là `DISPLAY_THRESHOLDS`, có ghi rõ không phải giới hạn an toàn.
+- [x] `null` hiện `—`: có test cho hàm định dạng và cho HUD render; thêm cả `-0.0` (bắt được trên SITL nằm đất).
+- [x] `docs/so-tay/08-web-khung-hud.md` đã viết (11 mục).
 
-Ghi chú: 
+Ghi chú: nghiệm thu bắt được hai lỗi mà unit test không thấy — đếm ngược nháy "thử
+lại sau 38 s" ở khung hình đầu, và băng độ cao in "-0.0" khi SITL báo -0.02 m. Cả
+hai đã sửa và kiểm lại trên trang thật. Giao diện được làm lại theo góp ý của chủ dự
+án (tông buồng lái, PFD, trang cuộn được, HUD rộng) — bố cục khác hình vẽ ở plan
+§8.1.3, lý do ghi ở sổ tay mục 10.
 
 ## Phase 09 — Web bản đồ + mission
 
