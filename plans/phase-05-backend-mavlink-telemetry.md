@@ -498,7 +498,8 @@ VISION_ENABLED   = _env_bool("VISION_ENABLED", True)      # tat han khoi vision 
   "limits": {
     "max_alt": 10.0, "min_alt": 2.0, "max_distance_home": 50.0, "max_waypoints": 10,
     "max_velocity": 1.0, "manual_command_timeout_ms": 300, "deadman_tick_ms": 50,
-    "avoid_margin_m": 2.0, "avoid_dist_max_m": 5.0, "rangefinder_max_m": 6.0
+    "avoid_margin_m": 2.0, "avoid_dist_max_m": 5.0, "rangefinder_max_m": 6.0,
+    "proximity_stale_s": 2.0
   },
   "mission": { "count": 0, "uploaded_at": null, "source": "none" },
   "camera": { "available": false, "url": "/api/video/stream", "fake": true }
@@ -579,7 +580,7 @@ Toạ độ là **pixel trong hệ của khung gốc** (`width`×`height`) — k
 | `cmd.hold` | `{}` | 5/s | 06 | Chuyển `LOITER` |
 | `cmd.rtl` | `{}` | 5/s | 06 | Chuyển `RTL` |
 | `cmd.land` | `{}` | 5/s | 06 | Chuyển `LAND` |
-| `cmd.mission.upload` | `{"waypoints":[{"seq":1,"lat":10.76,"lon":106.66,"alt":5.0}],"auto_start":false}` | 1/s | 07 | Backend **không** tự chèn takeoff/RTL còn thiếu — báo `validation_failed` để người sửa |
+| `cmd.mission.upload` | `{"waypoints":[{"seq":1,"lat":10.76,"lon":106.66,"alt":5.0,"command":22}, …],"auto_start":false}` | 1/s | 07 | Backend **không** tự chèn takeoff/RTL còn thiếu — báo `validation_failed` để người sửa. `command` (thêm ở Phase 07, mặc định `16`) ∈ `16` NAV_WAYPOINT · `22` NAV_TAKEOFF · `20` NAV_RETURN_TO_LAUNCH · `21` NAV_LAND. Item đầu phải là `22`, item cuối phải là `20` hoặc `21`. Thứ tự gửi là **thứ tự trong mảng**; `seq` chỉ để thông báo lỗi chỉ đúng dòng. `ack done` mang `detail = {"count": n, "readback_ok": true}`; trong lúc upload có `event` `mission.progress` với `detail = {"sent": i, "total": n}` |
 
 **Giới hạn nhịp:** vượt thì message bị **bỏ**, server gửi `error` `rate_limited` **tối đa 1 lần mỗi giây** (không spam ngược lại client).
 

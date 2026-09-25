@@ -126,3 +126,153 @@ class SafetyState:
             "deadman_tripped": self.deadman_tripped,
             "last_zero_velocity_reason": self.last_zero_velocity_reason,
         }
+
+
+# ===========================================================================
+# Phase 07 §7.7 — MÁY TRẠNG THÁI AN TOÀN
+#
+# Mọi phản ứng của backend, gom một chỗ. Cột "KHÔNG LÀM" quan trọng ngang cột
+# "LÀM": nó là phần dễ bị vi phạm nhất bởi một lập trình viên có thiện chí.
+#
+# Mỗi dòng: SỰ KIỆN -> backend LÀM / KHÔNG LÀM (ở đâu).
+#
+# - Mất link MAVLink -> connected=False, thu quyền web, zero `link_lost` vào
+#   deadman.jsonl, event `link.lost` mức error / KHÔNG gửi RTL/LAND/đổi mode
+#   (telemetry.py + ws.py `_reconcile_control_ownership`).
+# - WebSocket đóng -> zero NGAY, thu quyền, event warn / KHÔNG đổi mode, disarm
+#   (ws.py `disconnect`).
+# - Dead-man hết hạn -> zero, deadman_tripped, event warn / KHÔNG thu hồi quyền
+#   (deadman.py).
+# - RC gạt khỏi GUIDED -> thu quyền tức thì, event / KHÔNG ép quay lại GUIDED
+#   (`on_mode_change` + ws.py).
+# - EKF hỏng / gps_fix < 3 -> từ chối arm, takeoff, mission.upload; event warn /
+#   KHÔNG disarm, đổi mode, sửa param (`flight_readiness_problem` + SafetyMonitor).
+# - Pin < BATTERY_WARN_PCT -> event warn / KHÔNG tự RTL (SafetyMonitor).
+# - Operator tắt WEB CONTROL -> zero `operator_disabled` / KHÔNG đổi mode (ws.py).
+# - Mất camera -> camera.available=false, event warn / KHÔNG đụng telemetry,
+#   control (SafetyMonitor + ws.py).
+#
+# VÌ SAO BACKEND KHÔNG BAO GIỜ TỰ ĐỔI FLIGHT MODE — năm lý do, bản đầy đủ ở
+# docs/so-tay/07-backend-mission-proximity-safety.md:
+#   1. Failsafe của ArduPilot chạy TRÊN FC, sống khi Wi-Fi/laptop/backend chết.
+#      Failsafe ở backend chỉ bảo vệ được đúng lúc ít nguy hiểm nhất.
+#   2. Hai tác nhân tự quyết sinh tranh chấp (backend RTL, phi công LOITER né cây).
+#   3. Rớt Wi-Fi 2.4 GHz vặt là chuyện thường — tự RTL mỗi lần rớt gói là tự tạo
+#      tai nạn từ một sự cố vô hại.
+#   4. Zero-velocity KHÔNG phải đổi mode: nó là RÚT lại lệnh của chính backend.
+#      RTL là can thiệp THÊM.
+#   5. RC là dây cứu sinh (SAFETY.md mục 4). Backend tự đổi mode làm nó yếu đi.
+# ===========================================================================
+
+# Dưới ngưỡng thì báo; phải hồi lên ngưỡng + chừng này mới báo lại lần sau.
+# Không có nó, pin dao động quanh 25% sinh một cảnh báo mỗi nhịp telemetry.
+BATTERY_WARN_HYSTERESIS_PCT = 3
+
+
+def flight_readiness_problem(state) -> tuple[str, dict] | None:
+    """Lý do CHƯA được arm / takeoff / upload mission, hoặc None nếu ổn.
+
+    Cùng điều kiện với `FlightControl._kiem_tra_truoc_arm` (control.py): GPS phải
+    3D fix; EKF chỉ chặn khi FC đã NÓI là hỏng (`ekf_ok is False`) — `None` là
+    chưa biết, chặn vì chưa biết là chặn nhầm. Không bao giờ "sửa param cho qua".
+    """
+    fix = getattr(state, "gps_fix_type", None)
+    if fix is None or fix < 3:
+        return (
+            f"GPS chưa có 3D fix (fix_type={fix}). Chờ thêm rồi thử lại.",
+            {"gps_fix_type": fix},
+        )
+    if getattr(state, "ekf_ok", None) is False:
+        return (
+            "EKF chưa khoẻ (ekf_ok=False). Chờ EKF hội tụ rồi thử lại.",
+            {"ekf_ok": False},
+        )
+    return None
+
+
+@dataclass(frozen=True)
+class SafetyEvent:
+    """Một sự kiện cần phát. SafetyMonitor chỉ TRẢ VỀ, không tự phát — để test
+    đọc được mà không cần EventBus."""
+
+    level: str
+    code: str
+    message: str
+    detail: dict | None = None
+
+
+class SafetyMonitor:
+    """Phát hiện CHUYỂN trạng thái của các dòng mới trong bảng §7.7.
+
+    Chỉ báo lúc CHUYỂN (tốt -> xấu, và hồi lại), không báo mỗi nhịp. Giá trị
+    "chưa biết" (None) không sinh sự kiện nào.
+    """
+
+    def __init__(self) -> None:
+        self._ready: bool | None = None
+        self._battery_low = False
+        self._camera: bool | None = None
+
+    def observe(
+        self,
+        state,
+        *,
+        camera_available: bool | None = None,
+        battery_warn_pct: int | None = None,
+    ) -> list[SafetyEvent]:
+        events: list[SafetyEvent] = []
+
+        # -- EKF / GPS ---------------------------------------------------
+        # Chỉ xét khi đã có số liệu: lúc mới nối, gps_fix_type là None và đó
+        # không phải "GPS hỏng".
+        if getattr(state, "gps_fix_type", None) is not None:
+            problem = flight_readiness_problem(state)
+            ready = problem is None
+            if self._ready is True and not ready:
+                message, detail = problem
+                events.append(
+                    SafetyEvent(
+                        "warn",
+                        "safety.not_ready",
+                        f"{message} Arm/takeoff/upload mission sẽ bị từ chối; backend "
+                        "KHÔNG disarm, KHÔNG đổi mode.",
+                        detail,
+                    )
+                )
+            elif self._ready is False and ready:
+                events.append(
+                    SafetyEvent("info", "safety.ready", "GPS 3D fix và EKF đã ổn trở lại")
+                )
+            self._ready = ready
+
+        # -- pin ---------------------------------------------------------
+        nguong = config.BATTERY_WARN_PCT if battery_warn_pct is None else battery_warn_pct
+        pin = getattr(state, "battery_remaining", None)
+        if pin is not None:
+            if not self._battery_low and pin < nguong:
+                self._battery_low = True
+                events.append(
+                    SafetyEvent(
+                        "warn",
+                        "battery.low",
+                        f"Pin còn {pin}% (dưới {nguong}%). Nên hạ cánh. Backend KHÔNG tự "
+                        "RTL — failsafe pin nằm trên FC.",
+                        {"battery_remaining": pin, "threshold": nguong},
+                    )
+                )
+            elif self._battery_low and pin >= nguong + BATTERY_WARN_HYSTERESIS_PCT:
+                self._battery_low = False
+
+        # -- camera --------------------------------------------------------
+        if camera_available is not None:
+            if self._camera is True and not camera_available:
+                events.append(
+                    SafetyEvent(
+                        "warn",
+                        "camera.lost",
+                        "Mất hình camera. Telemetry và điều khiển KHÔNG bị ảnh hưởng.",
+                    )
+                )
+            self._camera = camera_available
+
+        return events

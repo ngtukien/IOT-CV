@@ -80,6 +80,10 @@ Phạm vi đã tìm: `backend/mavlink/mission.py`, `backend/vision/*.py`, `backe
 
 Để làm được, `Waypoint` cần thêm trường `command: int = 16` (`MAV_CMD_NAV_WAYPOINT`). Đặt **giá trị mặc định** để 6 test hiện có trong `test_mission_validation.py` **không phải sửa một dòng nào** — đó là kiểm chứng rằng bạn mở rộng chứ không phá.
 
+> **Đính chính sau khi làm (25/09/2026).** Giá trị mặc định KHÔNG đủ: bốn test cũ khẳng định `== []` hoặc `len(errors) == 4` với mission **chỉ có** NAV_WAYPOINT, nên nhét luật 7/8 vào `validate_mission` là làm chúng đỏ. Hai luật cấu trúc nằm ở `validate_mission_structure()`; đường upload chạy cả hai qua `validate_for_upload()`. Test cũ giữ nguyên từng dòng.
+>
+> Hợp đồng WebSocket cũng phải đổi: `MissionWaypoint` của Phase 05 chỉ có `seq/lat/lon/alt`, nên luật 7/8 không có gì để kiểm. Đã thêm `command` (mặc định 16, danh sách trắng 16/20/21/22) theo đúng thứ tự plan Phase 05 → `schemas.py` → `ws-contract.schema.json`.
+
 Backend **không** tự chèn takeoff/RTL còn thiếu. Nó trả `validation_failed` và để người sửa (hợp đồng Phase 05 ghi rõ). Lý do: tự chèn nghĩa là tự quyết độ cao cất cánh và tự quyết máy bay sẽ về đâu — hai quyết định thuộc về người, không thuộc về phần mềm.
 
 **Geofence phần mềm chỉ là lớp phụ.** `MAX_DISTANCE_HOME` và `MAX_ALT` ở đây bắt lỗi *gõ nhầm*, chúng **không** thay thế `FENCE_*` trên FC (`SAFETY.md` mục 8). Ghi câu này vào docstring của `validate_mission` để phase sau khỏi hiểu nhầm.
@@ -99,7 +103,9 @@ ArduPilot coi item `seq = 0` là **HOME**. Quy ước triển khai:
 
 `lat`/`lon` trong `MISSION_ITEM_INT` là **số nguyên nhân 1e7**; `alt` là **float mét**. Dùng `frame = 6` nghĩa là alt tính **so với home** — khớp với `relative_alt` mà HUD đang hiển thị. Dùng nhầm `frame = 0` (AMSL) là lý do số một khiến Mission Planner hiện độ cao gấp nhiều lần mong đợi.
 
-> *chưa xác minh:* chi tiết "có phải gửi item seq 0 hay không" khác nhau giữa các bản ArduPilot và giữa các GCS.
+> **Đã xác minh 25/09/2026** (ArduCopter 4.7.1 SITL + Mission Planner 1.3.83 Read WPs): gửi ô home ở seq 0 là ĐÚNG — MP đọc ra đúng TAKEOFF + 4 WAYPOINT + RTL, không lệch dòng. Ảnh: `docs/so-tay/anh/07-mp-read-wps.png`.
+>
+> *(ghi chú gốc)* chi tiết "có phải gửi item seq 0 hay không" khác nhau giữa các bản ArduPilot và giữa các GCS.
 > **Cách kiểm chứng (bắt buộc làm ở 7.5, không để cuối phase):** upload 4 waypoint từ backend → Mission Planner → Flight Plan → **Read WPs**. Đúng 4 điểm đúng vị trí = quy ước trên đúng. Lệch **một dòng** = bỏ item seq 0 và gửi `MISSION_COUNT = n`. Đây là lý do dùng Mission Planner làm **oracle độc lập** thay vì tin lời backend tự nói về mình.
 
 ---
@@ -194,7 +200,9 @@ Gộp 72 cung xuống **8 cung 45°** cho UI: lấy `min` mỗi nhóm, bỏ qua 
 **7.6.3 — `STATUSTEXT` (id 253).**
 Đã đẩy thành `event` từ Phase 05. Ở đây thêm khớp regex để nhận ra avoidance.
 
-> *chưa xác minh:* chuỗi STATUSTEXT chính xác mà ArduCopter 4.7.1 phát khi AVOID kích hoạt.
+> **Đã đo 25/09/2026** (`scripts/sitl/run_proximity_probe.py`): **0 dòng** STATUSTEXT suốt chặng LOITER bị AVOID phanh lẫn chặng GUIDED — AC_Avoid phanh im lặng. Bảng regex để rỗng là đáp án đúng, không phải tạm thời. Cùng lần đo: SITL phát `DISTANCE_SENSOR` từ **một** nguồn (id 10, orientation 0, min 10 cm, max 600 cm), **không** có `OBSTACLE_DISTANCE`; bit sức khoẻ có mặt là `PROXIMITY` (0x4000000), còn `LASER_POSITION` (0x100) **không có mặt** — lấy sức khoẻ từ bit "rangefinder" hiển nhiên thì `avoid_state` luôn UNKNOWN.
+>
+> *(ghi chú gốc)* chuỗi STATUSTEXT chính xác mà ArduCopter 4.7.1 phát khi AVOID kích hoạt.
 > **Cách kiểm chứng ở 7.6.5:** cho SITL bay Loiter vào vật cản ảo, ghi **toàn bộ** STATUSTEXT vào `logs/statustext-sitl.txt`, rồi điền bảng regex trong `proximity.py`.
 > Cho tới khi có dữ liệu thật: **để bảng regex rỗng** và chỉ dùng cách suy ở 7.6.4. Không đoán chuỗi.
 
@@ -206,6 +214,8 @@ Gộp 72 cung xuống **8 cung 45°** cho UI: lấy `min` mỗi nhóm, bỏ qua 
 | `NEAR` | `AVOID_MARGIN_M` (2 m) < d ≤ `AVOID_DIST_MAX_M` (5 m) | Sắp tới vùng FC bắt đầu can thiệp |
 | `ACTIVE` | d ≤ `AVOID_MARGIN_M` (2 m) **và** mode ∈ {`LOITER`, `ALT_HOLD`, `POSHOLD`} | FC đang phanh/lùi |
 | `UNKNOWN` | Số đo cũ hơn `PROXIMITY_STALE_S` (2 s), hoặc `rangefinder_healthy == False` | Đang mù — **khác** với "không có vật cản" |
+
+> **Đính chính sau nghiệm thu SITL (25/09/2026).** FC chỉ gửi `DISTANCE_SENSOR` khi có vật **trong tầm**: cách cột 23 m, bit PROXIMITY khoẻ suốt mà không có số đo nào. Theo bảng trên, trời trống sẽ luôn báo `UNKNOWN`, trái với chính ý của cột "Ý nghĩa". Đã sửa: **khoẻ mà im lặng → `OFF`**; `UNKNOWN` chỉ khi bit sức khoẻ tắt, hoặc số đo mới nhất là số rác ở đầu dưới tầm. Số đo cũ hơn 2 s vẫn bị che thành `null` (không hiện con số đứng im). Chi tiết: `backend/mavlink/proximity.py` khối ĐÃ ĐO, sổ tay 07 mục 7.
 
 > **Vì sao `ACTIVE` đòi thêm điều kiện mode:** `AVOID_ENABLE=3` (AC_Avoid) **chỉ chạy** ở Loiter / AltHold / PosHold. Ở `AUTO` / `GUIDED` / `RTL`, việc tránh thuộc về Object Avoidance Path Planner — mà `OA_TYPE=0` (đang **tắt**, có chủ ý: một tia 3.6° nhìn thẳng sẽ khiến BendyRuler lách sang hướng nó chưa có dữ liệu).
 > Nghĩa là **ở AUTO và GUIDED, hệ thống KHÔNG tránh vật cản.** `avoid_state` tối đa là `NEAR`, và UI **phải nói rõ điều này** (Phase 10 §10.4) chứ không để người dùng tưởng mình được bảo vệ. Một panel im lặng ở đây là một lời nói dối về an toàn.
@@ -291,6 +301,8 @@ Hai phần:
 
 Phase 10 cần một nguồn video để dựng panel video + canvas overlay, nhưng camera thật chỉ có ở Phase 17 và bộ nhận diện thật ở `plans/ai/`. `fake_stream.py` lấp đúng khoảng đó — nó là **một nguồn** hợp lệ cho `stream.py` đọc, không phải một đường phục vụ video khác chạy song song.
 
+> **Đính chính (25/09/2026):** nguồn giả mặc định **VGA 640×480** (`CAMERA_FAKE_FRAMESIZE`), không phải QVGA. Mở luồng thẳng trong trình duyệt trên màn 2560 px, khung 320×240 hiện rất bé và vỡ — chủ dự án thấy và yêu cầu đổi. QVGA vẫn là mốc thiết kế của ESP32, đặt lại bằng một biến. Clip mẫu là vùng **bản đồ vệ tinh** của Mission Planner quay lúc SITL đang bay (không có chữ giao diện), không phải quay cả cửa sổ.
+
 - Phục vụ `multipart/x-mixed-replace` đúng hợp đồng header ở 7.8.4, đọc khung từ một **video mẫu ngắn lặp vô hạn** (OpenCV `cv2.VideoCapture`, một clip vài giây tự quay hoặc quay màn hình, đặt tại `backend/vision/assets/sample-clip.mp4`, khung **320×240** — báo cáo §4.1: ESP32-CAM đạt 44 fps ở QVGA so với 14 fps ở VGA, nên chọn QVGA làm mốc thiết kế ngay từ đầu) thay vì vẽ hình tổng hợp — video thật cho `stream.py` một nguồn gần thực tế hơn để kiểm chứng parser.
 - Mỗi khung gắn đủ bốn header ở 7.8.4: `X-Frame-Id` tăng dần từ 0, `X-Timestamp-Ms = int(time.monotonic() * 1000)`, `X-Jpeg-Quality` cố định (`30`), `X-Framesize` cố định (`QVGA`, khớp kích thước video mẫu).
 - Song song, mỗi **300 ms** phát một message `detection` (qua `EventBus`, Phase 05 §5.2.4) với **một** box giả di chuyển theo quỹ đạo cố định, `label: "fake"` — box **không cần khớp nội dung video thật**; mục đích chỉ là kiểm chứng canh chỉnh canvas overlay ở Phase 10 (toạ độ vẽ đúng chỗ), không phải kiểm chứng độ chính xác nhận diện.
@@ -339,6 +351,8 @@ uv run python -c "import re,pathlib;pat=re.compile(r'send_motor_pwm|rc_channels_
 ```
 
 - Kết quả mong đợi: **không in ra dòng nào**. (Dòng comment ghi chú về điều cấm bị lọc bỏ — nếu không lọc, chính tài liệu của ta sẽ làm gate đỏ.)
+
+> **Đính chính (25/09/2026): lệnh trên ĐỎ trên code sạch.** Nó chỉ lọc dòng bắt đầu bằng `#`, nên bắt trúng **docstring** của `control.py` ("KHÔNG có `send_motor_pwm()`", "`param2 = 21196`") — chạy thật in 2 dòng. Test trong CI (`test_safety_state_machine.py::test_quet_ham_cam_toan_backend`) quét bằng **AST** như `test_control.py` đã làm: chỉ nhìn tên hàm/thuộc tính/hằng số trong code, bỏ comment lẫn docstring, và thêm cả tên `*_send` truyền dạng chuỗi. Có bài "tự đỏ" (`test_quet_ham_cam_tu_do`) chứng minh cổng đỏ được.
 - Đưa phép quét này thành một test trong `test_safety_state_machine.py` để CI chạy tự động, không phụ thuộc việc ai đó nhớ gõ lệnh.
 
 ---

@@ -544,23 +544,42 @@ riêng có nghiệm thu riêng, đừng nhét vào cuối một PR đã xanh.
 
 Plan: plans/phase-07-backend-mission-proximity-safety.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/09/2026 · Ngày xong: 25/09/2026
 
-- [ ] `uv run pytest` xanh toàn bộ; **6 test cũ** trong `test_mission_validation.py` không phải sửa một dòng nào.
-- [ ] `uv run pytest --cov=... --cov-fail-under=80` PASS cho `safety` + `mission` + `deadman` + `proximity`.
-- [ ] **Bốn phép thử phá** (7.10.3) đều làm ≥1 test đỏ; kết quả + ngày ghi vào sổ tay; `git diff` sạch sau khi hoàn nguyên.
-- [ ] **Mission Planner Read WPs** hiện đúng mission do backend upload — oracle độc lập, không phải backend tự khẳng định về mình.
-- [ ] Mission sai (alt 50 m) bị chặn **trước khi** gửi `MISSION_COUNT`.
-- [ ] `avoid_state` chạy đủ 4 nhánh trên SITL; **không** lên `ACTIVE` ở GUIDED (đúng thiết kế).
-- [ ] Bảng máy trạng thái 7.7 có test cho **cả cột "KHÔNG LÀM"**.
-- [ ] Phép quét hàm cấm (7.9) trên toàn `backend/` không ra dòng nào, và đã thành test trong CI.
-- [ ] `GET /api/status` trả **đúng** hình dạng `status.data` của hợp đồng Phase 05 (so khớp bằng `ws-contract.schema.json`).
-- [ ] `/api/video/stream` hiện hình trong trình duyệt; message `detection` bám đúng hình chữ nhật.
-- [ ] `backend/vision/detector.py`, `events.py` **không bị sửa** (`git diff --stat` xác nhận); `backend/vision/stream.py` **có** sửa (điền thân parser + proxy).
-- [ ] `docs/hop-dong-mjpeg.md` tồn tại, đủ bốn header (`X-Frame-Id`, `X-Timestamp-Ms`, `X-Jpeg-Quality`, `X-Framesize`); `stream.py` và `fake_stream.py` cùng khớp đúng hợp đồng đó.
-- [ ] `docs/so-tay/07-backend-mission-proximity-safety.md` đã viết, có đủ 5 lý do "vì sao backend không tự đổi mode".
+- [x] `uv run pytest` → **264 passed** (trước phase: 131); **6 test cũ** của `test_mission_validation.py` không sửa dòng nào (xem Ghi chú: plan sai về cách giữ được điều này).
+- [x] Coverage `safety` 99% · `mission` 90% · `deadman` 93% · `proximity` 97% — tổng **93%**, `--cov-fail-under=80` PASS.
+- [x] **Bốn phép thử phá**: 7 / 1 / 2 / 6 test đỏ. Phép 2 lần đầu **0 test đỏ** → thêm test biên `MAX_ALT` rồi mới đỏ. Sửa tạm đã hoàn nguyên, `git diff` sạch trên các dòng đó. Bảng ở sổ tay mục 11.
+- [x] **Mission Planner Read WPs** đọc thẳng từ FC ra đúng TAKEOFF + 4 WAYPOINT + RTL, đúng toạ độ, đúng alt, frame Relative, không lệch dòng. Ảnh `docs/so-tay/anh/07-mp-read-wps.png`.
+- [x] Mission alt 50 m → `validation_failed` qua WS, **422** qua REST; lịch sử sự kiện không có gói mission nào của lần đó; unit test khẳng định 0 gói `mission_*`.
+- [x] `avoid_state` đủ 4 nhánh trên SITL: LOITER OFF → NEAR → ACTIVE (gần nhất 1,05 m); GUIDED xuống 1,53 m mà **không lần nào ACTIVE**; UNKNOWN 38 mẫu lúc FC chưa báo cảm biến khoẻ. Bảng ở sổ tay mục 7.
+- [x] `test_safety_state_machine.py`: 8 dòng bảng 7.7, mỗi dòng khẳng định cả cột "KHÔNG LÀM" (không gói đổi mode / arm / RTL / LAND / mission nào đi ra).
+- [x] Quét hàm cấm trên toàn `backend/` thành test CI — bằng **AST**, không bằng regex của plan (regex đó đỏ trên code sạch, xem Ghi chú); có bài `test_quet_ham_cam_tu_do` chứng minh cổng đỏ được.
+- [x] `GET /api/status` trả đúng `StatusPayload` — dựng bằng CÙNG hàm `build_status()` với WebSocket; test so khoá và validate bằng model.
+- [x] `/api/video/stream` hiện hình trong trình duyệt (ảnh `docs/so-tay/anh/07-video-gia-trinh-duyet.png`); `detection` mỗi ~300 ms, box chạy cạnh trên rồi rẽ xuống cạnh phải của hình chữ nhật; 15 khung/giây, frame_id liên tục.
+- [x] `git diff --stat origin/main -- backend/vision/detector.py backend/vision/events.py` rỗng; `stream.py` có sửa; `grep -n fake_stream backend/vision/stream.py` rỗng.
+- [x] `docs/hop-dong-mjpeg.md` đủ bốn header; parser và nguồn giả cùng khớp (test round-trip `render_part` → parser).
+- [x] `docs/so-tay/07-backend-mission-proximity-safety.md` đã viết (13 mục), mục 9 có đủ 5 lý do.
 
-Ghi chú: 
+Nghiệm thu tay §7.11 trên SITL: bài 1 `ack done {"count":6,"readback_ok":true}` · bài 2 MP khớp · bài 3 AUTO qua cả 4 waypoint (gần nhất 1,8 / 1,7 / 0,7 / 0,1 m), RTL, disarm sau 70 s, chạy hai lần ra cùng số · bài 4 chặn · bài 5 như trên · bài 6 tắt SITL giữa AUTO: `link.lost` mức error sau 3,1 s, `connected=false` sau 3,3 s, không đổi mode, `/api/health` vẫn 200 · bài 7 như trên.
+
+Ghi chú:
+
+**Bốn lỗi chỉ lộ khi chạy SITL thật, pytest xanh toàn bộ trong khi cả bốn đang sống:**
+
+| Lỗi | Triệu chứng | Vì sao pytest mù |
+|---|---|---|
+| HEARTBEAT của Mission Planner bị coi là của máy bay | FC chuyển tiếp gói giữa các cổng; mode nhảy GUIDED ↔ STABILIZE, `start()` báo "Chưa armed" khi đang bay 4 m | Test chỉ có một GCS. Sửa: lọc theo sysid của FC + bỏ heartbeat loại GCS |
+| Trời trống báo `UNKNOWN` | FC chỉ gửi `DISTANCE_SENSOR` khi có vật trong tầm; plan coi im lặng là mù | Test tự bơm số đo liên tục |
+| Mất link vẫn báo `OFF` | 63 mẫu `connected=false`, `avoid_state=OFF` | Không test nào xét avoid_state khi link chết |
+| Bit sức khoẻ sai | `LASER_POSITION` không có mặt; bit thật là `PROXIMITY` — đo bằng `run_proximity_probe.py` TRƯỚC khi viết code nên không thành lỗi | — |
+
+**Plan sai ở bốn chỗ, đã ghi đính chính ngay trong file plan:** (1) §7.1 "thêm `command` có mặc định thì test cũ không phải sửa" — sai, 4 test cũ khẳng định `== []` cho mission chỉ có waypoint; hai luật cấu trúc phải tách ra `validate_mission_structure()`; hợp đồng WS cũng phải thêm `command`. (2) §7.9 regex quét hàm cấm **đỏ trên code sạch** vì bắt trúng docstring của `control.py`. (3) §7.6.4 bảng `avoid_state` (xem bảng lỗi). (4) §7.8.1 và §7.8 mâu thuẫn nhau về `/api/status`; chọn "y hệt `status.data`", sửa đúng một dòng `test_app.py` (`mode` → `safety.current_mode`).
+
+**Video giả đổi theo phản hồi của chủ dự án.** Bản đầu QVGA 320×240, quay cả cửa sổ MP rồi thu nhỏ: mở trong trình duyệt thì bé và vỡ chữ. Nay mặc định VGA 640×480, JPEG chất lượng 10 (thang ESP32), clip là vùng bản đồ vệ tinh quay lúc SITL đang bay; `CAMERA_FAKE_FRAMESIZE=QVGA` để thử đúng cỡ ESP32. Hệ quả cho Phase 10: overlay phải đọc cỡ từ `detection.width/height`, không giả định 320×240.
+
+**Một tương tác đáng biết (không phải lỗi Phase 07):** `plans/samples/takeoff.jsonl` bật WEB CONTROL rồi đóng socket ngay sau takeoff → dead-man gửi velocity 0 → GUIDED huỷ lệnh takeoff đang chạy → máy bay nằm đất, tự disarm sau 10 s. Hành vi an toàn, nhưng bật WEB CONTROL thì phải giữ tab tới khi lên xong.
+
+**Khoá upload độc quyền đã thử thật một cách tình cờ:** hai script cùng chờ máy bay lên 4 m rồi cùng gửi mission; một cái nạp được, cái kia nhận `command_denied` đúng như §7.3 điểm 6.
 
 ## Phase 08 — Web khung + HUD
 

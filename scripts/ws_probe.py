@@ -21,6 +21,13 @@ Ví dụ:
 
     # chạy cả một chuỗi lệnh, CHỜ ack giữa các bước (Phase 06 §6.1)
     uv run python scripts/ws_probe.py --script plans/samples/takeoff.jsonl
+
+    # nạp mission từ file JSON, chờ ack done (Phase 07 §7.5)
+    uv run python scripts/ws_probe.py --send-mission plans/samples/mission-4wp.json
+
+    # chỉ xem vài trường telemetry (Phase 07 §7.6.5)
+    uv run python scripts/ws_probe.py --filter telemetry \
+        --field obstacle_distance,avoid_state,rangefinder_healthy --count 60
 """
 
 from __future__ import annotations
@@ -68,13 +75,20 @@ HZ_MIN = 7.5
 HZ_MAX = 8.5
 
 
-def _in(message: dict, pretty: bool) -> None:
+def _in(message: dict, pretty: bool, fields: list[str] | None = None) -> None:
     if pretty:
         print(json.dumps(message, indent=2, ensure_ascii=False))
         return
 
     type_ = message.get("type", "?")
     data = message.get("data", {})
+    if fields:
+        chon = {k: data.get(k) for k in fields}
+        print(
+            f"[{type_}] "
+            + " ".join(f"{k}={json.dumps(v, ensure_ascii=False)}" for k, v in chon.items())
+        )
+        return
     if type_ == "telemetry":
         print(
             f"[telemetry] connected={data.get('connected')} mode={data.get('mode')} "
@@ -136,6 +150,42 @@ async def _chay_kich_ban(socket, duong: Path, timeout: float) -> int:
     return 0
 
 
+async def _gui_mission(socket, duong: Path, timeout: float) -> int:
+    """Gửi `cmd.mission.upload` từ một file JSON rồi chờ `ack done`/`error`.
+
+    File chứa đúng `data` của lệnh: `{"waypoints": [...], "auto_start": false}`.
+    In NGUYÊN `ack` cuối cùng — đó là thứ plan §7.5 đòi đối chiếu
+    (`"status":"done","detail":{"count":6,"readback_ok":true}`).
+    """
+    data = json.loads(duong.read_text(encoding="utf-8"))
+    ref = "probe-mission"
+    # Socket mới mở được phát lại 50 sự kiện gần nhất. Chỉ in sự kiện XẢY RA sau
+    # lúc gửi, nếu không tiến độ của lần upload TRƯỚC trông như của lần này.
+    luc_gui = time.time()
+    await socket.send(json.dumps({"v": 1, "type": "cmd.mission.upload", "id": ref, "data": data}))
+    print(f"-> cmd.mission.upload {len(data.get('waypoints', []))} item")
+    han_chot = time.monotonic() + timeout
+    while time.monotonic() < han_chot:
+        try:
+            async with asyncio.timeout(han_chot - time.monotonic()):
+                message = json.loads(await socket.recv())
+        except TimeoutError:
+            break
+        d = message.get("data", {})
+        la_moi = (d.get("ts") or 0) >= luc_gui - 0.5
+        if message.get("type") == "event" and la_moi and d.get("code", "").startswith("mission."):
+            print(f"   [event] {d.get('code')} {json.dumps(d.get('detail'), ensure_ascii=False)}")
+        if d.get("ref") != ref:
+            continue
+        print(f"{message['type']} {json.dumps(d, ensure_ascii=False)}")
+        if message["type"] == "error":
+            return 1
+        if d.get("status") == "done":
+            return 0
+    print(f"FAIL: khong nhan duoc ack done trong {timeout:.0f}s", file=sys.stderr)
+    return 1
+
+
 async def _cho_phan_hoi(socket, ref: str, *, timeout: float, can_ack: bool) -> str | None:
     """None = xong. Chuỗi = mô tả lỗi.
 
@@ -171,6 +221,16 @@ async def _run(args: argparse.Namespace) -> int:
     # Xác thực tham số TRƯỚC khi mở socket: hỏng ở dòng lệnh thì đừng bắt
     # backend và mạng chịu trận, và đừng in "Đã nối" rồi mới báo lỗi tham số.
     kich_ban: Path | None = None
+    mission: Path | None = None
+    if args.send_mission:
+        try:
+            mission = duong_dan_trong_repo(args.send_mission)
+        except ValueError as exc:
+            print(f"FAIL: {exc}", file=sys.stderr)
+            return 1
+        if not mission.is_file():
+            print(f"FAIL: khong thay file mission {mission}", file=sys.stderr)
+            return 1
     if args.script:
         try:
             kich_ban = duong_dan_trong_repo(args.script)
@@ -205,6 +265,8 @@ async def _run(args: argparse.Namespace) -> int:
     async with socket:
         if kich_ban is not None:
             return await _chay_kich_ban(socket, kich_ban, args.ack_timeout)
+        if mission is not None:
+            return await _gui_mission(socket, mission, max(args.ack_timeout, 30.0))
         if args.send:
             await socket.send(args.send)
             print(f"-> {args.send}")
@@ -253,7 +315,7 @@ async def _vong_doc(socket, args) -> tuple[int, list[float]]:
         if (args.only and message.get("type") != args.only) or args.measure_rate:
             continue
 
-        _in(message, args.pretty)
+        _in(message, args.pretty, args.field)
         da_in += 1
 
 
@@ -293,7 +355,15 @@ def main() -> int:
         "--ack-timeout", type=float, default=10.0, help="chờ ack mỗi bước của --script"
     )
     parser.add_argument("--pretty", action="store_true", help="in nguyên JSON thay vì tóm tắt")
-    parser.add_argument("--only", help="chỉ in type này (telemetry, event, status, error...)")
+    parser.add_argument(
+        "--only", "--filter", dest="only", help="chỉ in type này (telemetry, event, detection...)"
+    )
+    parser.add_argument(
+        "--field",
+        type=lambda v: [f.strip() for f in v.split(",") if f.strip()],
+        help="chỉ in các trường này của data, cách nhau dấu phẩy",
+    )
+    parser.add_argument("--send-mission", help="file JSON data của cmd.mission.upload")
     parser.add_argument("--measure-rate", action="store_true", help="đo nhịp telemetry thật")
     parser.add_argument("--duration", type=float, default=10.0, help="đo trong bao nhiêu giây")
     parser.add_argument("--timeout", type=float, default=15.0, help="chờ tối đa mỗi message")

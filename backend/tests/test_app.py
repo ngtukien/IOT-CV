@@ -29,7 +29,9 @@ def test_status_khong_crash_khi_chua_co_mavlink():
     payload = response.json()
     # Đây là điểm quan trọng: không có SITL thì báo mất kết nối, không phải 500.
     assert payload["connected"] is False
-    assert payload["mode"] == "UNKNOWN"
+    # Phase 07: /api/status trả y hệt `status.data` của WebSocket (một schema, hai
+    # đường vận chuyển), nên mode nằm ở `safety.current_mode`, không ở gốc nữa.
+    assert payload["safety"]["current_mode"] == "UNKNOWN"
 
 
 def test_status_tra_ve_gioi_han_an_toan():
@@ -56,3 +58,48 @@ def test_frontend_duoc_serve():
     response = client.get("/")
 
     assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Phase 07 §7.8 — REST
+# ---------------------------------------------------------------------------
+def test_status_y_het_status_cua_websocket():
+    """Một schema, hai đường vận chuyển: lệch nhau là bug."""
+    from backend.app import HUB
+    from backend.schemas import StatusPayload
+
+    payload = client.get("/api/status").json()
+    StatusPayload.model_validate(payload)
+    assert set(payload) == set(HUB.build_status().model_dump())
+    assert payload["mission"]["source"] == "none"
+    assert payload["limits"]["proximity_stale_s"] == 2.0
+
+
+def test_config_doc_nguong_tu_config():
+    payload = client.get("/api/config").json()
+    assert payload["limits"] == config.safety_limits()
+    assert payload["telemetry_hz"] == config.TELEMETRY_HZ
+    assert payload["versions"]["contract"] == 1
+
+
+def test_mission_rong_khi_chua_upload():
+    payload = client.get("/api/mission").json()
+    assert payload == {"source": "none", "count": 0, "uploaded_at": None, "waypoints": []}
+
+
+def test_post_mission_khi_chua_co_link_bi_tu_choi_ro_rang():
+    body = {"waypoints": [{"seq": 1, "lat": 10.0, "lon": 106.0, "alt": 5.0, "command": 22}]}
+    response = client.post("/api/mission", json=body)
+    assert response.status_code == 503
+    assert response.json()["ok"] is False
+    assert response.json()["code"] == "not_connected"
+
+
+def test_events_tra_lich_su_theo_limit():
+    from backend.events import BUS
+
+    for i in range(5):
+        BUS.emit("info", "backend", "test.su_kien", f"su kien {i}")
+    events = client.get("/api/events?limit=3").json()["events"]
+    assert [e["message"] for e in events] == ["su kien 2", "su kien 3", "su kien 4"]
+    assert client.get("/api/events?limit=0").status_code == 422

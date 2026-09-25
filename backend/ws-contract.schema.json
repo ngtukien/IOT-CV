@@ -61,6 +61,23 @@
       "$ref": "#/$defs/CmdMissionUpload"
     }
   },
+  "rest": {
+    "GET /api/status": {
+      "$ref": "#/$defs/StatusPayload"
+    },
+    "GET /api/config": {
+      "$ref": "#/$defs/ConfigPayload"
+    },
+    "GET /api/mission": {
+      "$ref": "#/$defs/MissionPayload"
+    },
+    "POST /api/mission": {
+      "$ref": "#/$defs/MissionUploadResult"
+    },
+    "GET /api/events": {
+      "$ref": "#/$defs/EventsPayload"
+    }
+  },
   "uplink_rate_limits": {
     "ping": 2,
     "cmd.web_control_enable": 5,
@@ -280,6 +297,33 @@
         "enabled"
       ],
       "title": "CmdWebControlEnable",
+      "type": "object"
+    },
+    "ConfigPayload": {
+      "description": "`GET /api/config` — UI đọc ngưỡng từ đây, không hardcode.",
+      "properties": {
+        "limits": {
+          "$ref": "#/$defs/LimitsPayload"
+        },
+        "endpoint": {
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "telemetry_hz": {
+          "title": "Telemetry Hz",
+          "type": "number"
+        },
+        "versions": {
+          "$ref": "#/$defs/VersionsPayload"
+        }
+      },
+      "required": [
+        "limits",
+        "endpoint",
+        "telemetry_hz",
+        "versions"
+      ],
+      "title": "ConfigPayload",
       "type": "object"
     },
     "DetectionBox": {
@@ -525,6 +569,23 @@
       "title": "EventPayload",
       "type": "object"
     },
+    "EventsPayload": {
+      "description": "`GET /api/events` — lịch sử từ EventBus, cũ trước mới sau.",
+      "properties": {
+        "events": {
+          "items": {
+            "$ref": "#/$defs/EventPayload"
+          },
+          "title": "Events",
+          "type": "array"
+        }
+      },
+      "required": [
+        "events"
+      ],
+      "title": "EventsPayload",
+      "type": "object"
+    },
     "LimitsPayload": {
       "description": "Mọi ngưỡng UI cần. Phase 08/09/10 KHÔNG được hardcode số nào.",
       "properties": {
@@ -567,6 +628,10 @@
         "rangefinder_max_m": {
           "title": "Rangefinder Max M",
           "type": "number"
+        },
+        "proximity_stale_s": {
+          "title": "Proximity Stale S",
+          "type": "number"
         }
       },
       "required": [
@@ -579,9 +644,53 @@
         "deadman_tick_ms",
         "avoid_margin_m",
         "avoid_dist_max_m",
-        "rangefinder_max_m"
+        "rangefinder_max_m",
+        "proximity_stale_s"
       ],
       "title": "LimitsPayload",
+      "type": "object"
+    },
+    "MissionPayload": {
+      "description": "`GET /api/mission`. `waypoints` chỉ đáng tin khi `source == \"readback\"`.",
+      "properties": {
+        "source": {
+          "enum": [
+            "none",
+            "readback",
+            "local"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "uploaded_at": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uploaded At"
+        },
+        "waypoints": {
+          "items": {
+            "$ref": "#/$defs/MissionWaypoint"
+          },
+          "title": "Waypoints",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source",
+        "count"
+      ],
+      "title": "MissionPayload",
       "type": "object"
     },
     "MissionStatus": {
@@ -617,7 +726,51 @@
       "title": "MissionStatus",
       "type": "object"
     },
+    "MissionUploadResult": {
+      "description": "`POST /api/mission`. `code` là mã lỗi hợp đồng khi `ok` là false.",
+      "properties": {
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "count": {
+          "default": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "readback_ok": {
+          "default": false,
+          "title": "Readback Ok",
+          "type": "boolean"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        }
+      },
+      "required": [
+        "ok"
+      ],
+      "title": "MissionUploadResult",
+      "type": "object"
+    },
     "MissionWaypoint": {
+      "description": "`command` thêm ở Phase 07, mặc định NAV_WAYPOINT để client Phase 05\n(chưa biết trường này) vẫn gửi được. Lệnh ngoài `MISSION_COMMANDS` thì\n`validate_mission` từ chối, không phải pydantic — để lỗi về đúng mã\n`validation_failed` kèm số thứ tự item, thay vì `bad_payload` chung chung.",
       "properties": {
         "seq": {
           "title": "Seq",
@@ -634,6 +787,11 @@
         "alt": {
           "title": "Alt",
           "type": "number"
+        },
+        "command": {
+          "default": 16,
+          "title": "Command",
+          "type": "integer"
         }
       },
       "required": [
@@ -1038,6 +1196,24 @@
         }
       },
       "title": "Telemetry",
+      "type": "object"
+    },
+    "VersionsPayload": {
+      "properties": {
+        "backend": {
+          "title": "Backend",
+          "type": "string"
+        },
+        "contract": {
+          "title": "Contract",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "backend",
+        "contract"
+      ],
+      "title": "VersionsPayload",
       "type": "object"
     }
   }

@@ -35,7 +35,8 @@ from backend import __version__, config
 from backend.events import BUS
 from backend.mavlink.control import ControlError, FlightControl
 from backend.mavlink.deadman import DeadmanLoop
-from backend.mavlink.safety import SafetyState
+from backend.mavlink.mission import MissionManager, Waypoint, validate_for_upload
+from backend.mavlink.safety import SafetyMonitor, SafetyState, flight_readiness_problem
 from backend.mavlink.telemetry import build_telemetry, is_link_alive
 from backend.schemas import (
     CONTRACT_VERSION,
@@ -49,6 +50,7 @@ from backend.schemas import (
     EventPayload,
     LimitsPayload,
     MissionStatus,
+    MissionUploadResult,
     PongPayload,
     SafetyStatus,
     StatusPayload,
@@ -136,6 +138,8 @@ class WebSocketHub:
         bus=BUS,
         control: FlightControl | None = None,
         deadman: DeadmanLoop | None = None,
+        mission: MissionManager | None = None,
+        camera=None,
     ) -> None:
         self.state = state
         self.safety = safety
@@ -144,6 +148,12 @@ class WebSocketHub:
         # kiểm hình dạng message, không cần lớp MAVLink.
         self.control = control
         self.deadman = deadman
+        # Phase 07. `camera` là `MjpegLatestFrameReader` (backend/vision/stream.py)
+        # hoặc None khi VISION_ENABLED=0 — cố ý không import kiểu của nó để khối
+        # bay không phụ thuộc khối vision.
+        self.mission = mission
+        self.camera = camera
+        self.monitor = SafetyMonitor()
 
         self._clients: dict[str, _Client] = {}
         self._seq = itertools.count(1)
@@ -159,6 +169,7 @@ class WebSocketHub:
         # Ảnh chụp trạng thái lần trước, để chỉ broadcast `status` KHI CÓ ĐỔI.
         self._last_mode: str | None = None
         self._last_link_alive: bool | None = None
+        self._last_camera: bool | None = None
 
     # -- vòng đời socket ----------------------------------------------------
     async def connect(self, ws: WebSocket) -> str:
@@ -289,9 +300,24 @@ class WebSocketHub:
                 last_zero_velocity_reason=self.safety.last_zero_velocity_reason,
             ),
             limits=LimitsPayload(**config.safety_limits()),
-            mission=MissionStatus(),  # Phase 07
-            camera=CameraStatus(),  # Phase 07
+            mission=self._mission_status(),
+            camera=CameraStatus(
+                available=self._camera_available(),
+                fake=config.CAMERA_FAKE,
+            ),
         )
+
+    def _mission_status(self) -> MissionStatus:
+        if self.mission is None:
+            return MissionStatus()
+        return MissionStatus(
+            count=len(self.mission.current),
+            uploaded_at=self.mission.uploaded_at,
+            source=self.mission.source,  # type: ignore[arg-type]
+        )
+
+    def _camera_available(self) -> bool:
+        return bool(self.camera is not None and self.camera.available)
 
     # -- nhận ---------------------------------------------------------------
     async def receive_loop(self, socket_id: str, ws: WebSocket) -> None:
@@ -444,6 +470,8 @@ class WebSocketHub:
             asyncio.create_task(self.telemetry_loop(), name="ws-telemetry"),
             asyncio.create_task(self.event_loop(), name="ws-events"),
         ]
+        if self.camera is not None and config.CAMERA_FAKE:
+            self._tasks.append(asyncio.create_task(self.detection_loop(), name="ws-detection"))
 
     async def stop_background(self) -> None:
         self.bus.unsubscribe(self._on_event_from_thread)
@@ -475,6 +503,7 @@ class WebSocketHub:
         self.web_control_owner = None
         self._last_mode = None
         self._last_link_alive = None
+        self._last_camera = None
 
     def _on_event_from_thread(self, payload: EventPayload) -> None:
         """Subscriber của EventBus. CHẠY TRONG THREAD TELEMETRY, không phải
@@ -525,6 +554,7 @@ class WebSocketHub:
         while True:
             try:
                 await self._reconcile_control_ownership()
+                await self._observe_safety()
                 await self.broadcast("telemetry", build_telemetry(self.state))
             except Exception:  # noqa: BLE001
                 self._khong_duoc_chet_lang_le("telemetry_loop")
@@ -541,6 +571,126 @@ class WebSocketHub:
                 moc_ke = loop.time()
                 cho = 0
             await asyncio.sleep(cho)
+
+    async def detection_loop(self) -> None:
+        """Box GIẢ mỗi `FAKE_DETECTION_INTERVAL_MS` (Phase 07 §7.8.3).
+
+        Chỉ chạy khi nguồn là giả. Gắn với khung THẬT đang phát (frame_id của
+        reader) để Phase 10 kiểm được canh chỉnh overlay theo đúng khung. Không
+        có khung (camera mất) thì không gửi gì — không bịa box cho khung không
+        tồn tại.
+        """
+        from backend.vision.fake_stream import build_fake_detection
+
+        interval = config.FAKE_DETECTION_INTERVAL_MS / 1000.0
+        while True:
+            try:
+                frame = self.camera.latest() if self._camera_available() else None
+                payload = build_fake_detection(frame, time.time())
+                if payload is not None:
+                    await self.broadcast("detection", payload)
+            except Exception:  # noqa: BLE001
+                self._khong_duoc_chet_lang_le("detection_loop")
+            await asyncio.sleep(interval)
+
+    async def _observe_safety(self) -> None:
+        """Các dòng mới của bảng §7.7: EKF/GPS, pin, camera. CHỈ phát sự kiện —
+        không đổi mode, không disarm, không gửi lệnh nào (xem safety.py)."""
+        camera = self._camera_available() if self.camera is not None else None
+        for ev in self.monitor.observe(self.state, camera_available=camera):
+            source = "vision" if ev.code.startswith("camera.") else "safety"
+            self.bus.emit(ev.level, source, ev.code, ev.message, ev.detail)
+        if camera is not None and camera != self._last_camera:
+            self._last_camera = camera
+            await self.broadcast("status", self.build_status())
+
+    # -- mission (Phase 07) ----------------------------------------------------
+    def _home(self) -> tuple[float, float] | None:
+        if self.state.home_lat is None or self.state.home_lon is None:
+            return None
+        return (self.state.home_lat, self.state.home_lon)
+
+    def precheck_mission(self, payload, socket_id: str | None) -> MissionUploadResult | None:
+        """Các cổng RẺ, không gửi gói nào: lớp mission, link, quyền lái,
+        EKF/GPS, validate thuần. Trả kết quả lỗi, hoặc None nếu qua hết."""
+        if self.mission is None:
+            return MissionUploadResult(
+                ok=False, errors=["Backend chưa nạp lớp mission"], code="internal"
+            )
+        chan = _quyen_ra_lenh(self, socket_id)
+        if chan is not None:
+            code, message = chan
+            return MissionUploadResult(ok=False, errors=[message], code=code)
+        chua_san_sang = flight_readiness_problem(self.state)
+        if chua_san_sang is not None:
+            return MissionUploadResult(
+                ok=False, errors=[chua_san_sang[0]], code="validation_failed"
+            )
+        errors = validate_for_upload(_to_waypoints(payload), self._home())
+        if self._home() is None:
+            # Ô seq 0 cần toạ độ home, và luật "cách home" cần nó để có nghĩa.
+            errors.append("Chưa biết toạ độ HOME từ flight controller — chờ GPS fix rồi thử lại")
+        if errors:
+            return MissionUploadResult(ok=False, errors=errors, code="validation_failed")
+        return None
+
+    async def upload_mission(self, payload, *, socket_id: str | None) -> MissionUploadResult:
+        """Đường DUY NHẤT nạp mission — WebSocket và `POST /api/mission` đều gọi.
+
+        Thứ tự: cổng rẻ (precheck) -> upload -> readback -> (auto_start) AUTO.
+        Mission sai bị chặn ở precheck, TRƯỚC khi có bất kỳ MISSION_COUNT nào.
+        """
+        loi = self.precheck_mission(payload, socket_id)
+        if loi is not None:
+            return loi
+
+        def progress(sent: int, total: int) -> None:
+            # Chạy trong thread upload. BUS an toàn đa luồng; hub tự nhảy về loop.
+            self.bus.emit(
+                "info",
+                "mission",
+                "mission.progress",
+                f"Đang nạp mission {sent}/{total}",
+                {"sent": sent, "total": total},
+            )
+
+        try:
+            result = await asyncio.to_thread(
+                self.mission.upload, _to_waypoints(payload), self._home(), progress=progress
+            )
+        except ValueError as exc:
+            errors = [e.strip() for e in str(exc).split(";") if e.strip()]
+            return MissionUploadResult(ok=False, errors=errors, code="validation_failed")
+        except ControlError as exc:
+            self.bus.emit(
+                "error", "mission", "mission.upload_failed", exc.message, exc.detail or None
+            )
+            await self.broadcast("status", self.build_status())
+            return MissionUploadResult(ok=False, errors=[exc.message], code=exc.code)
+        except ConnectionError as exc:
+            return MissionUploadResult(ok=False, errors=[str(exc)], code="not_connected")
+
+        self.bus.emit(
+            "info",
+            "mission",
+            "mission.uploaded",
+            f"Đã nạp và đọc lại khớp {result.count} item",
+            {"count": result.count, "readback_ok": result.readback_ok},
+        )
+        await self.broadcast("status", self.build_status())
+
+        if payload.auto_start:
+            try:
+                await asyncio.to_thread(self.mission.start)
+            except ControlError as exc:
+                return MissionUploadResult(
+                    ok=False,
+                    errors=[f"Đã nạp mission nhưng chưa chạy được: {exc.message}"],
+                    count=result.count,
+                    readback_ok=result.readback_ok,
+                    code=exc.code,
+                )
+        return MissionUploadResult(ok=True, count=result.count, readback_ok=result.readback_ok)
 
     def _khong_duoc_chet_lang_le(self, ten_vong: str) -> None:
         """Ghi lỗi của một vòng nền và BÁO RA NGOÀI, rồi để vòng chạy tiếp.
@@ -780,6 +930,20 @@ async def _handle_arm(hub: WebSocketHub, socket_id: str, envelope: Envelope, pay
 
 
 async def _handle_takeoff(hub: WebSocketHub, socket_id: str, envelope: Envelope, payload) -> None:
+    # Phase 07 §7.7: EKF hỏng / chưa 3D fix thì không cất cánh. (arm đã có cùng
+    # phép kiểm trong control.py; takeoff thì chưa.)
+    chua_san_sang = flight_readiness_problem(hub.state)
+    if chua_san_sang is not None:
+        message, detail = chua_san_sang
+        await hub.send_error(
+            socket_id,
+            "validation_failed",
+            message,
+            ref=envelope.id,
+            command=envelope.type,
+            detail=detail,
+        )
+        return
     await _chay_lenh_cham(hub, socket_id, envelope, hub.control.takeoff, payload.altitude)
 
 
@@ -845,6 +1009,44 @@ async def _handle_velocity(hub: WebSocketHub, socket_id: str, envelope: Envelope
         await hub.send_error(socket_id, code, message, ref=envelope.id, command=envelope.type)
 
 
+def _to_waypoints(payload) -> list[Waypoint]:
+    return [
+        Waypoint(seq=w.seq, lat=w.lat, lon=w.lon, alt=w.alt, command=w.command)
+        for w in payload.waypoints
+    ]
+
+
+async def _handle_mission_upload(
+    hub: WebSocketHub, socket_id: str, envelope: Envelope, payload
+) -> None:
+    """`cmd.mission.upload` — lệnh chậm: `ack accepted` rồi `ack done`/`error`.
+
+    `accepted` chỉ gửi SAU các cổng rẻ — mission sai bị trả `validation_failed`
+    ngay, không có `accepted` đứng trước làm người dùng tưởng đã nhận.
+    """
+    loi = hub.precheck_mission(payload, socket_id)
+    if loi is None:
+        await hub.send_ack(socket_id, envelope.type, "accepted", ref=envelope.id)
+        loi = await hub.upload_mission(payload, socket_id=socket_id)
+        if loi.ok:
+            await hub.send_ack(
+                socket_id,
+                envelope.type,
+                "done",
+                ref=envelope.id,
+                detail={"count": loi.count, "readback_ok": loi.readback_ok},
+            )
+            return
+    await hub.send_error(
+        socket_id,
+        loi.code or "internal",
+        "; ".join(loi.errors) or "Nạp mission thất bại",
+        ref=envelope.id,
+        command=envelope.type,
+        detail={"errors": loi.errors},
+    )
+
+
 COMMAND_HANDLERS: dict[str, Handler] = {
     "ping": _handle_ping,
     "cmd.web_control_enable": _handle_web_control_enable,
@@ -855,6 +1057,7 @@ COMMAND_HANDLERS: dict[str, Handler] = {
     "cmd.hold": _handle_hold,
     "cmd.rtl": _handle_rtl,
     "cmd.land": _handle_land,
+    "cmd.mission.upload": _handle_mission_upload,
 }
 
 

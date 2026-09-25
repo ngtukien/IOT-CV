@@ -128,6 +128,11 @@ class TelemetryState(TelemetryFields):
 
     connected: bool = False
     last_update: float | None = None
+    # Phase 07 — số liệu THÔ của proximity. `avoid_state` và việc che số đo cũ
+    # được tính lúc serialize (build_telemetry), không lưu sẵn: chúng phụ thuộc
+    # ĐỒNG HỒ, lưu là chắc chắn thành số cũ. Hai trường này không lên dây.
+    proximity_updated: float | None = None  # monotonic của DISTANCE_SENSOR cuối
+    proximity_clear: bool = False  # số đo cuối ở đầu trên tầm = trống trải
 
     def as_dict(self) -> dict[str, Any]:
         """Giữ tên cũ để code và test có sẵn không phải đổi."""
@@ -173,6 +178,8 @@ class LimitsPayload(BaseModel):
     avoid_margin_m: float
     avoid_dist_max_m: float
     rangefinder_max_m: float
+    # Phase 07: số đo cũ hơn chừng này (giây) thì `avoid_state` = UNKNOWN.
+    proximity_stale_s: float
 
 
 class MissionStatus(BaseModel):
@@ -326,11 +333,27 @@ class CmdSimple(BaseModel):
     pass
 
 
+# MAV_CMD của mission item mà web được gửi (Phase 07 §7.1). Bốn lệnh, không
+# hơn: DO_SET_SERVO, DO_MOTOR_TEST... cũng là "mission item" hợp lệ với FC, và
+# đó chính là lý do phải có danh sách trắng ở đây chứ không nhận mọi số nguyên.
+MISSION_CMD_WAYPOINT = 16
+MISSION_CMD_RTL = 20
+MISSION_CMD_LAND = 21
+MISSION_CMD_TAKEOFF = 22
+MISSION_COMMANDS = (MISSION_CMD_WAYPOINT, MISSION_CMD_RTL, MISSION_CMD_LAND, MISSION_CMD_TAKEOFF)
+
+
 class MissionWaypoint(BaseModel):
+    """`command` thêm ở Phase 07, mặc định NAV_WAYPOINT để client Phase 05
+    (chưa biết trường này) vẫn gửi được. Lệnh ngoài `MISSION_COMMANDS` thì
+    `validate_mission` từ chối, không phải pydantic — để lỗi về đúng mã
+    `validation_failed` kèm số thứ tự item, thay vì `bad_payload` chung chung."""
+
     seq: int
     lat: float
     lon: float
     alt: float
+    command: int = MISSION_CMD_WAYPOINT
 
 
 class CmdMissionUpload(BaseModel):
@@ -339,6 +362,60 @@ class CmdMissionUpload(BaseModel):
 
     waypoints: list[MissionWaypoint]
     auto_start: bool = False
+
+
+# ---------------------------------------------------------------------------
+# REST (Phase 07 §7.8). Không phải message WebSocket, nhưng cùng một nguồn sự
+# thật: `GET /api/status` trả CHÍNH `StatusPayload` ở trên — một schema, hai
+# đường vận chuyển. Các model dưới đây cũng xuất vào JSON Schema (khoá `rest`)
+# để Phase 08 sinh type TypeScript từ máy.
+# ---------------------------------------------------------------------------
+class VersionsPayload(BaseModel):
+    backend: str
+    contract: int
+
+
+class ConfigPayload(BaseModel):
+    """`GET /api/config` — UI đọc ngưỡng từ đây, không hardcode."""
+
+    limits: LimitsPayload
+    endpoint: str
+    telemetry_hz: float
+    versions: VersionsPayload
+
+
+class MissionPayload(BaseModel):
+    """`GET /api/mission`. `waypoints` chỉ đáng tin khi `source == "readback"`."""
+
+    source: Literal["none", "readback", "local"]
+    count: int
+    uploaded_at: float | None = None
+    waypoints: list[MissionWaypoint] = Field(default_factory=list)
+
+
+class MissionUploadResult(BaseModel):
+    """`POST /api/mission`. `code` là mã lỗi hợp đồng khi `ok` là false."""
+
+    ok: bool
+    errors: list[str] = Field(default_factory=list)
+    count: int = 0
+    readback_ok: bool = False
+    code: str | None = None
+
+
+class EventsPayload(BaseModel):
+    """`GET /api/events` — lịch sử từ EventBus, cũ trước mới sau."""
+
+    events: list[EventPayload]
+
+
+REST_MODELS: dict[str, type[BaseModel]] = {
+    "GET /api/status": StatusPayload,
+    "GET /api/config": ConfigPayload,
+    "GET /api/mission": MissionPayload,
+    "POST /api/mission": MissionUploadResult,
+    "GET /api/events": EventsPayload,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +498,12 @@ def contract_json_schema() -> dict[str, Any]:
 
         uv run python -m backend.schemas > backend/ws-contract.schema.json
     """
-    models = [Envelope, *DOWNLINK_MODELS.values(), *UPLINK_MODELS.values()]
+    models = [
+        Envelope,
+        *DOWNLINK_MODELS.values(),
+        *UPLINK_MODELS.values(),
+        *REST_MODELS.values(),
+    ]
     # dict.fromkeys giữ thứ tự và loại trùng (CmdSimple xuất hiện 3 lần).
     unique = list(dict.fromkeys(models))
 
@@ -445,6 +527,7 @@ def contract_json_schema() -> dict[str, Any]:
         "envelope": ref(Envelope),
         "downlink": {name: ref(model) for name, model in DOWNLINK_MODELS.items()},
         "uplink": {name: ref(model) for name, model in UPLINK_MODELS.items()},
+        "rest": {name: ref(model) for name, model in REST_MODELS.items()},
         "uplink_rate_limits": UPLINK_RATE_LIMITS,
         "error_codes": list(ERROR_CODES),
         **defs,

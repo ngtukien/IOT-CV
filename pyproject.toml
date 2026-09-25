@@ -27,6 +27,16 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "httpx>=0.28.1",
     "ruff>=0.16.8",
+    # Phase 07 §7.10.2: coverage >= 80% cho safety + mission + deadman + proximity.
+    "pytest-cov>=7.0",
+    # Cùng lý do với nhóm `vision` bên dưới: test của nguồn video giả cần cv2.
+    "opencv-python-headless>=4.12",
+]
+# Khối vision tách riêng khỏi dependency chính: backend BAY (MAVLink, WebSocket)
+# phải chạy được trên máy không cài OpenCV — SAFETY.md mục 9, mất camera không
+# được kéo telemetry chết theo. Bản "headless" vì backend không mở cửa sổ nào.
+vision = [
+    "opencv-python-headless>=4.12",
 ]
 
 # Day la ung dung, khong phai thu vien de publish -> uv khong can build no.
