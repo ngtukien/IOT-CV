@@ -12,7 +12,10 @@ import { toast } from "sonner";
 import { fetchEvents } from "@/lib/api";
 import { ERROR_CODE_LABEL } from "@/lib/protocol";
 import type { ServerEnvelope } from "@/lib/protocol";
+import { setActiveSocket } from "@/lib/uplink";
 import { createGcsSocket, wsUrlFromLocation } from "@/lib/ws";
+import { handleMissionAck, handleMissionError, handleMissionProgress } from "@/hooks/missionUplink";
+import { useMissionStore } from "@/store/mission";
 import { fromServerEvent, useTelemetryStore, webEvent } from "@/store/telemetry";
 
 /** Lấy bao nhiêu sự kiện cũ lúc mở trang (`GET /api/events?limit=`). */
@@ -38,6 +41,7 @@ function handleMessage(msg: ServerEnvelope): void {
       store.applyDetection(msg.data);
       return;
     case "event": {
+      if (msg.data.code === "mission.progress") handleMissionProgress(msg.data.detail);
       const entry = fromServerEvent(msg.data, msg.ts);
       const isNew = store.pushEvent(entry);
       // Toast chỉ cho `error`. Toast cho mọi `info` dạy người dùng phớt lờ
@@ -48,6 +52,8 @@ function handleMessage(msg: ServerEnvelope): void {
       return;
     }
     case "error": {
+      // Lỗi của lần nạp mission: panel mission tự hiện và tự bật toast phù hợp.
+      if (handleMissionError(msg.data)) return;
       // Backend từ chối một message của chính tab này.
       const label = ERROR_CODE_LABEL[msg.data.code as keyof typeof ERROR_CODE_LABEL] ?? msg.data.code;
       store.pushEvent(webEvent("warn", `ws.error.${msg.data.code}`, `${label}: ${msg.data.message}`, { ref: msg.data.ref ?? null }));
@@ -55,8 +61,10 @@ function handleMessage(msg: ServerEnvelope): void {
       return;
     }
     case "ack":
+      // Phase 09 chỉ có một lệnh chậm là nạp mission; các ack khác là của Phase 10.
+      handleMissionAck(msg.data);
+      return;
     case "pong":
-      // Phase 08 chỉ gửi `ping`; `ack` là việc của Phase 10.
       return;
   }
 }
@@ -94,13 +102,16 @@ export function useWebSocket(): void {
           if (info.reconnected) store.pushEvent(webEvent("info", "ws.reconnected", "Đã nối lại với backend"));
         } else if (state === "closed" && wasOpen) {
           wasOpen = false;
+          useMissionStore.getState().onSocketLost();
           store.pushEvent(webEvent("warn", "ws.lost", "Mất kết nối với backend — đang thử nối lại"));
         }
       },
     });
+    setActiveSocket(sock);
 
     return () => {
       history.abort();
+      setActiveSocket(null);
       sock.close();
     };
   }, []);

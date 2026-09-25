@@ -1,0 +1,9 @@
+{
+  "waypoints": [
+    {"seq": 1, "command": 16, "lat": -35.3630810, "lon": 149.1652300, "alt": 5.0},
+    {"seq": 2, "command": 16, "lat": -35.3630810, "lon": 149.1654500, "alt": 5.0},
+    {"seq": 3, "command": 16, "lat": -35.3632610, "lon": 149.1654500, "alt": 5.0},
+    {"seq": 4, "command": 20, "lat": 0.0, "lon": 0.0, "alt": 0.0}
+  ],
+  "auto_start": false
+}

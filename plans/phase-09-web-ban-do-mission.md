@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 08 (khung web, store, `protocol.ts`, ws client), Phase 07 (mission upload + readback ở backend) | ~12 giờ | Không |
+| xong 25/09/2026 | Phase 08 (khung web, store, `protocol.ts`, ws client), Phase 07 (mission upload + readback ở backend) | ~12 giờ | Không |
 
 ## Mục tiêu
 
