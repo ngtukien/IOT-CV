@@ -507,3 +507,34 @@ def test_send_noi_tiep_hoa_hai_thread():
         thread.join()
 
     assert chong_lan == [], "hai thread đã ghi chồng lên nhau — khoá ghi không hoạt động"
+
+
+# ---------------------------------------------------------------------------
+# Phase 07 — lỗi chỉ lộ khi HAI GCS cùng nối (đo trên SITL 25/09/2026).
+# ---------------------------------------------------------------------------
+def test_heartbeat_cua_gcs_khac_khong_doi_mode_va_armed():
+    state = TelemetryState()
+    update_state(state, FakeMessage("HEARTBEAT", type=2, base_mode=0b1000_0000, custom_mode=4))
+    assert (state.mode, state.armed) == ("GUIDED", True)
+
+    # Mission Planner: type 6 (GCS), custom_mode 0, không armed — FC chuyển tiếp.
+    update_state(state, FakeMessage("HEARTBEAT", type=6, base_mode=0, custom_mode=0))
+    assert (state.mode, state.armed) == ("GUIDED", True)
+
+
+def test_reader_bo_goi_khong_den_tu_flight_controller():
+    from backend.mavlink.telemetry import TelemetryReader
+
+    class _Goi(FakeMessage):
+        def __init__(self, src, *a, **k):
+            super().__init__(*a, **k)
+            self._src = src
+
+        def get_srcSystem(self):  # noqa: N802 — tên của pymavlink
+            return self._src
+
+    reader = TelemetryReader()
+    reader.connection.target_system = 1
+    assert reader._tu_flight_controller(_Goi(1, "STATUSTEXT")) is True
+    assert reader._tu_flight_controller(_Goi(255, "STATUSTEXT")) is False
+    assert reader._tu_flight_controller(FakeMessage("HEARTBEAT")) is True  # không sysid

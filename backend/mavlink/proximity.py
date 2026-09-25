@@ -133,10 +133,20 @@ def avoid_state(
 ) -> str:
     """Bốn trạng thái của §7.6.4. Ngưỡng đọc từ config (khớp file param của FC).
 
-    - UNKNOWN : cảm biến không khoẻ, chưa từng có số đo, hoặc số đo đã cũ —
-                đang MÙ, khác hẳn "không có vật cản".
-    - OFF     : có số đo hợp lệ và xa hơn AVOID_DIST_MAX — trống trải; hoặc
-                `clear` = số đo ở đầu trên tầm (FC báo "không thấy gì trong 6 m").
+    - UNKNOWN : FC báo cảm biến KHÔNG khoẻ, hoặc số đo mới nhất là số rác ở
+                đầu dưới tầm — đang MÙ, khác hẳn "không có vật cản".
+    - OFF     : có số đo hợp lệ và xa hơn AVOID_DIST_MAX; hoặc `clear` (số đo ở
+                đầu trên tầm); hoặc cảm biến KHOẺ mà FC không gửi số đo nào gần
+                đây — xem khối ĐÃ ĐO dưới đây.
+
+    ┌─ ĐÃ ĐO TRÊN SITL (25/09/2026, scripts/sitl/run_backend_avoid.py) ───────┐
+    │ FC CHỈ gửi DISTANCE_SENSOR khi có vật TRONG TẦM: proximity bỏ qua cung │
+    │ không có số hợp lệ. Cách cột 23 m, bit PROXIMITY khoẻ 40/40 mẫu mà     │
+    │ không có số đo nào; có số đúng lúc cột lọt vào 6 m. Plan giả định luồng│
+    │ liên tục nên coi im lặng là "mù" -> trời trống cũng báo UNKNOWN, người │
+    │ dùng quen tai rồi bỏ qua đúng cái cảnh báo cần nghe. Im lặng + bit khoẻ│
+    │ là câu trả lời của FC: "không có gì". Mù thật thì bit sức khoẻ tắt.    │
+    └─────────────────────────────────────────────────────────────────────────┘
     - NEAR    : trong vùng FC bắt đầu để ý, HOẶC đã trong margin nhưng ở mode mà
                 AC_Avoid không chạy (AUTO/GUIDED/RTL...).
     - ACTIVE  : trong margin VÀ mode ∈ {LOITER, ALT_HOLD, POSHOLD} — FC đang phanh.
@@ -148,10 +158,14 @@ def avoid_state(
     dist_max = config.AVOID_DIST_MAX_M if dist_max_m is None else dist_max_m
     stale = config.PROXIMITY_STALE_S if stale_s is None else stale_s
 
-    if not healthy or age_s is None or age_s > stale:
+    if not healthy:
         return "UNKNOWN"
+    if age_s is None or age_s > stale:
+        # Khoẻ mà im lặng: FC không thấy gì trong tầm (khối ĐÃ ĐO ở trên).
+        # `distance_m` ở nhánh này đã bị build_telemetry che thành None.
+        return "OFF"
     if distance_m is None:
-        # None mà không `clear` = quá sát hoặc số rác: mù, không phải trống.
+        # Số đo MỚI mà không đọc được: ở đầu trên tầm = trống; đầu dưới = mù.
         return "OFF" if clear else "UNKNOWN"
     if distance_m > dist_max:
         return "OFF"

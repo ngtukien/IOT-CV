@@ -61,6 +61,10 @@ MISSION_MESSAGE_TYPES = (
 # Bit MAV_MODE_FLAG_SAFETY_ARMED trong HEARTBEAT.base_mode
 _ARMED_FLAG = 0b1000_0000
 
+# HEARTBEAT.type = MAV_TYPE_GCS (6): một trạm mặt đất, KHÔNG phải máy bay.
+# Xem khối ĐÃ ĐO trong `update_state`.
+_MAV_TYPE_GCS = 6
+
 # custom_mode -> tên mode của ArduCopter.
 COPTER_MODES: dict[int, str] = {
     0: "STABILIZE",
@@ -157,6 +161,18 @@ def update_state(state: TelemetryState, msg, now: float | None = None) -> Teleme
     timestamp = time.monotonic() if now is None else now
 
     if msg_type == "HEARTBEAT":
+        # ┌─ ĐÃ ĐO TRÊN SITL (25/09/2026, nghiệm thu Phase 07) ─────────────┐
+        # │ ArduPilot CHUYỂN TIẾP gói giữa các cổng. Mission Planner nối cổng │
+        # │ 5762 thì HEARTBEAT của nó (sysid 255, type GCS, custom_mode 0,   │
+        # │ base_mode 0) cũng đi ra cổng 5760 của backend. Coi nó là của máy │
+        # │ bay thì mode nhảy GUIDED <-> "STABILIZE", armed nhảy True <-> False│
+        # │ mỗi giây: MissionManager.start() báo "Chưa armed" khi máy bay     │
+        # │ đang bay, và hub tưởng phi công gạt RC nên thu quyền lái vô cớ.   │
+        # │ Lớp chặn chính là lọc theo sysid ở TelemetryReader; dòng dưới là  │
+        # │ lớp thứ hai cho hàm thuần này.                                    │
+        # └───────────────────────────────────────────────────────────────────┘
+        if getattr(msg, "type", None) == _MAV_TYPE_GCS:
+            return state
         state.connected = True
         state.mode = mode_name(getattr(msg, "custom_mode", 0))
         state.armed = bool(getattr(msg, "base_mode", 0) & _ARMED_FLAG)
@@ -294,10 +310,14 @@ def build_telemetry(state: TelemetryState, now: float | None = None) -> Telemetr
     if age_s is None or age_s > config.PROXIMITY_STALE_S:
         fields["obstacle_distance"] = None
         fields["obstacle_sectors"] = [None] * proximity.SECTOR_COUNT
+    # Mất link thì KHÔNG biết gì về vật cản — cờ "khoẻ" cuối cùng đã cũ. Thiếu
+    # dòng này, nghiệm thu SITL 25/09/2026 thấy 63 mẫu `connected=false` mà
+    # `avoid_state=OFF`: UI nói "trống trải" dựa trên số liệu của một link đã chết.
+    link_alive = state.connected and is_link_alive(state, now=timestamp)
     fields["avoid_state"] = proximity.avoid_state(
         fields["obstacle_distance"],
         state.mode,
-        healthy=state.rangefinder_healthy,
+        healthy=state.rangefinder_healthy and link_alive,
         age_s=age_s,
         clear=state.proximity_clear,
     )
@@ -451,6 +471,13 @@ class TelemetryReader:
                 f"Không xin được stream rate: {exc}",
             )
 
+    def _tu_flight_controller(self, msg) -> bool:
+        get_src = getattr(msg, "get_srcSystem", None)
+        target = self.connection.target_system
+        if get_src is None or target is None:
+            return True
+        return get_src() == target
+
     def _read_until_link_dies(self) -> None:
         log.info("Bắt đầu đọc telemetry từ %s", self.connection.endpoint)
         was_armed = self.state.armed
@@ -466,6 +493,13 @@ class TelemetryReader:
                 # Im lặng quá LINK_TIMEOUT_S -> coi như đứt, ra ngoài nối lại.
                 if not is_link_alive(self.state):
                     return
+                continue
+
+            # Chỉ nghe CHÍNH flight controller. Gói của GCS khác (Mission
+            # Planner) được FC chuyển tiếp sang đây — xem khối ĐÃ ĐO ở nhánh
+            # HEARTBEAT của `update_state`. Không có sysid (đồ giả trong test)
+            # thì không lọc.
+            if not self._tu_flight_controller(msg):
                 continue
 
             if msg.get_type() == "STATUSTEXT":

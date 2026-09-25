@@ -132,9 +132,16 @@ def test_active_khong_bao_gio_xuat_hien_ngoai_loiter_althold_poshold(mode):
     assert proximity.avoid_state(0.5, mode, healthy=True, age_s=0.1) == "NEAR"
 
 
-def test_so_do_cu_la_unknown():
-    assert proximity.avoid_state(3.0, "LOITER", healthy=True, age_s=2.5) == "UNKNOWN"
-    assert proximity.avoid_state(3.0, "LOITER", healthy=True, age_s=None) == "UNKNOWN"
+def test_khoe_ma_im_lang_la_off_khong_phai_unknown():
+    """Đo SITL: FC chỉ gửi DISTANCE_SENSOR khi có vật trong tầm. Im lặng + khoẻ
+    = "không có gì", không phải "mù"."""
+    assert proximity.avoid_state(None, "LOITER", healthy=True, age_s=2.5) == "OFF"
+    assert proximity.avoid_state(None, "LOITER", healthy=True, age_s=None) == "OFF"
+
+
+def test_im_lang_ma_khong_khoe_la_unknown():
+    assert proximity.avoid_state(None, "LOITER", healthy=False, age_s=None) == "UNKNOWN"
+    assert proximity.avoid_state(None, "LOITER", healthy=False, age_s=5.0) == "UNKNOWN"
 
 
 def test_cam_bien_khong_khoe_la_unknown():
@@ -148,7 +155,8 @@ def test_ngoai_tam_tren_la_off_ngoai_tam_duoi_la_unknown():
 
 # -- nối vào telemetry ----------------------------------------------------------
 def _state(mode: str = "LOITER") -> TelemetryState:
-    st = TelemetryState(mode=mode)
+    """Link SỐNG (connected + gói cuối lúc 100.0) và proximity khoẻ."""
+    st = TelemetryState(mode=mode, connected=True)
     update_state(st, _sys(PRX, PRX, PRX), now=100.0)
     return st
 
@@ -170,13 +178,23 @@ def test_telemetry_active_tu_tat_o_guided():
     assert build_telemetry(st, now=100.2).avoid_state == "NEAR"
 
 
-def test_telemetry_so_cu_bi_che_thanh_null_va_unknown():
+def test_telemetry_so_cu_bi_che_thanh_null():
+    """Số cũ KHÔNG được hiện như số mới — con số 1.5 m đứng im là nói dối."""
     st = _state()
     update_state(st, _ds(150), now=100.0)
 
-    t = build_telemetry(st, now=103.0)  # quá PROXIMITY_STALE_S = 2 s
+    # 2,5 s: quá PROXIMITY_STALE_S (2 s) nhưng link vẫn sống (LINK_TIMEOUT_S 3 s).
+    t = build_telemetry(st, now=102.5)
     assert t.obstacle_distance is None
     assert t.obstacle_sectors == [None] * 8
+    assert t.avoid_state == "OFF"  # khoẻ + im lặng: vật đã ra khỏi tầm
+
+
+def test_telemetry_cam_bien_hong_la_unknown_du_so_con_moi():
+    st = _state()
+    update_state(st, _ds(150), now=100.0)
+    update_state(st, _sys(PRX, PRX, 0), now=100.1)  # FC báo proximity hỏng
+    t = build_telemetry(st, now=100.2)
     assert t.avoid_state == "UNKNOWN"
 
 
@@ -215,3 +233,15 @@ def test_bang_regex_statustext_de_rong():
     """§7.6.3: đo SITL không thấy chuỗi nào -> không đoán."""
     assert proximity.AVOID_STATUSTEXT_PATTERNS == ()
     assert proximity.is_avoid_statustext("Avoid: stopping") is False
+
+
+def test_mat_link_thi_avoid_state_la_unknown():
+    """SITL 25/09/2026: 63 mẫu connected=false mà avoid_state=OFF — sai."""
+    from backend import config
+
+    st = _state()
+    update_state(st, _ds(600), now=100.0)
+    assert build_telemetry(st, now=100.1).avoid_state == "OFF"
+    t = build_telemetry(st, now=100.0 + config.LINK_TIMEOUT_S + 1)
+    assert t.connected is False
+    assert t.avoid_state == "UNKNOWN"

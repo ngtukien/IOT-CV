@@ -159,6 +159,9 @@ async def _gui_mission(socket, duong: Path, timeout: float) -> int:
     """
     data = json.loads(duong.read_text(encoding="utf-8"))
     ref = "probe-mission"
+    # Socket mới mở được phát lại 50 sự kiện gần nhất. Chỉ in sự kiện XẢY RA sau
+    # lúc gửi, nếu không tiến độ của lần upload TRƯỚC trông như của lần này.
+    luc_gui = time.time()
     await socket.send(json.dumps({"v": 1, "type": "cmd.mission.upload", "id": ref, "data": data}))
     print(f"-> cmd.mission.upload {len(data.get('waypoints', []))} item")
     han_chot = time.monotonic() + timeout
@@ -169,7 +172,8 @@ async def _gui_mission(socket, duong: Path, timeout: float) -> int:
         except TimeoutError:
             break
         d = message.get("data", {})
-        if message.get("type") == "event" and d.get("code", "").startswith("mission."):
+        la_moi = (d.get("ts") or 0) >= luc_gui - 0.5
+        if message.get("type") == "event" and la_moi and d.get("code", "").startswith("mission."):
             print(f"   [event] {d.get('code')} {json.dumps(d.get('detail'), ensure_ascii=False)}")
         if d.get("ref") != ref:
             continue
