@@ -26,7 +26,10 @@ if [[ "${1:-}" == "--chi" && -n "${2:-}" ]]; then
   IFS=',' read -r -a RUNNERS <<< "$2"
 fi
 
-dem_sitl() { ps -eo comm= | grep -cxE 'arducopter|xterm' || true; }
+dem_sitl() {
+  ps -eo comm= | grep -cxE 'arducopter|xterm' || true
+  return 0
+}
 
 if [[ "$(dem_sitl)" != 0 ]]; then
   echo "Đang có SITL/xterm chạy — dừng nó trước: bash scripts/sitl/sitl-headless.sh stop" >&2
