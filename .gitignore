@@ -105,6 +105,9 @@ firmware/ardupilot/**/*.apj
 firmware/ardupilot/**/*.elf
 firmware/ardupilot/**/arducopter
 copter-speedybeef4v5-d450a747.tar.gz
+# .bin cua build-*/ da bi dong "*.bin" chung o muc Flight log chan san.
+# Phase 11.1: firmware DroneBridge tai ve cho ESP32 (Phase 17) cung la nhi phan.
+firmware/dronebridge/bin/
 
 # build.log cua custom build PHAI duoc commit: no la bang chung feature da build
 # dung y (PRX_*, OAPATHPLANNER, TFMINIPLUS...). Dong "!" nay PHAI nam SAU dong

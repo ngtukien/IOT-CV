@@ -658,20 +658,30 @@ không nêu): mode tay, ga lấy từ RC, SITL không có RC là rơi.
 
 Plan: plans/phase-11-firmware-ardupilot-param.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/09/2026 · Ngày xong: 25/09/2026
 
-- [ ] `firmware/ardupilot/build-d450a747/` có đủ 7 file, `arducopter_with_bl.hex` khoảng 2,4–2,5 MB.
-- [ ] `git status --short` **không** liệt kê file `.hex`, `.apj`, `.bin`, `arducopter`.
-- [ ] `Select-String ... -Pattern "PROXIMITY|TFMINI|AVOID|OAPATHPLANNER"` trên `build.log` trả về ≥ 1 dòng cho mỗi từ khoá.
-- [ ] `Compare-Object` giữa hai danh sách `selected_features` trả về rỗng (hoặc khác biệt đã được ghi và xử lý trong `NOTES.md`).
-- [ ] `NOTES.md` có: bảng 6 feature đã tick, cách rebuild 5 bước, cách kiểm chứng `PRX1_TYPE`.
-- [ ] `firmware/ardupilot/params/README.md` mô tả đủ quy ước `00..07` và ba luật.
-- [ ] `01-base.param` có đúng 33 dòng tham số; mở bằng Notepad không thấy ký tự lạ.
-- [ ] `02-avoid-tfmini.param` có đủ 17 dòng tham số và giữ nguyên phần chú thích gốc; không còn tham chiếu tới đường dẫn cũ.
-- [ ] Đã nạp thử cả hai file vào SITL; danh sách tham số bị từ chối đã dán vào `NOTES.md`.
-- [ ] `docs/so-tay/11-firmware-va-param.md` tồn tại và giải thích đủ 7 khái niệm ở 11.8.
+- [x] `firmware/ardupilot/build-d450a747/` có đủ 7 file. `arducopter_with_bl.hex` là **2.224.308 byte**, không phải 2,4–2,5 MB như plan ghi (đó là cỡ file `.tar.gz`).
+- [x] `git status --short` **không** liệt kê file `.hex`, `.apj`, `.bin`, `arducopter` (`git check-ignore -v` xác nhận từng file).
+- [x] `build.log`: PROXIMITY 28 dòng, TFMINI 6, AVOID 8, OAPATHPLANNER 3; `extra_hwdef.dat` có `define ... 1` cho cả 6 feature.
+- [x] Hai danh sách `selected_features` giống hệt, 54 feature — sau khi sửa regex so sánh của plan (ghi trong `NOTES.md`).
+- [x] `NOTES.md` có: bảng 6 feature đã tick kèm số dòng `build.log` + cờ `extra_hwdef`, cách rebuild 5 bước, cách kiểm chứng `PRX1_TYPE`.
+- [x] `firmware/ardupilot/params/README.md` mô tả đủ quy ước `00..07` và ba luật.
+- [x] `01-base.param` có đúng 33 dòng tham số; ASCII thuần, không BOM, không CRLF.
+- [x] `02-avoid-tfmini.param` có đủ 17 dòng tham số (giống hệt từng byte file cũ) và giữ nguyên chú thích gốc; không còn tham chiếu tới đường dẫn cũ.
+- [x] Đã nạp thử cả hai file vào SITL bằng `run_param_load` (PASS): 50 dòng, 44 nhận ngay, 6 lệch — đã dán vào `NOTES.md`.
+- [x] `docs/so-tay/11-firmware-ardupilot-param.md` giải thích đủ 7 khái niệm ở 11.8 (thêm mục `OA_TYPE`).
 
-Ghi chú: 
+Ghi chú: khối `01-base.param` trong plan có **34** dòng chứ không phải 33. Đã bỏ
+`SERIAL5_BAUD` theo khuyến nghị của Phase 04 (firmware ép 115200 cho cổng ESC
+telemetry, dòng đó vô tác dụng), nên còn đúng 33. Nạp SITL bằng runner thay cho nạp
+tay qua Mission Planner, vì ArduPilot im lặng khi gặp tên param không tồn tại; runner
+tra lại tên trong bảng param. Plan dự đoán SITL từ chối `PRX1_*` — sai, SITL nhận.
+`AVOID_ANG_MAX` có trên board thật (build bật `AC_AVOID_ALTHOLD`); `params/sitl/README.md`
+đã sửa theo. Đổi tên file avoid kéo theo sửa đường dẫn trong `run_param_load.py`,
+`run_avoid_brake.py`, `run_sitl.sh`. `.gitignore` chỉ thêm `firmware/dronebridge/bin/`:
+bốn dòng còn lại của plan đã được luật sẵn có chặn. Sổ tay viết vào file giữ chỗ
+`11-firmware-ardupilot-param.md` (tên theo quy ước thư mục) thay vì tạo
+`11-firmware-va-param.md`.
 
 ## Phase 12 — Firmware ESP32 + camera
 

@@ -11,8 +11,8 @@ Ngày thử: **25/09/2026** · Bản SITL: **ArduCopter 4.7.1** build từ ngu�
 | File | Là gì |
 |---|---|
 | `00-sitl-default.param` | Snapshot gốc: SITL với EEPROM trắng (`-w`), **1370** param |
-| `01-base-draft.param` | Bản nháp base, chép nguyên văn báo cáo §4.6 — vì `01-base.param` (Phase 11) chưa có |
-| `01-sitl-base-loaded.param` | Snapshot sau khi nạp bản nháp base và reboot |
+| `01-base-draft.param` | Bản nháp base, chép nguyên văn báo cáo §4.6. Chỉ dùng khi chưa có `01-base.param`; từ Phase 11 runner nạp `../01-base.param` |
+| `01-sitl-base-loaded.param` | Snapshot sau khi nạp base và reboot (từ Phase 11: `01-base.param`) |
 | `02-sitl-avoid.param` | Snapshot của cấu hình **đã thấy AVOID phanh**: nguyên file avoid của dự án + TFmini ảo trên SERIAL3 |
 
 ## Bảng 9 dòng — quan sát thật, không chép đoán
@@ -32,8 +32,9 @@ nạp, **và** đọc lại đúng giá trị đó sau reboot.
 | `AVOID_ENABLE` | avoid | nhận | 3 = fence + proximity |
 | `OA_TYPE` | avoid | nhận | 0 = tắt, cố ý |
 
-Toàn bộ **51 dòng** của hai file (34 base + 17 avoid) đã được kiểm từng dòng;
-44 dòng "nhận" ngay, 7 dòng còn lại liệt kê ở hai mục dưới.
+Phase 04 kiểm **51 dòng** (bản nháp 34 base + 17 avoid): 44 "nhận" ngay, 7 lệch.
+Phase 11 nạp lại với `01-base.param` (33 dòng, đã bỏ `SERIAL5_BAUD`) và
+`02-avoid-tfmini.param`: **50 dòng, 44 nhận ngay, 6 lệch** — liệt kê ở hai mục dưới.
 
 ## Param SITL từ chối
 
@@ -41,7 +42,7 @@ Toàn bộ **51 dòng** của hai file (34 base + 17 avoid) đã được kiểm
 |---|---|---|---|
 | `SERVO_BLH_POLES` | base | `TỪ CHỐI — không tồn tại` | Nhóm `SERVO_BLH_*` chỉ biên dịch khi `HAL_SUPPORT_RCOUT_SERIAL = 1`. Board ChibiOS (F405) bật (`libraries/AP_HAL/board/chibios.h:113`), SITL tắt (`AP_HAL_Boards.h:270`). **SITL thiếu, không phải dự án ghi sai** |
 | `SERVO_BLH_TRATE` | base | `TỪ CHỐI — không tồn tại` | Như trên |
-| `AVOID_ANG_MAX` | avoid | `TỪ CHỐI — không tồn tại` | Nằm trong `#if AP_AVOIDANCE_ALTHOLD_ENABLED`, mà cờ này **mặc định 0 cho MỌI bản build** (`AC_Avoidance_config.h:31`). Đây là tránh vật cản ở mode **không GPS (AltHold)**. Rất có thể board thật cũng không có |
+| `AVOID_ANG_MAX` | avoid | `TỪ CHỐI — không tồn tại` | Nằm trong `#if AP_AVOIDANCE_ALTHOLD_ENABLED`, mà cờ này **mặc định 0** (`AC_Avoidance_config.h:31`), kể cả SITL. Đây là tránh vật cản ở mode **không GPS (AltHold)**. Custom build của dự án **bật** nó (`extra_hwdef.dat`: `define AP_AVOIDANCE_ALTHOLD_ENABLED 1`, feature `AC_AVOID_ALTHOLD`), nên board thật **có** param này |
 
 ArduPilot **không báo lỗi** khi nhận `PARAM_SET` một tên không tồn tại, nó chỉ
 im lặng. Runner phân loại bằng cách tra tên trong bảng `param fetch` đầy đủ.
@@ -51,7 +52,7 @@ im lặng. Runner phân loại bằng cách tra tên trong bảng `param fetch` 
 | Param | File | Quan sát | Ý nghĩa |
 |---|---|---|---|
 | `RNGFND1_ORIENT` · `RNGFND1_MIN` · `RNGFND1_MAX` | avoid | Lần nạp đầu **không tồn tại**; xuất hiện sau khi `RNGFND1_TYPE 20` đã đặt **và** reboot; nạp lần hai thì nhận | Mission Planner sẽ báo "not found" ở lần nạp đầu trên board thật. **Không phải firmware thiếu tính năng.** Nạp → reboot → nạp lại |
-| `SERIAL5_BAUD` | base | Nạp 19 → FC xác nhận 19 → **sau reboot đọc lại 115** | `AP_SerialManager.cpp:516` ép cứng 115200 cho mọi cổng ESC telemetry (`SERIALn_PROTOCOL 16`) lúc khởi động. Chú thích "19200 là mặc định board" trong bản nháp là sai; dòng này vô tác dụng **trên cả board thật**. Phase 11 nên bỏ nó |
+| `SERIAL5_BAUD` | base (bản nháp) | Nạp 19 → FC xác nhận 19 → **sau reboot đọc lại 115** | `AP_SerialManager.cpp:516` ép cứng 115200 cho mọi cổng ESC telemetry (`SERIALn_PROTOCOL 16`) lúc khởi động. Chú thích "19200 là mặc định board" trong bản nháp là sai; dòng này vô tác dụng **trên cả board thật**. **Phase 11 đã bỏ** khỏi `01-base.param` |
 
 ## Bộ param dự án có cho drone bay không
 
@@ -75,7 +76,7 @@ bằng đồng hồ vạn năng (báo cáo §4.5).
 
 ## Tránh vật cản với TFmini Plus ảo — đã thấy phanh
 
-Nạp **nguyên** `obstacle-avoidance-tfminiplus-serial3.param`, gắn TFmini ảo vào
+Nạp **nguyên** file avoid của dự án (nay là `02-avoid-tfmini.param`, Phase 11 đổi tên từ `obstacle-avoidance-tfminiplus-serial3.param`), gắn TFmini ảo vào
 SERIAL3, bay LOITER và giữ `rc 2 1300` về phía một cột ảo suốt 40 s:
 
 | | Đối chứng (`AVOID_ENABLE 0`) | File avoid của dự án |
@@ -99,10 +100,10 @@ ArduPilot chỉ gửi gói `RANGEFINDER` cho rangefinder nhìn xuống (`GCS_Com
 Sau khi nạp firmware custom lên board thật, mở Full Parameter List và kiểm:
 
 - [ ] `SERVO_BLH_POLES`, `SERVO_BLH_TRATE` — **phải có** (ChibiOS bật BLHeli). Không có → custom build thiếu BLHeli, mất RPM telemetry.
-- [ ] `AVOID_ANG_MAX` — nhiều khả năng **không có**. Nếu không có: tránh vật cản ở **AltHold không chạy**, chỉ LOITER/PosHold. Ghi lại, đừng build lại chỉ vì nó.
+- [ ] `AVOID_ANG_MAX` — **phải có** (build bật `AC_AVOID_ALTHOLD`). Không có → đã nạp nhầm bản, xem `../../build-d450a747/NOTES.md`.
 - [ ] `PRX1_TYPE` — **phải có**. SITL nhận vì SITL bật gần như mọi thứ; board F405 thì chỉ có nếu custom build bật proximity.
 - [ ] `RNGFND1_ORIENT/MIN/MAX` — "not found" ở lần nạp đầu là bình thường. Nạp → reboot → nạp lại.
-- [ ] `SERIAL5_BAUD` — đọc lại sẽ là 115 dù file ghi 19. Đó là đúng.
+- [ ] `SERIAL5_BAUD` — `01-base.param` không đặt dòng này; đọc ra 115 là đúng.
 
 Nếu board thật thiếu một feature bắt buộc (`PRX1_TYPE`, `RNGFND1_TYPE 20`) → build lại tại
 custom.ardupilot.org bằng `firmware/ardupilot/custombuild/speedybeef4v5-copter471-tfminiplus.yaml`.

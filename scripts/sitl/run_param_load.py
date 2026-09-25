@@ -40,7 +40,7 @@ PARAMS_DIR = harness.REPO_ROOT / "firmware" / "ardupilot" / "params"
 SITL_DIR = PARAMS_DIR / "sitl"
 BASE_CHINH_THUC = PARAMS_DIR / "01-base.param"  # Phase 11 sở hữu
 BASE_NHAP = SITL_DIR / "01-base-draft.param"
-AVOID = PARAMS_DIR / "obstacle-avoidance-tfminiplus-serial3.param"
+AVOID = PARAMS_DIR / "02-avoid-tfmini.param"
 
 # 9 dòng bảng bắt buộc của plan (việc 04.3b) — (tên, file nguồn, ghi chú của plan).
 BANG_9 = [
@@ -90,8 +90,9 @@ DOI_SAU_REBOOT = "nhận lúc nạp, FC TỰ ĐỔI sau reboot"
 # dòng mới lệch -> README thiếu; dòng cũ hết lệch -> README nói sai. Cả hai đều
 # phải sửa README trước; KHÔNG sửa danh sách này cho khớp số đo mà chưa hiểu vì sao
 # nó đổi (firmware đổi? file param đổi?).
+# `base:SERIAL5_BAUD` (DOI_SAU_REBOOT) từng nằm đây khi nạp bản nháp; Phase 11 bỏ
+# hẳn dòng đó khỏi 01-base.param vì FC ép cứng 115200 nên nó vô tác dụng.
 KY_VONG_KHONG_NHAN = {
-    "base:SERIAL5_BAUD": DOI_SAU_REBOOT,
     "base:SERVO_BLH_POLES": KHONG_TON_TAI,
     "base:SERVO_BLH_TRATE": KHONG_TON_TAI,
     "avoid:RNGFND1_ORIENT": NHAN_SAU_REBOOT,
