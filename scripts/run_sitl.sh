@@ -13,17 +13,20 @@
 #                   vì sim_vehicle.py tự phát hiện WSL2 và tự phát UDP về IP
 #                   Windows. Thừa hoặc thiếu cờ này là nguyên nhân phổ biến nhất
 #                   của "Mission Planner không thấy gì".
-#   SITL_EXTRA    : cờ thêm cho Phase 04 — gắn cảm biến mô phỏng vào cổng serial,
-#                   dạng "-A --serialN=sim:<tên>". Dự án dùng Benewake TFmini Plus
-#                   (rangefinder MỘT hướng) trên SERIAL3, xem
-#                   firmware/ardupilot/params/obstacle-avoidance-tfminiplus-serial3.param
-#                   — file đó là nguồn sự thật cho việc chia cổng, không phải hwdef,
-#                   vì DEFAULT_SERIAL3_PROTOCOL trong hwdef chỉ là mặc định của
-#                   tham số và bản build của dự án đã gỡ hẳn MSP/OSD/VTX.
-#                   Tên sim: cụ thể chốt ở Phase 04, chưa kiểm nên chưa ghi ra đây.
-#                   MỖI GIÁ TRỊ KHÔNG ĐƯỢC CHỨA DẤU CÁCH — biến này bị tách từ
-#                   nên nháy không có tác dụng. Nhiều cảm biến thì lặp lại -A:
-#                   SITL_EXTRA="-A --serial3=sim:x -A --serial5=sim:y"
+#   SITL_DEVICES  : chuỗi truyền NGUYÊN VẸN cho cờ -A của sim_vehicle.py, tức
+#                   là các cờ của chính arducopter, được phép chứa dấu cách.
+#                   Đi dây giống board thật của dự án (đã chạy thật ở Phase 04):
+#                     SITL_DEVICES="--serial3=sim:benewake_tfmini --serial4=GPS1"
+#                   - TFmini Plus ảo trên SERIAL3, đúng như
+#                     firmware/ardupilot/params/obstacle-avoidance-tfminiplus-serial3.param.
+#                   - GPS ảo của SITL nằm CỨNG ở SERIAL3 (SITL_State.h), nên phải
+#                     dời sang SERIAL4, đúng chỗ GPS M10 trên board.
+#                   Phải gộp MỌI thiết bị vào MỘT chuỗi: -A là tuỳ chọn kiểu chuỗi
+#                   của optparse, lặp lại -A thì cờ SAU ĐÈ cờ trước và thiết bị
+#                   đầu biến mất không báo lỗi.
+#   SITL_EXTRA    : cờ thêm cho sim_vehicle.py, ví dụ "-l lat,lon,alt,heading".
+#                   Bị tách theo dấu cách (nháy không có tác dụng), nên KHÔNG dùng
+#                   biến này cho -A — dùng SITL_DEVICES.
 #
 # Cờ truyền thẳng trên dòng lệnh cũng được nối vào cuối.
 set -euo pipefail
@@ -31,6 +34,7 @@ set -euo pipefail
 ARDUPILOT_DIR="${ARDUPILOT_DIR:-$HOME/ardupilot}"
 WSL_MIRRORED="${WSL_MIRRORED:-1}"
 SITL_EXTRA="${SITL_EXTRA:-}"
+SITL_DEVICES="${SITL_DEVICES:-}"
 
 SIM_VEHICLE="${ARDUPILOT_DIR}/Tools/autotest/sim_vehicle.py"
 
@@ -67,6 +71,9 @@ esac
 # theo thư mục ĐANG đứng (gốc repo khi gọi qua `make sitl`), trước cả lệnh cd.
 # shellcheck disable=SC2206
 set -f; EXTRA_ARGS=(${SITL_EXTRA}); set +f
+if [[ -n "${SITL_DEVICES}" ]]; then
+  EXTRA_ARGS+=(-A "${SITL_DEVICES}")
+fi
 
 # In ra quyết định của chính mình. Nếu không có dòng này thì khi Mission Planner
 # không thấy gì, không có cách nào biết script đã chọn nhánh nào.

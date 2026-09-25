@@ -22,6 +22,8 @@ cd /mnt/d/Coding/IOT-CV
 | `run_mission_auto.py` | Mission 5 waypoint nạp xuống có đúng và chạy được ở AUTO không? | 03.4 |
 | `run_mission_low_alt.py` | FC có chặn waypoint thấp 3 m không, hay backend phải tự chặn? | Phase 07 |
 | `run_log_dump.py` | Rút độ cao + các lần đổi mode từ `.BIN` ra CSV | 03.6 |
+| `run_param_load.py` | Param nào của dự án SITL nhận, param nào từ chối, param nào FC tự đổi sau reboot? Ghi snapshot `00`/`01` | 04.1–04.3 |
+| `run_avoid_brake.py` | TFmini Plus ảo + file avoid của dự án có làm drone phanh trước cột không (có đối chứng AVOID tắt)? Ghi snapshot `02` + đồ thị | 04.4–04.5 |
 
 Mỗi script in một khối `## KET QUA` dạng bảng và kết bằng `KET QUA: PASS` /
 `KET QUA: FAIL`, **mã thoát khác 0 khi hỏng** — cắm được vào CI.
@@ -53,8 +55,10 @@ with SitlInstance(harness.run_dir("ten-runner"), speedup=5) as sitl:
 
 `wait_ready()` · `set_mode()` · `arm()` · `takeoff()` · `wait_altitude()` ·
 `wait_disarmed()` · `get_position()` → dict · `get_mode_name()` · `set_param()` ·
-`start_auto_mission()` · `square_via_rc()`, cộng `run_dir()` / `upload_mission()` /
-`download_mission()` / `print_ket_qua()` / `find_latest_bin()` ở mức module.
+`start_auto_mission()` · `square_via_rc()` · `rc_override()` · `fetch_all_params()` ·
+`try_set_param()`, cộng `run_dir()` / `upload_mission()` /
+`download_mission()` / `print_ket_qua()` / `find_latest_bin()` /
+`read_param_file()` / `write_param_file()` ở mức module.
 
 ## Năm cái bẫy đã sập thật (22/09/2026)
 
@@ -91,6 +95,27 @@ Thêm một cái về môi trường, không phải về ArduPilot: SITL khởi 
 `PARAM_VALUE` nào chỉ lọc theo kiểu message sẽ vớ phải gói đầu tiên trong cơn lũ
 đó. Triệu chứng đánh lừa: xin đọc `RTL_ALT` mà nhận về `BARO1_GND_PRESS`.
 `set_param()` xử lý bằng cách gửi lại định kỳ và lọc theo đúng tên.
+
+## Thêm bốn cái bẫy (Phase 04, 25/09/2026)
+
+6. **RC override bị bỏ qua im lặng nếu không đến từ sysid của GCS.** ArduPilot
+   chỉ nhận `RC_CHANNELS_OVERRIDE` từ `MAV_GCS_SYSID` (mặc định 255). Harness cũ
+   nối bằng sysid 250, nên `square_via_rc()` **chưa từng có tác dụng** — không
+   runner nào gọi nó nên không ai thấy. Lộ ra khi giữ cần tiến ở LOITER mà drone
+   đứng yên rồi tụt xuống đất (`SIM Hit ground`): ga rơi về RC ảo của SITL. Nay
+   harness nối bằng 255.
+7. **GPS ảo của SITL nằm cứng ở SERIAL3.** Nạp bộ param dự án (SERIAL3 = TFmini)
+   là SITL mất GPS, không bao giờ sẵn sàng. Chạy với
+   `-A "--serial3=sim:benewake_tfmini --serial4=GPS1"` — **một** cờ `-A`, lặp cờ
+   thì cờ sau đè cờ trước.
+8. **`RC_PROTOCOLS 4` (chỉ iBUS) tắt RC ảo của SITL**, vốn đi qua giao thức
+   "SITL UDP" (bit 18): `PreArm: RC not found`. Thử bay bộ param dự án trên SITL
+   thì bù `RC_PROTOCOLS = 4 + 2^18`.
+9. **HEARTBEAT của GCS khác lọt vào.** ArduPilot định tuyến MAVLink giữa các
+   cổng, nên khi Mission Planner nối cổng 5762, HEARTBEAT của MP (`custom_mode 0`
+   = STABILIZE) tới cả cổng 5760 của harness. `get_mode_name()` cũ đọc nó thành
+   mode của drone: arm xong, `takeoff()` báo "đang STABILIZE". Nay `recv_match()`
+   chỉ nhận HEARTBEAT từ sysid của drone.
 
 ## Log bay
 

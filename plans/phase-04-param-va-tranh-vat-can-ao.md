@@ -2,7 +2,13 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 03 | ~5 giờ | Không |
+| ĐÃ XONG (2026-09-25) | Phase 03 | ~5 giờ | Không |
+
+> **25/09/2026 — phạm vi đã đổi, chủ dự án quyết.** Dự án chỉ có một cảm biến khoảng cách là
+> TFmini Plus. Các bài LD06 (04.4b) và rangefinder analog (04.4a) dưới đây **không làm**; thay bằng
+> TFmini ảo `sim:benewake_tfmini` trên SERIAL3 với nguyên file avoid của dự án. Kết quả và các chỗ
+> plan này ghi sai (công thức analog thiếu `RNGFND1_PIN`; "lặp lại `-A`"; AVOID ở AltHold):
+> `plans/PROGRESS.md` mục Phase 04 và `docs/so-tay/04-param-va-tranh-vat-can-ao.md`.
 
 ## Mục tiêu
 

@@ -280,7 +280,13 @@ class SitlInstance:
                     f"kết nối được. Xem log: {self.use_dir}/sim_vehicle_stdout.log"
                 )
             try:
-                m = mavutil.mavlink_connection("tcp:127.0.0.1:5760", source_system=250)
+                # 255 = MAV_GCS_SYSID mặc định. ArduPilot BỎ QUA IM LẶNG mọi
+                # RC_CHANNELS_OVERRIDE không đến từ sysid của GCS
+                # (GCS_Common.cpp: `if (!gcs().sysid_is_gcs(msg.sysid))`). Bản cũ
+                # dùng 250 nên rc_override()/square_via_rc() chưa từng có tác dụng:
+                # đo 25/09/2026, giữ cần tiến ở LOITER mà máy bay đứng yên rồi
+                # tụt xuống đất vì ga rơi về RC ảo của SITL.
+                m = mavutil.mavlink_connection("tcp:127.0.0.1:5760", source_system=255)
                 hb = m.wait_heartbeat(timeout=5)
             except (ConnectionRefusedError, OSError, TimeoutError) as exc:
                 last_err = exc
@@ -388,6 +394,14 @@ class SitlInstance:
                 self.statustext_log.append(msg.text)
                 if type_ == "STATUSTEXT":
                     return msg
+                continue
+            # ArduPilot ĐỊNH TUYẾN MAVLink giữa các cổng: HEARTBEAT của một GCS
+            # khác (Mission Planner nối cổng 5762) được chuyển sang cổng của ta.
+            # Gói đó có custom_mode = 0 = STABILIZE, nên không lọc nguồn thì
+            # get_mode_name() đọc nhịp tim của MP thành mode của drone. Đo thật
+            # 25/09/2026: arm xong, takeoff() báo "đang STABILIZE" — chỉ xảy ra
+            # khi có GCS thứ hai.
+            if msg.get_type() == "HEARTBEAT" and msg.get_srcSystem() != self.master.target_system:
                 continue
             return msg
 
@@ -664,6 +678,71 @@ class SitlInstance:
                 return
         raise SitlError(f"set_param({name}, {value}) không có PARAM_VALUE xác nhận sau {timeout}s.")
 
+    def fetch_all_params(self, *, timeout: float = 90.0) -> dict[str, float]:
+        """Kéo TOÀN BỘ bảng tham số — tương đương `param fetch` của MAVProxy.
+
+        Đếm theo `param_index` chứ không theo tên: FC báo `param_count` trong mỗi
+        gói, và chỉ khi đủ từng index mới chắc là không rớt gói nào. Gói rớt thì
+        xin lại đúng index đó, không xin lại cả bảng.
+        """
+        m = self.master
+        m.mav.param_request_list_send(m.target_system, m.target_component)
+        params: dict[str, float] = {}
+        da_co: set[int] = set()
+        tong: int | None = None
+        deadline = time.monotonic() + timeout
+        lan_cuoi_co_goi = time.monotonic()
+        while time.monotonic() < deadline:
+            msg = m.recv_match(type="PARAM_VALUE", blocking=True, timeout=1.0)
+            if msg is not None:
+                tong = msg.param_count
+                params[msg.param_id.rstrip("\x00")] = msg.param_value
+                # 65535 = gói trả lời PARAM_SET, không mang index của bảng.
+                if msg.param_index != 65535:
+                    da_co.add(msg.param_index)
+                lan_cuoi_co_goi = time.monotonic()
+            if tong is not None and len(da_co) >= tong:
+                return params
+            if tong is not None and time.monotonic() - lan_cuoi_co_goi > 2.0:
+                for i in sorted(set(range(tong)) - da_co)[:50]:
+                    m.mav.param_request_read_send(m.target_system, m.target_component, b"", i)
+                lan_cuoi_co_goi = time.monotonic()
+        raise SitlError(f"fetch_all_params: hết {timeout}s mới có {len(da_co)}/{tong} tham số.")
+
+    def try_set_param(self, name: str, value: float, *, timeout: float = 8.0) -> float | None:
+        """Như `set_param` nhưng KHÔNG ném: trả giá trị FC xác nhận lại (có thể
+        khác giá trị gửi — FC làm tròn hoặc kẹp), hoặc None nếu FC im lặng.
+
+        ArduPilot KHÔNG trả lỗi cho PARAM_SET một tên không tồn tại, nó chỉ im
+        lặng. Nên muốn biết "tham số có tồn tại không" thì tra `fetch_all_params()`
+        trước; hàm này chỉ để đo FC có nhận giá trị hay không.
+        """
+        deadline = time.monotonic() + timeout
+        gui_luc = 0.0
+        while time.monotonic() < deadline:
+            if time.monotonic() - gui_luc > 2.0:
+                self.master.mav.param_set_send(
+                    self.master.target_system,
+                    self.master.target_component,
+                    name.encode("utf-8"),
+                    float(value),
+                    mavutil.mavlink.MAV_PARAM_TYPE_REAL32,
+                )
+                gui_luc = time.monotonic()
+            msg = self.master.recv_match(type="PARAM_VALUE", blocking=True, timeout=0.5)
+            if msg is not None and msg.param_id.rstrip("\x00") == name:
+                return msg.param_value
+        return None
+
+    def rc_override(self, kenh: dict[int, int]) -> None:
+        """Gửi RC_CHANNELS_OVERRIDE cho kênh 1-8. Kênh không có trong `kenh` gửi
+        0 = trả quyền lại cho tay điều khiển (quy ước MAVLink). Drone ẢO — xem
+        chú thích CẤM ở đầu file."""
+        vals = [kenh.get(i, 0) for i in range(1, 9)]
+        self.master.mav.rc_channels_override_send(
+            self.master.target_system, self.master.target_component, *vals
+        )
+
     # -- bay hình vuông bằng rc override trong LOITER --------------------
 
     def square_via_rc(
@@ -884,6 +963,39 @@ def print_ket_qua(rows: list[tuple[str, str]], *, title: str = "") -> None:
     for key, val in rows:
         print(f"| {key} | {val} |")
     print()
+
+
+def read_param_file(path: Path) -> list[tuple[str, float]]:
+    """Đọc file `.param` theo thứ tự dòng. Nhận cả dạng Mission Planner
+    (`TEN,gia_tri`) lẫn MAVProxy (`TEN   gia_tri`); bỏ dòng `#` và dòng trống.
+    Bỏ `\\r` cuối dòng — file lưu từ Windows là nguyên nhân quen của "không đọc
+    được file" (plan Phase 04, việc 04.2 lỗi 3)."""
+    out: list[tuple[str, float]] = []
+    for so_dong, dong in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
+        dong = dong.strip().rstrip("\r")
+        if not dong or dong.startswith("#"):
+            continue
+        phan = dong.replace(",", " ").split()
+        if len(phan) < 2:
+            raise SitlError(f"{path}:{so_dong}: không tách được TEN,gia_tri từ {dong!r}")
+        out.append((phan[0], float(phan[1])))
+    return out
+
+
+def _fmt_param(v: float) -> str:
+    # Số nguyên in dạng nguyên (LOG_BITMASK 176126, không phải 176126.0).
+    # Số thực float32 in 7 chữ số có nghĩa: 0.100000001 -> 0.1.
+    if abs(v - round(v)) < 1e-6 and abs(v) < 1e9:
+        return str(int(round(v)))
+    return f"{v:.7g}"
+
+
+def write_param_file(path: Path, params: dict[str, float], header: Iterable[str]) -> None:
+    """Ghi snapshot dạng `TEN,gia_tri`, sắp theo tên — đúng dạng Mission Planner
+    `Load from file` đọc được, dòng `#` đầu file là chú thích."""
+    lines = [f"# {h}" for h in header]
+    lines += [f"{ten},{_fmt_param(params[ten])}" for ten in sorted(params)]
+    Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def find_latest_bin(search_dirs: Iterable[Path]) -> Path | None:
