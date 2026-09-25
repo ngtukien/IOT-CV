@@ -2,184 +2,57 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* Tailwind v4: KHÔNG có tailwind.config.js. Plugin nằm trong vite.config.ts
+   (@tailwindcss/vite), còn theme khai báo ngay trong file này bằng @theme. */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: oklch(0.922 0 0);
-  --code-bg: #f4f3ec;
-  --accent: oklch(0.97 0 0);
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-
   --background: oklch(1 0 0);
-
   --foreground: oklch(0.145 0 0);
-
   --card: oklch(1 0 0);
-
   --card-foreground: oklch(0.145 0 0);
-
   --popover: oklch(1 0 0);
-
   --popover-foreground: oklch(0.145 0 0);
-
   --primary: oklch(0.205 0 0);
-
   --primary-foreground: oklch(0.985 0 0);
-
   --secondary: oklch(0.97 0 0);
-
   --secondary-foreground: oklch(0.205 0 0);
-
   --muted: oklch(0.97 0 0);
-
   --muted-foreground: oklch(0.556 0 0);
-
+  --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-
   --destructive: oklch(0.577 0.245 27.325);
-
+  --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-
   --ring: oklch(0.708 0 0);
-
   --chart-1: oklch(0.87 0 0);
-
   --chart-2: oklch(0.556 0 0);
-
   --chart-3: oklch(0.439 0 0);
-
   --chart-4: oklch(0.371 0 0);
-
   --chart-5: oklch(0.269 0 0);
-
   --radius: 0.625rem;
-
   --sidebar: oklch(0.985 0 0);
-
   --sidebar-foreground: oklch(0.145 0 0);
-
   --sidebar-primary: oklch(0.205 0 0);
-
   --sidebar-primary-foreground: oklch(0.985 0 0);
-
   --sidebar-accent: oklch(0.97 0 0);
-
   --sidebar-accent-foreground: oklch(0.205 0 0);
-
   --sidebar-border: oklch(0.922 0 0);
-
-  --sidebar-ring: oklch(0.708 0 0)
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --color-hud-cyan: var(--hud-cyan);
+  --color-hud-green: var(--hud-green);
+  --color-hud-amber: var(--hud-amber);
+  --color-hud-red: var(--hud-red);
+  --color-panel: var(--panel);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -221,43 +94,104 @@ code {
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Tông "buồng lái": xanh đen, không phải xám trung tính — số liệu sáng màu
+     nổi lên trên nền tối là quy ước của mọi màn hình bay. */
+  --background: oklch(0.145 0.022 256);
+  --foreground: oklch(0.955 0.008 250);
+  --card: oklch(0.19 0.026 256);
+  --card-foreground: oklch(0.955 0.008 250);
+  --popover: oklch(0.21 0.028 256);
+  --popover-foreground: oklch(0.955 0.008 250);
+  --primary: oklch(0.82 0.13 210);
+  --primary-foreground: oklch(0.18 0.03 250);
+  --secondary: oklch(0.25 0.028 256);
+  --secondary-foreground: oklch(0.955 0.008 250);
+  --muted: oklch(0.24 0.026 256);
+  --muted-foreground: oklch(0.68 0.025 255);
+  --accent: oklch(0.27 0.03 256);
+  --accent-foreground: oklch(0.955 0.008 250);
+  --destructive: oklch(0.68 0.2 22);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.82 0.13 210 / 60%);
+  --chart-1: oklch(0.82 0.13 210);
+  --chart-2: oklch(0.8 0.17 155);
+  --chart-3: oklch(0.83 0.16 80);
+  --chart-4: oklch(0.68 0.2 22);
+  --chart-5: oklch(0.7 0.15 300);
+  --sidebar: oklch(0.19 0.026 256);
+  --sidebar-foreground: oklch(0.955 0.008 250);
+  --sidebar-primary: oklch(0.82 0.13 210);
+  --sidebar-primary-foreground: oklch(0.18 0.03 250);
+  --sidebar-accent: oklch(0.27 0.03 256);
+  --sidebar-accent-foreground: oklch(0.955 0.008 250);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.82 0.13 210 / 60%);
+
+  /* Màu trạng thái của HUD. Một bảng, dùng chung mọi panel. */
+  --hud-cyan: oklch(0.84 0.13 205);
+  --hud-green: oklch(0.8 0.17 155);
+  --hud-amber: oklch(0.84 0.16 80);
+  --hud-red: oklch(0.7 0.2 22);
+  --panel: oklch(0.19 0.026 256 / 72%);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;}
+    @apply border-border outline-ring/50;
+  }
   body {
-    @apply bg-background text-foreground;}
+    @apply bg-background text-foreground antialiased;
+    /* Hai vầng sáng + lưới mờ: đủ để nền có chiều sâu, không đủ để giành mắt
+       với số liệu. */
+    background-image:
+      radial-gradient(1200px 600px at 12% -10%, oklch(0.55 0.12 230 / 16%), transparent 60%),
+      radial-gradient(900px 500px at 100% 110%, oklch(0.55 0.12 190 / 10%), transparent 60%),
+      linear-gradient(oklch(1 0 0 / 2.5%) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 2.5%) 1px, transparent 1px);
+    background-size: auto, auto, 32px 32px, 32px 32px;
+    background-attachment: fixed;
+  }
   html {
-    @apply font-sans;}}
+    @apply font-sans;
+  }
+}
+
+@layer components {
+  /* Panel kính mờ — vỏ chung của mọi ô trên màn hình. */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 0.875rem;
+    backdrop-filter: blur(10px);
+    box-shadow:
+      inset 0 1px 0 0 oklch(1 0 0 / 5%),
+      0 12px 32px -16px oklch(0 0 0 / 70%);
+  }
+
+  /* Nền caro cho các ô chờ phase sau. */
+  .hatch {
+    background-image: repeating-linear-gradient(
+      135deg,
+      oklch(1 0 0 / 3%) 0 1px,
+      transparent 1px 12px
+    );
+  }
+}
+
+/* Dòng chảy trên đường nối khi link sống (thanh kết nối). */
+@keyframes link-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.link-flow {
+  animation: link-flow 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-flow {
+    animation: none;
+  }
+}

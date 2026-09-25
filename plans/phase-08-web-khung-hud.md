@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 05 (**Hợp đồng WebSocket** đã commit), Phase 01 (Vite scaffold + pnpm) | ~12 giờ | Không |
+| xong 25/09/2026 | Phase 05 (**Hợp đồng WebSocket** đã commit), Phase 01 (Vite scaffold + pnpm) | ~12 giờ | Không |
 
 ## Mục tiêu
 
@@ -491,3 +491,27 @@ Viết vào `docs/so-tay/08-web-khung-hud.md`:
 8. **Nhịp tim của WebSocket** — vì sao "socket đang mở" không chứng minh đường dây còn sống.
 9. **Proxy lúc dev là gì** — vì sao nhờ nó mà không có chỗ nào trong code phải biết số cổng.
 10. **Phiên bản đã dùng thật** — chép bảng `pnpm list --depth 0` vào sổ tay sau khi cài xong, để sau này dựng lại được đúng môi trường.
+
+## Đính chính sau khi làm (25/09/2026)
+
+Những chỗ plan này nói sai hoặc đã đổi, kiểm bằng chạy thật:
+
+1. **`ws_probe --send-garbage` không tồn tại, và nó đi sai hướng.** `ws_probe` gửi
+   **lên backend**; bài 5 cần rác đi **xuống trình duyệt**. Đã làm bằng Playwright
+   `page.routeWebSocket` chen frame vào đúng kết nối đang chạy.
+2. **`typescript 5.103.1` không có trên npm.** Bản thật là 6.0.3 (ghim `~6.0.2` từ
+   Phase 01). `react` 19.3.0, `vite` 8.3.0 đúng.
+3. **CLI `json2ts` chạy thẳng cho ra code khó dùng:** pydantic đặt `title` cho từng
+   trường nên ra `Ref1`, `Code2`…, và gốc schema là bảng tra chứ không phải model.
+   Dùng script `frontend/scripts/gen-protocol.ts` (bỏ `title` trường, sinh thêm bảng
+   tra). Không cần phương án gõ tay dự phòng.
+4. **zod không gõ tay:** validator lúc chạy dựng thẳng từ JSON Schema bằng
+   `z.fromJSONSchema` (zod 4.6), nên không có bản thứ hai để trôi.
+5. **Bố cục §8.1.3 đã đổi** theo góp ý của chủ dự án: HUD cột hẹp bị chê sơ sài và
+   phải cuộn lồng. Bản hiện tại: cả trang cuộn, màn hình bay (PFD) rộng ngang bản
+   đồ; vị trí ô Phase 09/10 xem `frontend/src/app/layout.css`.
+6. **Bảng shadcn `table` không dùng:** nhật ký sự kiện là danh sách có vạch màu.
+   `sonner` có thật trong CLI 4.21.0; bản sinh ra kéo theo `next-themes` — đã bỏ vì
+   trang chỉ có tông tối.
+7. **"DevTools thấy đúng một WS"** — ở dev còn một WS nữa của hot reload Vite
+   (`/?token=…`). Đếm theo đường `/ws`.
