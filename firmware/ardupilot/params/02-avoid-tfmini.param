@@ -1,8 +1,9 @@
-# Obstacle avoidance huong TRUOC - Benewake TFmini Plus tren SERIAL3 (UART3)
+# 02-avoid-tfmini.param - obstacle avoidance huong TRUOC
+#   - Benewake TFmini Plus tren SERIAL3 (UART3)
 # Board: SpeedyBee F405 V5 | Copter 4.7.1 CUSTOM BUILD
 #
 # BAT BUOC nap truoc: firmware tu custom.ardupilot.org dung file
-#   params/custombuild/speedybeef4v5-copter471-tfminiplus.yaml
+#   firmware/ardupilot/custombuild/speedybeef4v5-copter471-tfminiplus.yaml
 # Ban stock KHONG co nhom PRX_* -> load file nay se bao loi "parameter not found".
 #
 # Cach load: Mission Planner -> Config/Tuning -> Full Parameter List

@@ -18,7 +18,7 @@
 #                   Đi dây giống board thật của dự án (đã chạy thật ở Phase 04):
 #                     SITL_DEVICES="--serial3=sim:benewake_tfmini --serial4=GPS1"
 #                   - TFmini Plus ảo trên SERIAL3, đúng như
-#                     firmware/ardupilot/params/obstacle-avoidance-tfminiplus-serial3.param.
+#                     firmware/ardupilot/params/02-avoid-tfmini.param.
 #                   - GPS ảo của SITL nằm CỨNG ở SERIAL3 (SITL_State.h), nên phải
 #                     dời sang SERIAL4, đúng chỗ GPS M10 trên board.
 #                   Phải gộp MỌI thiết bị vào MỘT chuỗi: -A là tuỳ chọn kiểu chuỗi

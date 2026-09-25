@@ -1,0 +1,121 @@
+# 01-base.param - cau hinh nen truoc chuyen bay dau
+# Board: SpeedyBee F405 V5 | ArduCopter 4.7.1 CUSTOM BUILD (custom.ardupilot.org)
+# Nap SAU khi 00-after-flash.param da luu.
+# Cach load: Mission Planner -> Config/Tuning -> Full Parameter List
+#            -> Load from file -> Write Params -> reboot FC
+#
+# CHUA bao gom: obstacle avoidance (xem 02-avoid-tfmini.param)
+#               radio calibration, compass calibration, ESC calibration
+#               -> ba thu do PHAI lam bang wizard, khong nap bang file param.
+#
+# Nguon: ban nhap plans/reports/260921-research-sitl-firmware-toolchain.md muc 4.6.
+# Sua co chu y so voi ban nhap (ly do ghi ngay tai dong do):
+#   SERIAL2_BAUD 57 -> 115, BATT_CAPACITY 5000 -> 5300, BATT_LOW_MAH 1000 -> 1060,
+#   BO dong SERIAL5_BAUD (firmware ep cung 115200, xem muc motor/ESC ben duoi).
+# Da nap thu vao SITL o Phase 11.7 - ket qua: firmware/ardupilot/build-d450a747/NOTES.md
+
+# ---------- khung ----------
+# FRAME_CLASS 1 = Quad, FRAME_TYPE 1 = X  (khung S500)
+# FRAME_TYPE con phai KIEM CHUNG bang Motor Test o Phase 16 - bo nay danh so
+# motor kieu Betaflight, co the khac chuan ArduPilot.
+FRAME_CLASS,1
+FRAME_TYPE,1
+
+# ---------- cong serial ----------
+# SERIAL1 = module Bluetooth noi bo, ArduPilot KHONG dung duoc -> de None
+SERIAL1_PROTOCOL,-1
+
+# SERIAL2 = ESP32 DroneBridge (Phase 17). UART2 la cong duy nhat co DMA.
+# 2 = MAVLink2, baud 115 = 115200 (mac dinh cua DroneBridge).
+# Ban nhap ghi "57 (hoac 115)" - day la cho chot, khong phai sua sai.
+SERIAL2_PROTOCOL,2
+SERIAL2_BAUD,115
+
+# SERIAL3 = TFmini Plus (nap tu 02-avoid-tfmini.param, ghi lai o day de doi chieu)
+# Mac dinh cua board la MSP DisplayPort nhung ban custom build da TAT OSD/MSP.
+SERIAL3_PROTOCOL,9
+SERIAL3_BAUD,115
+
+# SERIAL4 = GPS Holybro M10 (u-blox). 5 = GPS, baud 230 = 230400 (mac dinh board)
+SERIAL4_PROTOCOL,5
+SERIAL4_BAUD,230
+
+# SERIAL5 = ESC telemetry (OX32 4in1). 16 = ESC Telemetry.
+# KHONG dat SERIAL5_BAUD: ban nhap ghi "19 = mac dinh board" la SAI.
+# AP_SerialManager ep cung 115200 cho moi cong co PROTOCOL 16 luc khoi dong,
+# nap 19 thi FC nhan roi sau reboot doc lai 115 (do that tren SITL, Phase 04).
+# Dong do vo tac dung ca tren board that, nen bo.
+SERIAL5_PROTOCOL,16
+
+# SERIAL6 = receiver FlySky iA6B qua iBUS tren chan R6. 23 = RCIN
+SERIAL6_PROTOCOL,23
+
+# ---------- receiver ----------
+# RC_PROTOCOLS la BITMASK. bit2 = IBUS -> gia tri 4.
+# Chi bat iBUS (thay vi 1 = All) de tranh nhan nham protocol.
+# Tren SITL gia tri nay lam "PreArm: RC not found" vi RC ao di qua bit18
+# (SITL UDP). Chi SITL moi can 262148 - KHONG dat so do len board that.
+RC_PROTOCOLS,4
+
+# ---------- GPS ----------
+# Ten param doi tu GPS_TYPE -> GPS1_TYPE tu ban 4.6 tro di.
+# 2 = uBlox (M10 la u-blox; firmware custom da BO driver NMEA)
+GPS1_TYPE,2
+
+# ---------- compass ----------
+# Board KHONG co compass tich hop. M10 mang IST8310 tren I2C.
+# ArduPilot tu do driver -> khong ep bang param.
+# PHAI chay Onboard Mag Calibration SAU khi lap len khung (Phase 19).
+COMPASS_ENABLE,1
+COMPASS_USE,1
+
+# ---------- motor / ESC ----------
+# 5 = DShot300. Bat dau bang 300 (dung sai nhieu tot hon 600).
+# Nang len 6 = DShot600 SAU khi da bay on, neu muon.
+MOT_PWM_TYPE,5
+# So cuc nam cham cua motor. 14 la mac dinh, dung cho HAU HET motor 2212/2216.
+# KIEM TRA datasheet motor thuc te; sai so nay -> RPM telemetry sai.
+# SITL bao "khong ton tai" cho hai dong SERVO_BLH_* (SITL khong build BLHeli);
+# board ChibiOS thi CO. Xem NOTES.md cua ban build.
+SERVO_BLH_POLES,14
+# 10Hz du cho hien thi; nang len 100 khi bat harmonic notch theo RPM (Phase 22).
+SERVO_BLH_TRATE,10
+
+# ---------- pin 4S ----------
+# 4 = Analog Voltage and Current (mac dinh cua board)
+BATT_MONITOR,4
+# CANH BAO: README board ghi VOLT_MULT 11.2 / AMP_PERVLT 1,
+#           nhung hwdef.dat ghi 11.0 / 25.0. Hai nguon MAU THUAN.
+#           Dat theo hwdef (thu duoc bien dich vao firmware) roi PHAI hieu chinh
+#           bang dong ho van nang o Phase 16:
+#           Mission Planner -> Setup -> Optional Hardware -> Battery Monitor
+#           -> go dien ap do duoc vao o "Measured battery voltage".
+BATT_VOLT_MULT,11.0
+BATT_AMP_PERVLT,25.0
+# Dien dung THUC TE cua pin: Ovonic 4S 5300mAh (ban nhap ghi 5000, "doi theo pin ban mua")
+BATT_CAPACITY,5300
+# Nguong 4S: 3.5V/cell = 14.0V (canh bao), 3.3V/cell = 13.2V (nguy hiem).
+# Bao thu cho pin moi; siet lai sau khi biet sut ap thuc te.
+BATT_LOW_VOLT,14.0
+BATT_CRT_VOLT,13.2
+# 20% cua 5300 - chua 20% cho tuoi tho pin
+BATT_LOW_MAH,1060
+BATT_FS_LOW_ACT,2
+BATT_FS_CRT_ACT,1
+# Bo qua kiem tra dien ap pin luc khoi dong o lan dau tien de tranh
+# bao loi nham khi chua hieu chinh xong. DAT LAI 0 sau khi calib xong (Phase 16).
+BATT_ARM_VOLT,0
+
+# ---------- failsafe co ban ----------
+FS_THR_ENABLE,1
+FS_EKF_ACTION,1
+# Wi-Fi 2.4GHz SE rot lat vat. De 1 (RTL) thi drone tu bay ve chi vi laptop
+# mat goi 5 giay. Cac chuyen dau de 0 va dua vao RC failsafe - bo RC moi la
+# duong day cuu sinh, khong phai Wi-Fi.
+FS_GCS_ENABLE,0
+
+# ---------- log ----------
+# Board co 16MB dataflash. Ghi log ngay tu khi cam dien (khong doi arm)
+# de bat duoc loi luc khoi dong.
+LOG_BITMASK,176126
+LOG_DISARMED,1

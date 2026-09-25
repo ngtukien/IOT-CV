@@ -5,7 +5,7 @@ Dự án CHỈ có một cảm biến khoảng cách: Benewake TFmini Plus, mộ
 thẳng trước, trên SERIAL3 (chủ dự án chốt 25/09/2026 — không LD06, không lidar
 360°, không rangefinder analog). SITL có sẵn `sim:benewake_tfmini`, nên runner
 thử ĐÚNG cấu hình drone thật: nạp NGUYÊN file
-`firmware/ardupilot/params/obstacle-avoidance-tfminiplus-serial3.param`.
+`firmware/ardupilot/params/02-avoid-tfmini.param`.
 
 Hai kịch bản, cùng một bài bay (LOITER, giữ `rc 2 1300` về phía một cột ảo):
 
@@ -56,7 +56,7 @@ from harness import SitlError, SitlInstance, print_ket_qua  # noqa: E402
 
 USE_DIR = "avoid-brake"
 PARAMS_DIR = harness.REPO_ROOT / "firmware" / "ardupilot" / "params"
-AVOID_FILE = PARAMS_DIR / "obstacle-avoidance-tfminiplus-serial3.param"
+AVOID_FILE = PARAMS_DIR / "02-avoid-tfmini.param"
 SNAPSHOT = PARAMS_DIR / "sitl" / "02-sitl-avoid.param"
 ANH = harness.REPO_ROOT / "docs" / "so-tay" / "anh" / "04-avoid-phanh.png"
 SPEEDUP = 2
