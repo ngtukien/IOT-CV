@@ -8,7 +8,10 @@
  * Nút NẠP MISSION bị khoá khi còn lỗi hoặc máy bay chưa sẵn sàng, và tooltip
  * nói rõ vì sao — nút xám không có lý do là điều gây bực nhất cho người mới.
  */
-import { CloudUpload, Route, Trash2 } from "lucide-react";
+import { ArrowDownUp, CloudUpload, Redo2, Trash2, Undo2 } from "lucide-react";
+import { useEffect } from "react";
+
+import { IconRoute } from "@/components/icons";
 import type { CSSProperties } from "react";
 
 import { Panel } from "@/components/Panel";
@@ -125,7 +128,60 @@ function LoadedMissionLine({ draftItems }: { draftItems: Parameters<typeof sameM
   );
 }
 
-export function MissionEditor({ style }: { style?: CSSProperties }) {
+/** Ctrl+Z / Ctrl+Y (hoặc Ctrl+Shift+Z) hoàn tác bản nháp — trừ khi đang gõ vào ô nhập. */
+function useUndoShortcuts(): void {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
+      const store = useMissionStore.getState();
+      if (e.code === "KeyZ" && !e.shiftKey) {
+        e.preventDefault();
+        store.undo();
+      } else if (e.code === "KeyY" || (e.code === "KeyZ" && e.shiftKey)) {
+        e.preventDefault();
+        store.redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+}
+
+function DraftToolbar() {
+  const canUndo = useMissionStore((s) => s.past.length > 0);
+  const canRedo = useMissionStore((s) => s.future.length > 0);
+  const count = useMissionStore((s) => s.waypoints.length);
+  const defaultAlt = useMissionStore((s) => s.defaultAlt);
+  const busy = useMissionStore((s) => isUploading(s.uploadState));
+  const store = useMissionStore.getState();
+  return (
+    <div className="flex flex-wrap items-center gap-1" role="toolbar" aria-label="Sửa bản nháp">
+      <Button size="xs" variant="outline" disabled={!canUndo || busy} onClick={() => store.undo()} title="Hoàn tác (Ctrl+Z)">
+        <Undo2 aria-hidden /> Hoàn tác
+      </Button>
+      <Button size="xs" variant="outline" disabled={!canRedo || busy} onClick={() => store.redo()} title="Làm lại (Ctrl+Y)">
+        <Redo2 aria-hidden /> Làm lại
+      </Button>
+      <Button size="xs" variant="outline" disabled={count < 2 || busy} onClick={() => store.reverse()} title="Bay ngược lộ trình">
+        <ArrowDownUp aria-hidden /> Đảo chiều
+      </Button>
+      <Button
+        size="xs"
+        variant="outline"
+        disabled={count === 0 || busy || Number.isNaN(defaultAlt)}
+        onClick={() => store.setAllAlt(defaultAlt)}
+        title="Đặt mọi waypoint về độ cao cho điểm mới"
+      >
+        Đặt mọi điểm = {Number.isNaN(defaultAlt) ? "—" : `${defaultAlt} m`}
+      </Button>
+    </div>
+  );
+}
+
+export function MissionEditor({ style, className }: { style?: CSSProperties; className?: string }) {
+  useUndoShortcuts();
   const limits = useLimits();
   const home = useHome();
   const { items, issues, badSeqs } = useMissionDraft();
@@ -155,8 +211,10 @@ export function MissionEditor({ style }: { style?: CSSProperties }) {
   return (
     <Panel
       title="Soạn mission"
-      icon={Route}
+      subtitle="Cất cánh → các điểm → về nhà / hạ cánh"
+      icon={IconRoute}
       style={style}
+      className={className}
       testId="mission-panel"
       bodyClassName="flex flex-col gap-3 p-3"
       actions={
@@ -174,6 +232,8 @@ export function MissionEditor({ style }: { style?: CSSProperties }) {
           Chưa có điểm home — arm drone hoặc chờ GPS fix. Không có home thì không kiểm được khoảng cách, và chưa nạp được.
         </p>
       ) : null}
+
+      <DraftToolbar />
 
       <div className="flex flex-wrap items-center gap-2">
         <Label className="text-xs text-muted-foreground">Độ cao cho điểm mới</Label>
@@ -233,7 +293,7 @@ export function MissionEditor({ style }: { style?: CSSProperties }) {
         })}
         {waypoints.length === 0 ? (
           <li className="rounded-md border border-dashed border-border px-2 py-2 text-center text-xs text-muted-foreground">
-            Bấm lên bản đồ để thêm waypoint.
+            Bấm lên bản đồ, vẽ lộ trình, hoặc chọn một mẫu lộ trình để thêm waypoint.
           </li>
         ) : null}
         <RowShell

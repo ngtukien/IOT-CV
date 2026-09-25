@@ -15,11 +15,14 @@
  * một hình chữ nhật lùi vào 1/16 khung). Camera thật vào ở Phase 17, bộ nhận
  * diện thật ở `plans/ai/`; panel này không phải sửa khi đổi nguồn.
  */
-import { CameraOff, Video } from "lucide-react";
+import { Camera, CameraOff, Expand } from "lucide-react";
+
+import { IconVision } from "@/components/icons";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 import { Panel } from "@/components/Panel";
+import { cn } from "@/lib/utils";
 import { useTelemetryStore } from "@/store/telemetry";
 
 import { DetectionOverlay } from "./DetectionOverlay";
@@ -32,7 +35,20 @@ function streamSrc(attempt: number): string {
   return attempt === 0 ? VIDEO_STREAM_PATH : `${VIDEO_STREAM_PATH}?retry=${attempt}`;
 }
 
-export function VideoPanel({ style }: { style?: CSSProperties }) {
+export function VideoPanel({
+  style,
+  className,
+  bodyClassName,
+  title = "Video",
+  tools = false,
+}: {
+  style?: CSSProperties;
+  className?: string;
+  bodyClassName?: string;
+  title?: string;
+  /** Hiện nút chụp ảnh + toàn màn hình (trang Camera & AI). */
+  tools?: boolean;
+}) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -62,14 +78,41 @@ export function VideoPanel({ style }: { style?: CSSProperties }) {
   }
 
   const offline = failed || available === false;
+  const frameRef = useRef<HTMLDivElement>(null);
+
+  /** Chụp khung đang hiện + lớp box → PNG. Ảnh cùng nguồn gốc nên canvas không bị "nhiễm" CORS. */
+  const snapshot = () => {
+    const img = imgRef.current;
+    if (!img || offline || !img.naturalWidth) return;
+    const c = document.createElement("canvas");
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const ctx = c.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0);
+    const overlay = frameRef.current?.querySelector<HTMLCanvasElement>("[data-testid=detection-overlay]");
+    if (overlay && overlay.width > 0) ctx.drawImage(overlay, 0, 0, c.width, c.height);
+    c.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `iot-cv-camera-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  };
 
   return (
     <Panel
-      title="Video"
-      icon={Video}
+      title={title}
+      subtitle="MJPEG từ camera · khung nhận diện qua WebSocket"
+      icon={IconVision}
+      variant="instrument"
       style={style}
+      className={className}
       testId="video-panel"
-      bodyClassName="relative flex items-center justify-center overflow-hidden bg-black/40 p-2"
+      bodyClassName={cn("relative flex items-center justify-center overflow-hidden bg-[oklch(0.1_0.015_262)] p-2", bodyClassName)}
       actions={
         <>
           {fake ? (
@@ -80,9 +123,20 @@ export function VideoPanel({ style }: { style?: CSSProperties }) {
           <span className="font-mono text-[10px] text-muted-foreground" data-testid="video-meta">
             {frame ?? "—"} · {boxes ?? "—"} box
           </span>
+          {tools ? (
+            <>
+              <button type="button" onClick={snapshot} disabled={offline} className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/6 hover:text-foreground disabled:opacity-40" title="Chụp ảnh (kèm khung nhận diện)" data-testid="video-snapshot">
+                <Camera className="size-4" />
+              </button>
+              <button type="button" onClick={() => void frameRef.current?.requestFullscreen?.()} className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/6 hover:text-foreground" title="Toàn màn hình">
+                <Expand className="size-4" />
+              </button>
+            </>
+          ) : null}
         </>
       }
     >
+      <div ref={frameRef} className="relative flex h-full w-full items-center justify-center bg-[oklch(0.1_0.015_262)]">
       <img
         ref={imgRef}
         src={streamSrc(attempt)}
@@ -95,6 +149,7 @@ export function VideoPanel({ style }: { style?: CSSProperties }) {
         onError={() => setFailed(true)}
       />
       {offline ? null : <DetectionOverlay imgRef={imgRef} />}
+      </div>
       {offline ? (
         <div className="absolute inset-0 grid place-items-center" data-testid="camera-offline">
           <div className="flex flex-col items-center gap-2 text-center">

@@ -65,8 +65,6 @@ export function drawDetection(
   ctx.font = `${12 * pixelRatio}px ui-monospace, monospace`;
   for (const box of boxes) {
     const r = scaleBox(box, canvas, detection);
-    ctx.strokeStyle = "#3ee6a0";
-    ctx.strokeRect(r.x, r.y, r.w, r.h);
     const text = `${box.label} ${(box.confidence * 100).toFixed(0)}%${freshness === "stale" ? " · box cũ" : ""}`;
     const pad = 3 * pixelRatio;
     const tw = ctx.measureText(text).width + pad * 2;
@@ -76,6 +74,10 @@ export function drawDetection(
     ctx.fillRect(r.x, ty, tw, th);
     ctx.fillStyle = "#3ee6a0";
     ctx.fillText(text, r.x + pad, ty + th - 4 * pixelRatio);
+    // Viền vẽ SAU nhãn: ở khung video nhỏ nhãn rộng gần bằng box, nền nhãn từng
+    // đè mất cả cạnh trên (bắt được ở E2E "box trùng khung", web GCS v2).
+    ctx.strokeStyle = "#3ee6a0";
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
   }
   ctx.globalAlpha = 1;
   return boxes.length;

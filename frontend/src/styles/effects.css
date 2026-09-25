@@ -1,0 +1,236 @@
+/*
+ * Hiệu ứng nền và vỏ panel của HORIZON. Quy tắc hiệu năng:
+ *  - blur chỉ dùng trên phần tử CỐ ĐỊNH (topbar, sidebar, hộp thoại), không trên
+ *    panel nằm trong vùng cuộn;
+ *  - hạt nhiễu gắn vào MỘT lớp fixed, pointer-events: none;
+ *  - chỉ animate transform / opacity; mọi animation tắt khi người dùng chọn giảm
+ *    chuyển động (hệ điều hành hoặc Cài đặt → "Chuyển động: tắt").
+ */
+
+/* ---- Nền trang: bầu trời đêm + đường đồng mức + hạt nhiễu ------------------- */
+
+.app-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 620px at 8% -8%, color-mix(in oklch, var(--hud-cyan) 13%, transparent), transparent 62%),
+    radial-gradient(900px 560px at 104% 112%, color-mix(in oklch, var(--hud-green) 7%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--canvas-1), var(--canvas-2));
+}
+
+/* Đường đồng mức địa hình: SVG làm MẶT NẠ, màu lấy từ token nên đổi theo theme. */
+.app-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--contour);
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='720' viewBox='0 0 960 720'%3E%3Cg fill='none' stroke='black' stroke-width='1.2'%3E%3Cpath d='M-20 120 C 120 60 260 180 400 120 S 700 40 980 130'/%3E%3Cpath d='M-20 170 C 140 110 250 230 420 165 S 720 95 980 180'/%3E%3Cpath d='M-20 225 C 150 170 260 280 430 215 S 730 150 980 235'/%3E%3Cpath d='M120 420 C 180 330 330 320 380 400 S 330 540 220 520 S 70 490 120 420 Z'/%3E%3Cpath d='M160 425 C 200 365 310 360 340 410 S 300 495 225 482 S 130 470 160 425 Z'/%3E%3Cpath d='M200 428 C 225 395 285 395 300 420 S 275 462 235 456 S 185 450 200 428 Z'/%3E%3Cpath d='M560 470 C 640 380 820 390 860 480 S 780 650 650 630 S 500 560 560 470 Z'/%3E%3Cpath d='M610 480 C 660 420 790 425 815 488 S 755 600 665 588 S 570 540 610 480 Z'/%3E%3Cpath d='M660 490 C 690 455 760 458 775 495 S 740 558 690 552 S 640 525 660 490 Z'/%3E%3Cpath d='M-20 640 C 160 600 300 700 480 650 S 800 590 980 660'/%3E%3Cpath d='M-20 690 C 170 655 310 745 500 700 S 810 645 980 710'/%3E%3C/g%3E%3C/svg%3E");
+  mask-size: 960px 720px;
+  mask-repeat: repeat;
+}
+
+/* Hạt nhiễu: một lớp duy nhất cho cả trang. */
+.app-canvas::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- Panel kính ----------------------------------------------------------------- */
+
+@layer components {
+  .panel {
+    position: relative;
+    background: linear-gradient(180deg, color-mix(in oklch, var(--panel) 100%, transparent), color-mix(in oklch, var(--panel) 86%, transparent));
+    border: 1px solid var(--panel-edge);
+    border-radius: 0.9rem;
+    box-shadow:
+      inset 0 1px 0 0 var(--panel-highlight),
+      0 1px 0 0 color-mix(in oklch, var(--shadow-tint) 40%, transparent),
+      0 18px 40px -24px var(--shadow-tint);
+  }
+
+  /* Panel "thiết bị" (PFD, radar, video, 3D): thêm bốn góc ngoặc kiểu HUD. */
+  .panel-instrument::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    pointer-events: none;
+    border-radius: 0.55rem;
+    --c: color-mix(in oklch, var(--hud-cyan) 55%, transparent);
+    background:
+      linear-gradient(var(--c), var(--c)) top left / 12px 1.5px no-repeat,
+      linear-gradient(var(--c), var(--c)) top left / 1.5px 12px no-repeat,
+      linear-gradient(var(--c), var(--c)) top right / 12px 1.5px no-repeat,
+      linear-gradient(var(--c), var(--c)) top right / 1.5px 12px no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom left / 12px 1.5px no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom left / 1.5px 12px no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom right / 12px 1.5px no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom right / 1.5px 12px no-repeat;
+    opacity: 0.8;
+  }
+
+  /* Bề mặt con bên trong panel: ô số, hàng bảng. */
+  .well {
+    background: color-mix(in oklch, var(--foreground) 3.5%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+  }
+
+  /* Vỏ kính cho phần tử CỐ ĐỊNH (topbar, sidebar, dock) — được phép blur. */
+  .glass-fixed {
+    background: color-mix(in oklch, var(--panel-strong) 82%, transparent);
+    backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid var(--panel-edge);
+  }
+
+  /* Nền gạch chéo = "không có dữ liệu" (không phải "bằng không"). */
+  .hatch {
+    background-image: repeating-linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--foreground) 6%, transparent) 0 1px,
+      transparent 1px 10px
+    );
+  }
+
+  .eyebrow {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---- Chuyển động --------------------------------------------------------------- */
+
+@keyframes link-flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+.link-flow {
+  animation: link-flow 0.8s linear infinite;
+}
+
+@keyframes radar-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.radar-sweep {
+  transform-origin: 0 0;
+  animation: radar-sweep 4s linear infinite;
+}
+
+@keyframes caution-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.caution-pulse {
+  animation: caution-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes rotor-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.rotor-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rotor-spin 0.9s linear infinite;
+}
+
+@keyframes sheen {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(220%);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise-in {
+  animation: rise-in 420ms var(--ease-out-quint, ease-out) both;
+}
+
+/* Tắt chuyển động: theo hệ điều hành HOẶC theo Cài đặt (html[data-motion=off]). */
+@media (prefers-reduced-motion: reduce) {
+  .link-flow,
+  .radar-sweep,
+  .caution-pulse,
+  .rotor-spin,
+  .rise-in {
+    animation: none;
+  }
+}
+html[data-motion="off"] .link-flow,
+html[data-motion="off"] .radar-sweep,
+html[data-motion="off"] .caution-pulse,
+html[data-motion="off"] .rotor-spin,
+html[data-motion="off"] .rise-in {
+  animation: none;
+}
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  transition-duration: 0ms !important;
+}
+
+/* Thanh cuộn mảnh, theo theme. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent) transparent;
+}
+
+/* ---- uPlot theo theme ---------------------------------------------------------- */
+.uplot-host .uplot {
+  font-family: var(--font-sans);
+  color: var(--foreground);
+}
+.uplot-host .u-legend {
+  font-size: 11.5px;
+  text-align: left;
+  margin-top: 2px;
+}
+.uplot-host .u-legend th {
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.uplot-host .u-legend td {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.uplot-host .u-legend .u-marker {
+  border-radius: 3px;
+}
+.uplot-host .u-cursor-x,
+.uplot-host .u-cursor-y {
+  border-color: color-mix(in oklch, var(--foreground) 35%, transparent) !important;
+}

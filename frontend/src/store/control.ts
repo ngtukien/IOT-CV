@@ -37,6 +37,24 @@ export interface PendingCommand {
   warned: boolean;
 }
 
+/**
+ * Một dòng trong LỊCH SỬ LỆNH của tab này (trang Nhật ký): thời điểm gửi, lúc
+ * backend nhận (`accepted`), lúc FC xác nhận (`done`) hoặc lỗi. Độ trễ đọc ra
+ * từ ba mốc đó — không lưu sẵn.
+ */
+export interface CommandRecord {
+  ref: string;
+  command: UplinkType;
+  label: string;
+  sentAt: number;
+  acceptedAt: number | null;
+  doneAt: number | null;
+  error: { code: string; message: string } | null;
+}
+
+/** Giữ chừng này dòng lịch sử lệnh, mới nhất ở đầu. */
+export const COMMAND_HISTORY_MAX = 100;
+
 export type Resolution =
   | { kind: "done"; pending: PendingCommand; ack: AckPayload }
   | { kind: "error"; pending: PendingCommand; error: ErrorPayload };
@@ -45,6 +63,7 @@ interface ControlStore {
   claimed: boolean;
   pending: Record<string, PendingCommand>;
   manual: ManualSnapshot;
+  history: CommandRecord[];
 
   track(ref: string, cmd: Omit<PendingCommand, "stage" | "sentAt" | "warned">, now?: number): void;
   /** `null` khi `ref` không phải lệnh của store này (ví dụ ack của nạp mission). */
@@ -58,26 +77,40 @@ interface ControlStore {
   setManual(snap: ManualSnapshot): void;
 }
 
+function patchHistory(history: CommandRecord[], ref: string, patch: Partial<CommandRecord>): CommandRecord[] {
+  return history.map((h) => (h.ref === ref ? { ...h, ...patch } : h));
+}
+
 export const EMPTY_MANUAL: ManualSnapshot = { held: [], sent: null, gamepadActive: false };
 
 export const useControlStore = create<ControlStore>((set, get) => ({
   claimed: false,
   pending: {},
   manual: EMPTY_MANUAL,
+  history: [],
 
   track: (ref, cmd, now = Date.now()) =>
-    set((s) => ({ pending: { ...s.pending, [ref]: { ...cmd, stage: "sent", sentAt: now, warned: false } } })),
+    set((s) => ({
+      pending: { ...s.pending, [ref]: { ...cmd, stage: "sent", sentAt: now, warned: false } },
+      history: [
+        { ref, command: cmd.command, label: cmd.label, sentAt: now, acceptedAt: null, doneAt: null, error: null },
+        ...s.history,
+      ].slice(0, COMMAND_HISTORY_MAX),
+    })),
 
   onAck: (ack) => {
     const ref = ack.ref ?? "";
     const pending = get().pending[ref];
     if (!pending) return null;
     if (ack.status === "accepted") {
-      set((s) => ({ pending: { ...s.pending, [ref]: { ...pending, stage: "accepted" } } }));
+      set((s) => ({
+        pending: { ...s.pending, [ref]: { ...pending, stage: "accepted" } },
+        history: patchHistory(s.history, ref, { acceptedAt: Date.now() }),
+      }));
       return null;
     }
     const { [ref]: _done, ...rest } = get().pending;
-    const patch: Partial<ControlStore> = { pending: rest };
+    const patch: Partial<ControlStore> = { pending: rest, history: patchHistory(get().history, ref, { doneAt: Date.now() }) };
     if (pending.command === "cmd.web_control_enable") patch.claimed = pending.target === "enable";
     set(patch);
     return { kind: "done", pending, ack };
@@ -88,7 +121,10 @@ export const useControlStore = create<ControlStore>((set, get) => ({
     const pending = get().pending[ref];
     if (!pending) return null;
     const { [ref]: _failed, ...rest } = get().pending;
-    set({ pending: rest });
+    set({
+      pending: rest,
+      history: patchHistory(get().history, ref, { error: { code: error.code, message: error.message } }),
+    });
     return { kind: "error", pending, error };
   },
 

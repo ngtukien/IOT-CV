@@ -30,7 +30,7 @@ export function RowShell({ seq, title, detail, alt, actions, invalid, fixed, tes
       data-invalid={invalid || undefined}
       className={cn(
         "grid grid-cols-[2.25rem_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md border px-2 py-1.5",
-        fixed ? "border-border bg-white/[0.03]" : "border-border/60",
+        fixed ? "border-border bg-foreground/3" : "border-border/60",
         invalid && "border-hud-red/60 bg-hud-red/[0.07]",
       )}
     >

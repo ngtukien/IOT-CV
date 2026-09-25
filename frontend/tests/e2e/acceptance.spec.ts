@@ -207,6 +207,10 @@ test.describe("nghiệm thu Phase 10 — bay trọn chuyến từ web @requires-
 
   test("#6 mission từ web: soạn → nạp → AUTO (có xác nhận) → RTL; AUTO có dòng 'KHÔNG tự tránh'", async () => {
     test.setTimeout(300_000);
+    // Web GCS v2: soạn mission ở trang Nhiệm vụ. Đi bằng TAB (router phía trình
+    // duyệt), không `page.goto`: tải lại trang là mở WebSocket mới.
+    await page.getByTestId("nav-mission").click();
+    await expect(page.getByTestId("mission-panel")).toBeVisible();
     // Soạn: bấm bản đồ quanh drone (zoom 17 ≈ 1 m/px — nằm gọn trong rào 50 m).
     const clear = page.getByRole("button", { name: "Xoá bản nháp" });
     if (await clear.isEnabled()) await clear.click();
@@ -225,6 +229,9 @@ test.describe("nghiệm thu Phase 10 — bay trọn chuyến từ web @requires-
     await expect(page.getByTestId("mission-rows").locator("li")).not.toHaveCount(0);
     await page.getByTestId("mission-upload").click();
     await expect(page.getByTestId("mission-upload-status")).toHaveAttribute("data-state", "done", { timeout: 30_000 });
+
+    // Bắt đầu mission là nút ở trang Bay (có hộp xác nhận).
+    await page.getByTestId("nav-flight").click();
 
     // AUTO: bị khoá tới khi backend báo mission đã đọc lại; bấm thì phải hỏi.
     await expect(page.getByTestId("mode-AUTO")).toBeEnabled({ timeout: 10_000 });

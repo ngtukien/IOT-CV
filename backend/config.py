@@ -93,6 +93,9 @@ BACKEND_HOST = _env_str("BACKEND_HOST", "127.0.0.1")
 BACKEND_PORT = _env_int("BACKEND_PORT", 8000)
 # 5-10 Hz là đủ cho UI. Không cần 50 Hz.
 TELEMETRY_HZ = _env_float("TELEMETRY_HZ", 8.0)
+# Backend giữ lại chừng này giây gói telemetry đã gửi (`GET /api/telemetry/history`)
+# để biểu đồ của web có dữ liệu ngay khi mở trang. 900 s × 8 Hz = 7200 gói, vài MB.
+TELEMETRY_HISTORY_S = _env_float("TELEMETRY_HISTORY_S", 900.0)
 
 # ---------------------------------------------------------------------------
 # Giới hạn an toàn PHẦN MỀM (GIAI ĐOẠN 14)

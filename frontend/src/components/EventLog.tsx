@@ -6,7 +6,9 @@
  * phát lại sự kiện cũ cho tab mới mở. `code` chỉ nằm trong tooltip: nó dành
  * cho người sửa lỗi, không cho người dùng.
  */
-import { Info, OctagonX, ScrollText, TriangleAlert } from "lucide-react";
+import { Info, OctagonX, TriangleAlert } from "lucide-react";
+
+import { IconLog } from "@/components/icons";
 import type { LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
@@ -60,11 +62,11 @@ function LevelFilter({ active, counts, onToggle }: { active: Set<Level>; counts:
 function Row({ e }: { e: LogEntry }) {
   const { icon: Icon, text, bar } = LEVEL_STYLE[e.level];
   return (
-    <li className="group relative flex items-start gap-3 rounded-md py-1.5 pr-2 pl-3 hover:bg-white/4" data-code={e.code}>
+    <li className="group relative flex items-start gap-3 rounded-md py-1.5 pr-2 pl-3 hover:bg-foreground/4" data-code={e.code}>
       <span className={cn("absolute top-1.5 bottom-1.5 left-0 w-0.5 rounded-full", bar)} aria-hidden />
       <span className="w-16 shrink-0 pt-px font-mono text-[11px] text-muted-foreground tabular-nums">{formatClock(e.ts)}</span>
       <Icon className={cn("mt-0.5 size-3.5 shrink-0", text)} aria-label={e.level} />
-      <span className="w-16 shrink-0 truncate rounded bg-white/5 px-1.5 py-px text-center font-mono text-[10px] text-muted-foreground">
+      <span className="w-16 shrink-0 truncate rounded bg-foreground/5 px-1.5 py-px text-center font-mono text-[10px] text-muted-foreground">
         {e.source}
       </span>
       <Tooltip>
@@ -77,7 +79,7 @@ function Row({ e }: { e: LogEntry }) {
   );
 }
 
-export function EventLog({ style }: { style?: CSSProperties }) {
+export function EventLog({ style, className }: { style?: CSSProperties; className?: string }) {
   const events = useTelemetryStore((s) => s.events);
   const [active, setActive] = useState<Set<Level>>(() => new Set(EVENT_LEVELS));
 
@@ -99,8 +101,9 @@ export function EventLog({ style }: { style?: CSSProperties }) {
   return (
     <Panel
       title="Nhật ký sự kiện"
-      icon={ScrollText}
+      icon={IconLog}
       style={style}
+      className={className}
       testId="event-log"
       actions={
         <>

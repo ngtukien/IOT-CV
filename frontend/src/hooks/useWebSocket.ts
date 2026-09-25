@@ -9,7 +9,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-import { fetchEvents } from "@/lib/api";
+import { fetchEvents, fetchTelemetryHistory } from "@/lib/api";
 import { ERROR_CODE_LABEL } from "@/lib/protocol";
 import type { ServerEnvelope } from "@/lib/protocol";
 import { setActiveSocket } from "@/lib/uplink";
@@ -17,6 +17,8 @@ import { createGcsSocket, wsUrlFromLocation } from "@/lib/ws";
 import { handleControlAck, handleControlError, warnOverdueCommands } from "@/hooks/controlUplink";
 import { handleMissionAck, handleMissionError, handleMissionProgress } from "@/hooks/missionUplink";
 import { useControlStore } from "@/store/control";
+import { telemetryHistory } from "@/store/history";
+import { countBytes, countFrame, flushFrameCounts, useSessionStore } from "@/store/session";
 import { useMissionStore } from "@/store/mission";
 import { fromServerEvent, useTelemetryStore, webEvent } from "@/store/telemetry";
 
@@ -30,11 +32,17 @@ export const EVENT_HISTORY_LIMIT = 100;
  */
 export const TOAST_MAX_AGE_S = 10;
 
+/** Nạp sẵn lịch sử backend giữ chừng này giây — biểu đồ có dữ liệu ngay khi mở. */
+export const HISTORY_SEED_SECONDS = 600;
+
 function handleMessage(msg: ServerEnvelope): void {
   const store = useTelemetryStore.getState();
+  countFrame(msg.type);
   switch (msg.type) {
     case "telemetry":
       store.applyTelemetry(msg.data);
+      telemetryHistory.push(msg.data);
+      useSessionStore.getState().onArmed(msg.data.armed, msg.data.relative_alt);
       return;
     case "status":
       store.applyStatus(msg.data);
@@ -75,6 +83,19 @@ function handleMessage(msg: ServerEnvelope): void {
   }
 }
 
+async function loadTelemetryHistory(signal: AbortSignal): Promise<void> {
+  try {
+    const body = await fetchTelemetryHistory(HISTORY_SEED_SECONDS, { signal });
+    telemetryHistory.seed(body.samples.map((s) => ({ t: s.ts * 1000, d: s.data })));
+  } catch (err) {
+    if (signal.aborted) return;
+    // Không có lịch sử thì biểu đồ bắt đầu từ lúc mở trang — ghi lại, không chặn.
+    useTelemetryStore
+      .getState()
+      .pushEvent(webEvent("info", "api.history_failed", `Chưa nạp được lịch sử telemetry: ${(err as Error).message}`));
+  }
+}
+
 async function loadEventHistory(signal: AbortSignal): Promise<void> {
   try {
     const history = await fetchEvents(EVENT_HISTORY_LIMIT, { signal });
@@ -94,31 +115,39 @@ export function useWebSocket(): void {
     const store = useTelemetryStore.getState();
     const history = new AbortController();
     void loadEventHistory(history.signal);
+    void loadTelemetryHistory(history.signal);
 
     let wasOpen = false;
     const sock = createGcsSocket({
       url: wsUrlFromLocation(window.location),
       onMessage: handleMessage,
-      onFrame: (at) => store.markMessage(at),
+      onFrame: (at, size) => {
+        store.markMessage(at);
+        countBytes(size);
+      },
       onNotice: (n) => store.pushEvent(webEvent(n.level, n.code, n.message, n.detail ?? null)),
       onState: (state, info) => {
         store.setConnection(state, info.nextRetryAt);
         if (state === "open") {
           wasOpen = true;
+          useSessionStore.getState().onSocketOpen(info.reconnected);
           if (info.reconnected) store.pushEvent(webEvent("info", "ws.reconnected", "Đã nối lại với backend"));
         } else if (state === "closed" && wasOpen) {
           wasOpen = false;
           useMissionStore.getState().onSocketLost();
           useControlStore.getState().onSocketLost();
+          useSessionStore.getState().onSocketClosed();
           store.pushEvent(webEvent("warn", "ws.lost", "Mất kết nối với backend — đang thử nối lại"));
         }
       },
     });
     setActiveSocket(sock);
     const overdueTimer = setInterval(warnOverdueCommands, 1000);
+    const rateTimer = setInterval(flushFrameCounts, 1000);
 
     return () => {
       clearInterval(overdueTimer);
+      clearInterval(rateTimer);
       history.abort();
       setActiveSocket(null);
       sock.close();
