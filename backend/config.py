@@ -171,6 +171,14 @@ CAMERA_FAKE_CLIP = str(
     (PROJECT_ROOT / _env_str("CAMERA_FAKE_CLIP", "backend/vision/assets/sample-clip.mp4")).resolve()
 )
 CAMERA_FAKE_FPS = _env_float("CAMERA_FAKE_FPS", 15.0)
+# Cỡ khung của nguồn giả, theo tên của esp32-camera (QVGA 320x240, VGA 640x480,
+# SVGA 800x600). Mặc định VGA: QVGA hiển thị đúng 320 pixel CSS trên màn 2560 px
+# thì bé và vỡ (người dùng thấy thật 25/09/2026). QVGA vẫn là mốc THIẾT KẾ cho
+# ESP32 (44 fps so với 14 fps ở VGA) — đặt QVGA để thử đúng cỡ đó.
+CAMERA_FAKE_FRAMESIZE = _env_str("CAMERA_FAKE_FRAMESIZE", "VGA").upper()
+# Chất lượng JPEG theo thang esp32-camera 0–63, SỐ NHỎ = NÉT HƠN. 10 là mức nét
+# người ta hay đặt cho ESP32 khi băng thông cho phép.
+CAMERA_FAKE_JPEG_QUALITY = _env_int("CAMERA_FAKE_JPEG_QUALITY", 10)
 # Box giả gửi mỗi chừng này ms (§7.8.3: 300 ms).
 FAKE_DETECTION_INTERVAL_MS = _env_int("FAKE_DETECTION_INTERVAL_MS", 300)
 # Khung mới nhất cũ hơn chừng này thì camera coi như MẤT (`camera.available`).

@@ -15,7 +15,9 @@ Hai cách chạy:
       # rồi CAMERA_FAKE=0 CAMERA_STREAM_URL=http://127.0.0.1:8081/stream
 
 Khung đọc từ một video mẫu thật lặp vô hạn (`backend/vision/assets/sample-clip.mp4`),
-thu về QVGA 320×240 — mốc thiết kế của ESP32-CAM (44 fps ở QVGA so với 14 fps ở VGA).
+thu về cỡ `CAMERA_FAKE_FRAMESIZE` (mặc định VGA 640×480 cho dễ xem; QVGA 320×240 là
+mốc thiết kế của ESP32-CAM — 44 fps ở QVGA so với 14 fps ở VGA — đặt QVGA để thử
+đúng cỡ đó).
 Cần OpenCV: `uv sync --extra vision` (hoặc `--extra dev`).
 """
 
@@ -31,19 +33,36 @@ from backend import config
 from backend.schemas import DetectionBox, DetectionPayload
 from backend.vision.stream import MJPEG_BOUNDARY, MJPEG_MEDIA_TYPE, MjpegFrame
 
-FAKE_FRAMESIZE = "QVGA"
-FAKE_WIDTH, FAKE_HEIGHT = 320, 240
-# Header `X-Jpeg-Quality` theo thang của esp32-camera: 0–63, SỐ NHỎ = NÉT HƠN.
-FAKE_JPEG_QUALITY = 30
-# OpenCV dùng thang NGƯỢC 0–100, số lớn = nét hơn. Đổi tuyến tính
-# 100 - q*100/63 cho q=30 ra ~52. Không có công thức chuẩn nào giữa hai thang —
-# con số này chỉ để ảnh giả có dung lượng cùng cỡ ảnh thật (~8–12 KB/khung QVGA),
-# và header vẫn ghi 30 vì đó là cái ESP32 sẽ gửi.
-_CV2_JPEG_QUALITY = round(100 - FAKE_JPEG_QUALITY * 100 / 63)
+# Tên khung hình của esp32-camera -> (rộng, cao). Chỉ những cỡ dự án dùng.
+FRAMESIZES: dict[str, tuple[int, int]] = {
+    "QVGA": (320, 240),
+    "VGA": (640, 480),
+    "SVGA": (800, 600),
+}
+
+
+def _framesize(name: str | None = None) -> tuple[str, int, int]:
+    ten = (name or config.CAMERA_FAKE_FRAMESIZE).upper()
+    if ten not in FRAMESIZES:
+        raise RuntimeError(
+            f"CAMERA_FAKE_FRAMESIZE='{ten}' không hỗ trợ — chọn một trong {sorted(FRAMESIZES)}"
+        )
+    return (ten, *FRAMESIZES[ten])
+
+
+def cv2_quality(esp32_quality: int) -> int:
+    """Thang esp32-camera (0–63, số NHỎ = nét) -> thang OpenCV (0–100, số LỚN = nét).
+
+    Đổi tuyến tính 100 - q*100/63 (q=10 -> 84, q=30 -> 52). Không có công thức
+    chuẩn nào giữa hai thang; header vẫn ghi số theo thang ESP32 vì đó là cái
+    thiết bị thật sẽ gửi.
+    """
+    return max(1, min(100, round(100 - esp32_quality * 100 / 63)))
+
 
 # Quỹ đạo box giả: chạy vòng quanh một hình chữ nhật lùi vào trong khung.
 _BOX_PERIOD_S = 8.0
-_BOX_INSET = 20
+_BOX_INSET_FRAC = 0.0625  # 20 px ở QVGA
 
 
 def render_part(
@@ -51,8 +70,8 @@ def render_part(
     *,
     frame_id: int,
     timestamp_ms: int,
-    jpeg_quality: int = FAKE_JPEG_QUALITY,
-    framesize: str = FAKE_FRAMESIZE,
+    jpeg_quality: int,
+    framesize: str,
 ) -> bytes:
     """Một phần multipart đúng `docs/hop-dong-mjpeg.md` §2 (có `\\r\\n` sau thân)."""
     header = (
@@ -82,9 +101,20 @@ def _import_cv2():
 class FakeMjpegSource:
     """Lặp một video mẫu thành luồng MJPEG QVGA."""
 
-    def __init__(self, clip_path: str | None = None, *, fps: float | None = None) -> None:
+    def __init__(
+        self,
+        clip_path: str | None = None,
+        *,
+        fps: float | None = None,
+        framesize: str | None = None,
+        jpeg_quality: int | None = None,
+    ) -> None:
         self.clip_path = Path(clip_path or config.CAMERA_FAKE_CLIP)
         self.fps = config.CAMERA_FAKE_FPS if fps is None else fps
+        self.framesize, self.width, self.height = _framesize(framesize)
+        self.jpeg_quality = (
+            config.CAMERA_FAKE_JPEG_QUALITY if jpeg_quality is None else jpeg_quality
+        )
         self._cap = None
         self._frame_id = 0
 
@@ -114,8 +144,13 @@ class FakeMjpegSource:
             ok, img = self._cap.read()
             if not ok:
                 raise RuntimeError(f"Video mẫu {self.clip_path} không có khung nào đọc được")
-        img = cv2.resize(img, (FAKE_WIDTH, FAKE_HEIGHT), interpolation=cv2.INTER_AREA)
-        ok, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, _CV2_JPEG_QUALITY])
+        # Thu nhỏ: INTER_AREA (khử răng cưa). Phóng to: INTER_CUBIC (đỡ nhoè).
+        thu_nho = img.shape[1] >= self.width
+        cach = cv2.INTER_AREA if thu_nho else cv2.INTER_CUBIC
+        img = cv2.resize(img, (self.width, self.height), interpolation=cach)
+        ok, buf = cv2.imencode(
+            ".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, cv2_quality(self.jpeg_quality)]
+        )
         if not ok:
             raise RuntimeError("OpenCV không nén được khung JPEG")
         return buf.tobytes()
@@ -126,6 +161,8 @@ class FakeMjpegSource:
             jpeg,
             frame_id=self._frame_id,
             timestamp_ms=int(time.monotonic() * 1000) & 0xFFFFFFFF,
+            jpeg_quality=self.jpeg_quality,
+            framesize=self.framesize,
         )
         self._frame_id = (self._frame_id + 1) & 0xFFFFFFFF
         return part
@@ -153,16 +190,17 @@ class FakeMjpegSource:
             self._cap = None
 
 
-def fake_box(
-    t: float, *, width: int = FAKE_WIDTH, height: int = FAKE_HEIGHT, size: int = 60
-) -> DetectionBox:
+def fake_box(t: float, *, width: int, height: int, size: int | None = None) -> DetectionBox:
     """Box cố định kích thước chạy vòng quanh chu vi một hình chữ nhật. THUẦN.
 
     Box KHÔNG cần khớp nội dung video: nó chỉ để kiểm chứng canvas overlay ở
     Phase 10 vẽ đúng chỗ, không phải kiểm độ chính xác nhận diện.
     """
-    x_min, y_min = _BOX_INSET, _BOX_INSET
-    x_max, y_max = width - _BOX_INSET - size, height - _BOX_INSET - size
+    # Box và lề tỉ lệ theo khung: cùng một quỹ đạo trông giống nhau ở mọi cỡ.
+    size = round(width * 0.19) if size is None else size
+    inset = round(width * _BOX_INSET_FRAC)
+    x_min, y_min = inset, inset
+    x_max, y_max = width - inset - size, height - inset - size
     w, h = x_max - x_min, y_max - y_min
     perimeter = 2 * (w + h)
     s = (t % _BOX_PERIOD_S) / _BOX_PERIOD_S * perimeter
@@ -189,12 +227,15 @@ def build_fake_detection(frame: MjpegFrame | None, t: float) -> DetectionPayload
     if frame is None:
         return None
     frame_ts = frame.timestamp_ms / 1000.0 if frame.timestamp_ms is not None else t
+    # Cỡ lấy từ CHÍNH khung đang phát (header X-Framesize), không từ cấu hình:
+    # box phải khớp khung mà trình duyệt đang thấy.
+    _, width, height = _framesize(frame.framesize)
     return DetectionPayload(
         frame_id=frame.frame_id or 0,
         frame_ts=frame_ts,
-        width=FAKE_WIDTH,
-        height=FAKE_HEIGHT,
-        boxes=[fake_box(t)],
+        width=width,
+        height=height,
+        boxes=[fake_box(t, width=width, height=height)],
     )
 
 

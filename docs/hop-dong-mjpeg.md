@@ -54,9 +54,16 @@ Không thêm, không bớt header riêng nào ngoài bốn cái trên. `Content-
 - Chỉ giữ **khung mới nhất**. Không xếp hàng đợi: nguồn nhanh hơn người xem thì
   hàng đợi chỉ làm hình trễ dần.
 
-## 5. Vì sao chọn QVGA làm mốc
+## 5. Cỡ khung: QVGA là mốc thiết kế, nguồn giả mặc định VGA
 
 `plans/reports/260921-research-web-gcs-stack.md` §4.1: ESP32-CAM đạt khoảng 44 fps ở
-QVGA so với 14 fps ở VGA. Nguồn giả vì thế cũng phát QVGA 320×240, để mọi thứ phía
-sau (canvas overlay ở Phase 10, toạ độ box) được dựng trên đúng kích thước sẽ gặp
-với phần cứng thật.
+QVGA so với 14 fps ở VGA. QVGA 320×240 vì thế là **mốc thiết kế** cho camera thật.
+
+Nguồn giả mặc định **VGA 640×480** (`CAMERA_FAKE_FRAMESIZE`). Lý do đo thật ngày
+25/09/2026: mở `/api/video/stream` thẳng trong trình duyệt trên màn 2560 px, khung
+320×240 hiện đúng 320 pixel CSS nên rất bé, và clip quay màn hình giao diện thu nhỏ
+4 lần thì vỡ chữ. Đặt `CAMERA_FAKE_FRAMESIZE=QVGA` để thử đúng cỡ của ESP32.
+
+Hệ quả cho bên đọc: **không được giả định cỡ khung**. Lấy cỡ từ `X-Framesize` của
+khung đang phát (và `width`/`height` của message `detection`, vốn được dựng từ chính
+header đó). Canvas overlay ở Phase 10 phải chạy đúng với cả QVGA lẫn VGA.

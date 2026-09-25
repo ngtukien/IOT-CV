@@ -143,7 +143,7 @@ def test_fake_stream_render_part_khop_hop_dong_va_parser():
     """Nguồn giả và parser cùng khớp `docs/hop-dong-mjpeg.md` — đủ bốn header."""
     from backend.vision.fake_stream import render_part
 
-    part = render_part(JPEG_A, frame_id=3, timestamp_ms=4567)
+    part = render_part(JPEG_A, frame_id=3, timestamp_ms=4567, jpeg_quality=30, framesize="QVGA")
     for header in (b"X-Frame-Id: 3", b"X-Timestamp-Ms: 4567", b"X-Jpeg-Quality: 30"):
         assert header in part
     assert b"X-Framesize: QVGA" in part
