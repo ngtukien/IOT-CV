@@ -9,7 +9,7 @@
  *
  * Phím 1–5 đổi góc máy (không trùng phím lái W A S D R F Q E / mũi tên / Space).
  */
-import { Camera, Clapperboard, Eye, Layers3, Mountain, Orbit, Plane, Sun } from "lucide-react";
+import { Boxes, Camera, Clapperboard, Eye, Layers3, Mountain, Orbit, Plane, Sun, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -17,6 +17,8 @@ import { PrimaryFlightDisplay } from "@/components/Hud/PrimaryFlightDisplay";
 import { MapView } from "@/components/MapView/MapView";
 import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
+import { DroneHangar } from "@/components/twin/DroneHangar";
+import type { HangarControls } from "@/components/twin/DroneHangar";
 import { TwinScene } from "@/components/twin/TwinScene";
 import type { CameraMode, TimeOfDay } from "@/components/twin/TwinScene";
 import { formatNumber } from "@/lib/format";
@@ -78,11 +80,68 @@ function StatStrip() {
   );
 }
 
+/** Linh kiện của drone dự án — cấu hình đã chốt (plan-nhap-92-giai-doan.md). */
+const PARTS: [string, string][] = [
+  ["Khung S500", "Đường chéo 500 mm, tay trước đỏ để nhận hướng mũi"],
+  ["FC SpeedyBee F405 V5", "Chạy ArduCopter 4.7 bản custom — thứ DUY NHẤT giữ thăng bằng"],
+  ["GPS Holybro M10", "La bàn IST8310, đặt trên cột xa nhiễu từ"],
+  ["TFmini Plus", "Tia đo 3.6° nhìn thẳng trước, SERIAL3 — AVOID phanh ở Loiter"],
+  ["ESP32-CAM", "MJPEG lên backend; AI chỉ sinh sự kiện, không lái"],
+  ["Motor + ESC + cánh 10\"", "Quad-X: 1 trước-phải CCW · 2 sau-trái CCW · 3 trước-trái CW · 4 sau-phải CW"],
+  ["Pin LiPo 4S", "14.8 V danh định — kiểm từng cell trước khi bay"],
+  ["RC FS-i6X + iA6B", "Luôn có quyền cao hơn web (SAFETY.md mục 4)"],
+];
+
+function HangarView() {
+  const [ctl, setCtl] = useState<HangarControls>({ explodeTarget: 0, spin: false, autoRotate: true, labels: true });
+  return (
+    <>
+      <DroneHangar controls={ctl} className="absolute inset-0" />
+      <div className="pointer-events-none absolute inset-0 p-3">
+        <div className="glass-fixed pointer-events-auto absolute top-16 left-3 w-80 space-y-3 rounded-2xl p-4" data-testid="hangar-panel">
+          <div>
+            <p className="eyebrow text-[10px]">Xưởng 3D</p>
+            <p className="font-display text-lg font-semibold">Drone S500 của dự án</p>
+            <p className="text-xs text-muted-foreground">Kéo để xoay, cuộn để phóng. Tháo rời để xem từng linh kiện nằm ở đâu.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              data-testid="hangar-explode"
+              onClick={() => setCtl((c) => ({ ...c, explodeTarget: c.explodeTarget > 0.5 ? 0 : 1 }))}
+              className="col-span-2 flex h-10 items-center justify-center gap-2 rounded-xl bg-hud-cyan/16 font-display text-sm font-semibold text-hud-cyan ring-1 ring-hud-cyan/35 transition-colors hover:bg-hud-cyan/24"
+            >
+              <Boxes className="size-4" /> {ctl.explodeTarget > 0.5 ? "Lắp lại" : "Tháo rời linh kiện"}
+            </button>
+          </div>
+          <div className="space-y-2">
+            <Toggle label="Tự xoay" checked={ctl.autoRotate} onChange={(v) => setCtl((c) => ({ ...c, autoRotate: v }))} />
+            <Toggle label="Nhãn linh kiện" checked={ctl.labels} onChange={(v) => setCtl((c) => ({ ...c, labels: v }))} />
+            <Toggle label="Chạy motor (mô phỏng, không phải drone thật)" checked={ctl.spin} onChange={(v) => setCtl((c) => ({ ...c, spin: v }))} />
+          </div>
+        </div>
+        <div className="glass-fixed pointer-events-auto absolute top-16 right-3 max-h-[calc(100%-5rem)] w-80 overflow-y-auto rounded-2xl p-4">
+          <p className="eyebrow mb-2 text-[10px]">Linh kiện chính</p>
+          <ul className="space-y-2.5">
+            {PARTS.map(([name, note]) => (
+              <li key={name}>
+                <p className="text-[13px] font-medium">{name}</p>
+                <p className="text-xs text-muted-foreground">{note}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function TwinPage() {
   const settings = useSettings();
   const [camera, setCamera] = useState<CameraMode>("chase");
   const [time, setTime] = useState<TimeOfDay>("live");
-  const [layers, setLayers] = useState({ mission: true, geofence: true, trail: true, beam: true });
+  const [layers, setLayers] = useState({ mission: true, geofence: true, trail: true, beam: true, field: true, clouds: true, camera: false });
+  const [view, setView] = useState<"twin" | "hangar">("twin");
   const [panelOpen, setPanelOpen] = useState(true);
   const hasTelemetry = useTelemetryStore((s) => s.telemetry !== null && s.telemetry.lat != null);
 
@@ -100,6 +159,8 @@ export default function TwinPage() {
 
   return (
     <div className="relative h-[calc(100dvh-5.75rem)] min-h-[560px] overflow-hidden" data-testid="twin-page">
+      {view === "hangar" ? <HangarView /> : null}
+      {view === "twin" ? (
       <TwinScene
         camera={camera}
         quality={settings.twinQuality}
@@ -110,8 +171,25 @@ export default function TwinPage() {
         showGeofence={layers.geofence}
         showTrail={layers.trail}
         showBeam={layers.beam}
+        showField={layers.field}
+        showClouds={layers.clouds}
+        showCamera={layers.camera}
         className="absolute inset-0"
       />
+      ) : null}
+
+      {/* Chuyển chế độ: bản sao số (dữ liệu thật) ⇄ xưởng (mô hình linh kiện) */}
+      <div className="glass-fixed absolute top-3 left-1/2 z-10 -translate-x-1/2 rounded-xl p-1">
+        <Segmented<"twin" | "hangar">
+          label="Chế độ 3D"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: "twin", label: "Bản sao số", icon: Plane, testId: "twin-mode-live" },
+            { value: "hangar", label: "Xưởng · linh kiện", icon: Wrench, testId: "twin-mode-hangar" },
+          ]}
+        />
+      </div>
 
       {/* Letterbox cho góc máy điện ảnh */}
       {camera === "cinematic" ? (
@@ -121,6 +199,7 @@ export default function TwinPage() {
         </>
       ) : null}
 
+      {view === "twin" ? (
       <div className="pointer-events-none absolute inset-0 p-3">
         {/* HUD thu nhỏ */}
         {camera !== "cinematic" ? (
@@ -130,7 +209,7 @@ export default function TwinPage() {
         ) : null}
 
         {!hasTelemetry ? (
-          <div className="glass-fixed pointer-events-auto absolute top-3 left-1/2 max-w-md -translate-x-1/2 rounded-xl px-4 py-2 text-center text-[12.5px]">
+          <div className="glass-fixed pointer-events-auto absolute top-16 left-1/2 max-w-md -translate-x-1/2 rounded-xl px-4 py-2 text-center text-[12.5px]">
             Chưa có vị trí từ drone — model đứng ở bãi đáp. Bật SITL hoặc nối drone để thấy nó bay theo dữ liệu thật.
           </div>
         ) : null}
@@ -206,6 +285,9 @@ export default function TwinPage() {
                   <Toggle label="Rào phần mềm" checked={layers.geofence} onChange={(v) => setLayers((l) => ({ ...l, geofence: v }))} />
                   <Toggle label="Vệt bay 3D" checked={layers.trail} onChange={(v) => setLayers((l) => ({ ...l, trail: v }))} />
                   <Toggle label="Tia TFmini" checked={layers.beam} onChange={(v) => setLayers((l) => ({ ...l, beam: v }))} />
+                  <Toggle label="Nón nhìn camera ESP32" checked={layers.camera} onChange={(v) => setLayers((l) => ({ ...l, camera: v }))} />
+                  <Toggle label="Khu bay dã chiến (trạm, người, cọc)" checked={layers.field} onChange={(v) => setLayers((l) => ({ ...l, field: v }))} />
+                  <Toggle label="Mây" checked={layers.clouds} onChange={(v) => setLayers((l) => ({ ...l, clouds: v }))} />
                 </div>
               </Section>
               <Section title="Chất lượng render" icon={Clapperboard}>
@@ -237,6 +319,7 @@ export default function TwinPage() {
           <MapView mode="flight" compact className="relative h-full w-full" />
         </div>
       </div>
+      ) : null}
     </div>
   );
 }

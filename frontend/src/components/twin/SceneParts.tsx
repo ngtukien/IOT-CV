@@ -8,7 +8,7 @@
  *  - rào ảo = giới hạn PHẦN MỀM, ghi rõ là lớp phụ (SAFETY.md mục 8);
  *  - không có số đo thì không vẽ như thể có (tia TFmini "không biết" là nét đứt xám).
  */
-import { Html, Line } from "@react-three/drei";
+import { Line } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -26,6 +26,7 @@ import { telemetryHistory, useHistoryTick } from "@/store/history";
 import { useMissionStore } from "@/store/mission";
 import { useTelemetryStore } from "@/store/telemetry";
 
+import { SceneLabel } from "./labels";
 import { fallbackGroundTexture, landingPadTexture } from "./textures";
 
 /**
@@ -90,7 +91,7 @@ function GroundTile({ origin, x, y, z, layer, onFail }: { origin: Origin; x: num
 
   if (!texture) return null;
   return (
-    <mesh position={[(x0 + x1) / 2, 0, (z0 + z1) / 2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+    <mesh position={[(x0 + x1) / 2, 0, (z0 + z1) / 2]} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[x1 - x0, z1 - z0]} />
       {/* Ảnh vệ tinh ĐÃ chứa ánh sáng thật của buổi chụp — chiếu sáng thêm nhiều là cháy màu. */}
       <meshStandardMaterial map={texture} roughness={1} metalness={0} envMapIntensity={0.25} />
@@ -107,7 +108,9 @@ export function Ground({ origin, layer, radius }: { origin: Origin | null; layer
   return (
     <group>
       {/* Nền rộng dưới cùng — hiện ra ở mép xa và khi mất mạng. */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+      {/* Đặt THẤP hẳn dưới lớp ảnh (−0,6 m, không phải −5 cm): hai mặt gần nhau
+          là nguồn sọc nhấp nháy ở xa. Không nhận bóng — bóng có tấm hứng riêng. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.6, 0]}>
         <planeGeometry args={[6000, 6000]} />
         <meshStandardMaterial map={fallback} roughness={1} color="#8a9a80" />
       </mesh>
@@ -115,9 +118,7 @@ export function Ground({ origin, layer, radius }: { origin: Origin | null; layer
         ? tiles.map((t) => <GroundTile key={`${layer}-${t.x}-${t.y}`} origin={origin} {...t} layer={layer} onFail={onFail} />)
         : null}
       {failures > 0 && failures >= tiles.length && tiles.length > 0 ? (
-        <Html position={[0, 0.5, 0]} center zIndexRange={[5, 0]}>
-          <span className="rounded-md bg-black/70 px-2 py-1 text-[11px] whitespace-nowrap text-white">Không tải được ảnh mặt đất — đang dùng nền dựng sẵn</span>
-        </Html>
+        <SceneLabel id="ground-fail" offset={[0, 0.5, 0]} text="Không tải được ảnh mặt đất — đang dùng nền dựng sẵn" />
       ) : null}
     </group>
   );
@@ -131,7 +132,7 @@ export function HomePad() {
   const tex = useMemo(() => landingPadTexture(), []);
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]} receiveShadow>
         <circleGeometry args={[1.1, 64]} />
         <meshStandardMaterial map={tex} roughness={0.85} />
       </mesh>
@@ -143,35 +144,58 @@ export function HomePad() {
 // Rào ảo phần mềm: trụ "trường năng lượng" (shader riêng)
 // ---------------------------------------------------------------------------
 
+// Hai chunk `logdepthbuf_*`: Canvas bật logarithmicDepthBuffer; ShaderMaterial tự
+// viết KHÔNG tự có chúng → độ sâu trụ lệch với phần còn lại của cảnh.
 const fenceVertex = /* glsl */ `
+  #include <common>
+  #include <logdepthbuf_pars_vertex>
   varying vec3 vPos;
   varying vec3 vNormalW;
   varying vec3 vViewDir;
   void main() {
     vPos = position;
     vec4 world = modelMatrix * vec4(position, 1.0);
-    vNormalW = normalize(mat3(modelMatrix) * normal);
-    vViewDir = normalize(cameraPosition - world.xyz);
+    vNormalW = mat3(modelMatrix) * normal;
+    vViewDir = cameraPosition - world.xyz;
     gl_Position = projectionMatrix * viewMatrix * world;
+    #include <logdepthbuf_vertex>
   }
 `;
 
+// Mọi phép có thể ra NaN đều được chặn: 1 − |dot| có thể âm một chút vì sai số
+// làm tròn, và pow(số âm, 2.2) = NaN. Một điểm ảnh NaN đi qua Bloom (mipmap
+// blur) loang ra CẢ khung → màn hình đen chớp khi xoay camera (đo 25/09/2026:
+// ẩn trụ này là hết đen).
 const fenceFragment = /* glsl */ `
+  #include <common>
+  #include <logdepthbuf_pars_fragment>
   uniform float uTime;
   uniform float uHeight;
   uniform vec3 uColor;
   varying vec3 vPos;
   varying vec3 vNormalW;
   varying vec3 vViewDir;
+  vec3 safeNormalize(vec3 v) {
+    float l = length(v);
+    return l > 1e-6 ? v / l : vec3(0.0, 1.0, 0.0);
+  }
   void main() {
-    float h = clamp(vPos.y / uHeight + 0.5, 0.0, 1.0);
+    #include <logdepthbuf_fragment>
+    float h = clamp(vPos.y / max(uHeight, 0.1) + 0.5, 0.0, 1.0);
     // Viền sáng theo góc nhìn (fresnel) — mép trụ đậm, giữa trong suốt.
-    float fres = pow(1.0 - abs(dot(normalize(vNormalW), normalize(vViewDir))), 2.2);
+    float facing = clamp(abs(dot(safeNormalize(vNormalW), safeNormalize(vViewDir))), 0.0, 1.0);
+    float fres = pow(1.0 - facing, 2.2);
     // Vạch ngang chạy lên chậm: đọc được là "tường", không che drone.
-    float lines = smoothstep(0.92, 1.0, fract(h * 12.0 - uTime * 0.15));
-    float base = smoothstep(0.08, 0.0, h) * 0.6;
-    float alpha = (0.05 + fres * 0.45 + lines * 0.18 + base) * (1.0 - smoothstep(0.85, 1.0, h) * 0.6);
-    gl_FragColor = vec4(uColor, alpha);
+    // KHÔNG còn vạch ngang chạy: nhìn từ trong rào ra, các vạch thành sọc vàng
+    // cắt ngang bầu trời, trông như lỗi hình (ảnh báo lỗi 25/09/2026). Chỉ còn
+    // chân tường sáng, mép trên, và viền fresnel khi nhìn xiên.
+    float lines = smoothstep(0.97, 1.0, h) * (0.6 + 0.4 * sin(uTime * 1.5));
+    float base = (1.0 - smoothstep(0.0, 0.06, h)) * 0.5;
+    // Tường ở xa mờ dần: rào là thông tin phụ, không được lấn bầu trời.
+    float dist = length(vViewDir);
+    float nearFade = 1.0 - smoothstep(35.0, 160.0, dist) * 0.8;
+    float alpha = (0.03 + fres * 0.28 + lines * 0.12 + base) * (1.0 - smoothstep(0.8, 1.0, h) * 0.7) * nearFade;
+    gl_FragColor = vec4(uColor, clamp(alpha, 0.0, 1.0));
   }
 `;
 
@@ -209,13 +233,18 @@ export function GeofenceVolume() {
         <cylinderGeometry args={[r, r, h, 96, 1, true]} />
       </mesh>
       <Line points={ring} color="#f2b53a" lineWidth={2} dashed dashSize={2} gapSize={1.5} />
-      <Html position={[0, h + 0.8, -r]} center zIndexRange={[5, 0]} distanceFactor={60}>
-        <div className="w-max rounded-md border border-[#f2b53a]/60 bg-black/65 px-2 py-1 text-center text-[11px] leading-tight text-[#f2b53a]">
-          Rào phần mềm {r} m · trần {h} m
-          <br />
-          <span className="text-white/75">lớp phụ — rào thật là FENCE_* trên FC</span>
-        </div>
-      </Html>
+      <SceneLabel
+        id="fence-label"
+        tone="amber"
+        offset={[0, h + 0.8, -r]}
+        text={
+          <>
+            Rào phần mềm {r} m · trần {h} m
+            <br />
+            <span className="text-white/75">lớp phụ — rào thật là FENCE_* trên FC</span>
+          </>
+        }
+      />
     </group>
   );
 }
@@ -243,6 +272,20 @@ function missionScenePoints(origin: Origin, items: readonly MissionWaypoint[], h
   return out;
 }
 
+/** Cổng vòng quanh mỗi waypoint, quay chậm — thấy được từ mọi hướng. */
+function WaypointGate({ y, color }: { y: number; color: string }) {
+  const ring = useRef<THREE.Mesh>(null);
+  useFrame((_, dt) => {
+    if (ring.current) ring.current.rotation.y += dt * 0.6;
+  });
+  return (
+    <mesh ref={ring} position={[0, y, 0]}>
+      <torusGeometry args={[0.9, 0.05, 12, 48]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} metalness={0.3} roughness={0.3} transparent opacity={0.85} />
+    </mesh>
+  );
+}
+
 function MissionPath({ origin, items, kind }: { origin: Origin; items: readonly MissionWaypoint[]; kind: "draft" | "readback" }) {
   const home = useHome();
   const pts = useMemo(() => missionScenePoints(origin, items, home ? [home[0], home[1]] : null), [origin, items, home]);
@@ -258,6 +301,7 @@ function MissionPath({ origin, items, kind }: { origin: Origin; items: readonly 
           <group key={`${kind}-${p.label}`} position={[p.pos[0], 0, p.pos[2]]}>
             {/* cột dóng xuống đất: đọc được độ cao ngay bằng mắt */}
             <Line points={[[0, 0.05, 0], [0, p.pos[1], 0]]} color={color} lineWidth={1} transparent opacity={0.6} />
+            <WaypointGate y={p.pos[1]} color={color} />
             <mesh position={[0, p.pos[1], 0]}>
               <octahedronGeometry args={[kind === "draft" ? 0.35 : 0.45, 0]} />
               <meshStandardMaterial color={color} emissive={color} emissiveIntensity={kind === "draft" ? 0.6 : 1.1} roughness={0.35} />
@@ -266,11 +310,7 @@ function MissionPath({ origin, items, kind }: { origin: Origin; items: readonly 
               <ringGeometry args={[0.35, 0.5, 32]} />
               <meshBasicMaterial color={color} transparent opacity={0.7} />
             </mesh>
-            {kind === "draft" ? (
-              <Html position={[0, p.pos[1] + 0.9, 0]} center zIndexRange={[6, 0]} distanceFactor={45}>
-                <span className="rounded bg-black/70 px-1.5 py-0.5 font-mono text-[11px] whitespace-nowrap text-[#f2b53a]">{p.label}</span>
-              </Html>
-            ) : null}
+            {kind === "draft" ? <SceneLabel id={`wp-${p.label}`} tone="amber" offset={[0, p.pos[1] + 0.9, 0]} text={p.label} /> : null}
           </group>
         ))}
     </group>
@@ -358,6 +398,72 @@ export function RangefinderBeam() {
       <mesh ref={hit} material={hitMat}>
         <sphereGeometry args={[0.05, 12, 10]} />
       </mesh>
+    </group>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tấm hứng bóng
+// ---------------------------------------------------------------------------
+
+/**
+ * Tấm trong suốt CHỈ vẽ bóng, bám theo drone (nhảy theo lưới 1 m). Mặt đất ảnh
+ * vệ tinh không nhận bóng — ảnh chụp đã có bóng thật, và bóng đổ lên mặt đất rộng
+ * vài trăm mét chỉ sinh sọc "shadow acne".
+ */
+export function ShadowCatcher({ follow }: { follow: THREE.Vector3 }) {
+  const mesh = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    if (mesh.current) mesh.current.position.set(Math.round(follow.x), 0.02, Math.round(follow.z));
+  });
+  return (
+    <mesh ref={mesh} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[40, 40]} />
+      <shadowMaterial transparent opacity={0.38} />
+    </mesh>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Nón nhìn của camera ESP32-CAM
+// ---------------------------------------------------------------------------
+
+/** OV2640 ống kính thường: ~54° ngang × ~42° dọc. Chỉ để minh hoạ vùng thấy được. */
+const CAM_HFOV = 54;
+const CAM_VFOV = 42;
+const CAM_RANGE_M = 4;
+
+/**
+ * Hình chóp vùng nhìn của camera — gắn trong khung của model (mũi = −Z), nghiêng
+ * xuống 15° như lúc lắp. Tím = màu của khối thị giác máy trong toàn giao diện.
+ */
+export function CameraFrustum() {
+  const { geometry, edges } = useMemo(() => {
+    const w = Math.tan(THREE.MathUtils.degToRad(CAM_HFOV / 2)) * CAM_RANGE_M;
+    const h = Math.tan(THREE.MathUtils.degToRad(CAM_VFOV / 2)) * CAM_RANGE_M;
+    const z = -CAM_RANGE_M;
+    const v = new Float32Array([0, 0, 0, -w, -h, z, w, -h, z, w, h, z, -w, h, z]);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(v, 3));
+    g.setIndex([0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1]);
+    g.computeVertexNormals();
+    const e: [number, number, number][][] = [
+      [[0, 0, 0], [-w, -h, z]],
+      [[0, 0, 0], [w, -h, z]],
+      [[0, 0, 0], [w, h, z]],
+      [[0, 0, 0], [-w, h, z]],
+      [[-w, -h, z], [w, -h, z], [w, h, z], [-w, h, z], [-w, -h, z]],
+    ];
+    return { geometry: g, edges: e };
+  }, []);
+  return (
+    <group position={[0, 0.2, -0.1]} rotation={[-0.26, 0, 0]}>
+      <mesh geometry={geometry}>
+        <meshBasicMaterial color="#b28cff" transparent opacity={0.07} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+      {edges.map((pts, i) => (
+        <Line key={i} points={pts} color="#b28cff" lineWidth={1.2} transparent opacity={0.8} />
+      ))}
     </group>
   );
 }

@@ -11,11 +11,11 @@
  * Chất lượng (`quality`) quyết định độ phân giải, bóng đổ và hậu kỳ — máy yếu
  * chọn "Thấp" vẫn chạy mượt. `PerformanceMonitor` tự hạ độ phân giải khi rớt khung.
  */
-import { Environment, Lightformer, OrbitControls, PerformanceMonitor, Sky, Stars } from "@react-three/drei";
+import { Environment, Lightformer, OrbitControls, Sky, Stars } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Bloom, DepthOfField, EffectComposer, N8AO, SMAA, ToneMapping, Vignette } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, N8AO, SMAA, ToneMapping, Vignette } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
-import { Suspense, useMemo, useRef, useState } from "react";
+import { memo, Suspense, useMemo, useRef } from "react";
 import type { ComponentRef, ReactNode } from "react";
 import * as THREE from "three";
 
@@ -25,7 +25,11 @@ import type { TwinGround, TwinQuality } from "@/store/settings";
 import { useTelemetryStore } from "@/store/telemetry";
 
 import { DroneModel } from "./DroneModel";
-import { GeofenceVolume, Ground, HomePad, Mission3D, RangefinderBeam, Trail3D, useSceneOrigin } from "./SceneParts";
+import { LabelOverlay, LabelProjector } from "./labels";
+import { detectGpu } from "./gpu";
+import { FieldProps, SkyClouds } from "./FieldProps";
+import { FieldScenery } from "./FieldScenery";
+import { CameraFrustum, GeofenceVolume, Ground, HomePad, Mission3D, RangefinderBeam, ShadowCatcher, Trail3D, useSceneOrigin } from "./SceneParts";
 
 export type CameraMode = "chase" | "orbit" | "top" | "fpv" | "cinematic";
 export type TimeOfDay = "live" | "noon" | "golden" | "night";
@@ -40,6 +44,11 @@ export interface TwinSceneProps {
   showGeofence?: boolean;
   showTrail?: boolean;
   showBeam?: boolean;
+  /** Khu bay dã chiến: trạm mặt đất, người vận hành, cọc tiêu, ống gió. */
+  showField?: boolean;
+  /** Nón nhìn của camera ESP32 trên drone. */
+  showCamera?: boolean;
+  showClouds?: boolean;
   className?: string;
   /** Lớp phủ HTML (HUD) vẽ trên khung. */
   children?: ReactNode;
@@ -52,6 +61,9 @@ const QUALITY = {
   high: { dpr: [1, 2] as [number, number], shadows: true, shadowMap: 2048, tiles: 4, ao: true, post: true },
   ultra: { dpr: [1.25, 2] as [number, number], shadows: true, shadowMap: 4096, tiles: 5, ao: true, post: true },
 } satisfies Record<TwinQuality, unknown>;
+
+/** Cạnh hộp chiếu bóng quanh drone, mét. */
+const SHADOW_BOX_M = 24;
 
 // ---------------------------------------------------------------------------
 // Mặt trời
@@ -72,12 +84,15 @@ function Lighting({ timeOfDay, shadowMap, shadows }: { timeOfDay: TimeOfDay; sha
   const light = useRef<THREE.DirectionalLight>(null);
   const target = useMemo(() => new THREE.Object3D(), []);
 
-  // Bóng đổ bám theo drone: hộp chiếu bóng nhỏ quanh drone thay vì cả bãi → bóng sắc nét.
+  // Bóng đổ bám theo drone (hộp chiếu nhỏ → bóng sắc), nhưng tâm hộp NHẢY THEO
+  // LƯỚI 1 texel của shadow map: trôi mượt từng li là bóng "bơi" và lấp lánh mỗi
+  // khung hình — một nguồn của lỗi nháy người dùng báo.
+  const texel = SHADOW_BOX_M / shadowMap;
   useFrame(() => {
-    const drone = droneState.position;
     if (!light.current) return;
-    target.position.copy(drone);
-    light.current.position.copy(drone).addScaledVector(sun, 60);
+    const d = droneState.position;
+    target.position.set(Math.round(d.x / texel) * texel, 0, Math.round(d.z / texel) * texel);
+    light.current.position.copy(target.position).addScaledVector(sun, 60);
     target.updateMatrixWorld();
   });
 
@@ -87,23 +102,23 @@ function Lighting({ timeOfDay, shadowMap, shadows }: { timeOfDay: TimeOfDay; sha
       {night ? <Stars radius={260} depth={60} count={4000} factor={5} saturation={0} fade speed={0.4} /> : null}
       {night ? <color attach="background" args={["#060b16"]} /> : null}
       <fog attach="fog" args={[night ? "#070d1a" : "#b7c9dc", 180, 900]} />
-      <hemisphereLight args={[night ? "#28324a" : "#dbe8ff", night ? "#0b0f14" : "#4a4232", night ? 0.25 : 0.45]} />
+      <hemisphereLight args={[night ? "#28324a" : "#dbe8ff", night ? "#10141c" : "#4a4232", night ? 0.55 : 0.45]} />
       <primitive object={target} />
       <directionalLight
         ref={light}
         target={target}
-        intensity={night ? 0.25 : 2.1}
+        intensity={night ? 0.55 : 2.1}
         color={timeOfDay === "golden" ? "#ffc98a" : night ? "#9fb4ff" : "#fff6e8"}
         castShadow={shadows}
         shadow-mapSize={[shadowMap, shadowMap]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.02}
+        shadow-bias={-0.0006}
+        shadow-normalBias={0.04}
         shadow-camera-near={1}
         shadow-camera-far={140}
-        shadow-camera-left={-8}
-        shadow-camera-right={8}
-        shadow-camera-top={8}
-        shadow-camera-bottom={-8}
+        shadow-camera-left={-SHADOW_BOX_M / 2}
+        shadow-camera-right={SHADOW_BOX_M / 2}
+        shadow-camera-top={SHADOW_BOX_M / 2}
+        shadow-camera-bottom={-SHADOW_BOX_M / 2}
       />
       {/* Môi trường phản chiếu dựng tại chỗ (không tải HDR từ mạng): vài tấm sáng như studio ngoài trời. */}
       <Environment resolution={256} frames={1}>
@@ -133,7 +148,7 @@ const droneState = {
   scale: 1,
 };
 
-function DroneRig({ origin, showBeam }: { origin: Origin | null; showBeam: boolean }) {
+function DroneRig({ origin, showBeam, showCamera }: { origin: Origin | null; showBeam: boolean; showCamera: boolean }) {
   const group = useRef<THREE.Group>(null);
   const model = useRef<THREE.Group>(null);
   const targetPos = useMemo(() => new THREE.Vector3(), []);
@@ -179,6 +194,7 @@ function DroneRig({ origin, showBeam }: { origin: Origin | null; showBeam: boole
       <group ref={model}>
         <DroneModel spinning={spinning} />
         {showBeam ? <RangefinderBeam /> : null}
+        {showCamera ? <CameraFrustum /> : null}
       </group>
       <AltitudeStem />
     </group>
@@ -289,7 +305,16 @@ function CameraRig({ mode }: { mode: CameraMode }) {
   ) : null;
 }
 
-function Effects({ mode, quality, dof }: { mode: CameraMode; quality: TwinQuality; dof: boolean }) {
+/**
+ * Hậu kỳ — CỐ ĐỊNH, không phụ thuộc chế độ camera.
+ *
+ * Từng cho Vignette/DepthOfField đổi theo camera: mỗi lần bấm đổi góc nhìn,
+ * EffectComposer dựng lại chuỗi pass và biên dịch lại shader → màn hình ĐEN
+ * 1–2 giây (đo 25/09/2026: chase sau orbit đen ở 1,5 s, cinematic đen hẳn vì
+ * DepthOfField đọc độ sâu tuyến tính, không hợp với logarithmicDepthBuffer).
+ * Nên: bỏ DepthOfField, và giữ component này không re-render khi đổi camera.
+ */
+const Effects = memo(function Effects({ quality }: { quality: TwinQuality }) {
   const q = QUALITY[quality];
   if (!q.post) return null;
   return (
@@ -298,13 +323,12 @@ function Effects({ mode, quality, dof }: { mode: CameraMode; quality: TwinQualit
       {/* Ngưỡng CAO: bầu trời Preetham có giá trị HDR > 1, ngưỡng thấp làm cả khung
           mờ sữa (gặp thật khi chụp nghiệm thu). Chỉ đèn (màu 3–8) mới vượt 2.2. */}
       <Bloom mipmapBlur luminanceThreshold={2.2} luminanceSmoothing={0.3} intensity={0.8} />
-      {dof && (mode === "cinematic" || quality === "ultra") ? <DepthOfField target={droneState.position} focalLength={0.02} bokehScale={mode === "cinematic" ? 4 : 2} /> : <></>}
-      <Vignette offset={0.25} darkness={mode === "cinematic" ? 0.75 : 0.5} />
+      <Vignette offset={0.25} darkness={0.55} />
       <ToneMapping mode={ToneMappingMode.NEUTRAL} />
       <SMAA />
     </EffectComposer>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Khung chính
@@ -320,23 +344,46 @@ export function TwinScene({
   showGeofence = true,
   showTrail = true,
   showBeam = true,
+  showField = true,
+  showCamera = false,
+  showClouds = true,
   className,
   children,
 }: TwinSceneProps) {
   const origin = useSceneOrigin();
-  const q = QUALITY[quality];
-  const [dpr, setDpr] = useState(q.dpr[1]);
+  const gpu = useMemo(() => detectGpu(), []);
+  // Render phần mềm: ép "Thấp" + tắt hậu kỳ, kẻo cả trang đứng (xem gpu.ts).
+  if (gpu.software) {
+    quality = "low";
+    effects = false;
+    showField = false;
+    showClouds = false;
+  }
+  // CPU vẽ cả khung 1600×1000 mất hàng trăm ms mỗi khung; 0,6× độ phân giải là
+  // khác biệt giữa "chậm" và "đứng cả trang" (đo: rời trang 3D mất 9,9 s → xem gpu.ts).
+  const q = gpu.software ? { ...QUALITY.low, dpr: [0.6, 0.6] as [number, number], tiles: 1 } : QUALITY[quality];
 
   return (
     <div className={className ?? "relative h-full w-full"} data-testid="twin-scene">
       <Canvas
-        shadows={q.shadows ? "soft" : false}
-        dpr={[q.dpr[0], dpr]}
-        gl={{ antialias: !effects || !q.post, powerPreference: "high-performance", toneMapping: effects && q.post ? THREE.NoToneMapping : THREE.NeutralToneMapping }}
-        camera={{ position: [4, 3, 6], fov: 45, near: 0.05, far: 2500 }}
+        shadows={q.shadows ? "percentage" : false}
+        // Độ phân giải CỐ ĐỊNH theo mức chất lượng. Từng dùng PerformanceMonitor để
+        // tự tăng/giảm — nó bập bênh lên xuống, mỗi lần đổi là canvas vẽ lại cỡ mới:
+        // người dùng thấy màn hình nháy và giật (báo lỗi 25/09/2026).
+        dpr={q.dpr}
+        // Vùng đệm độ sâu LOGARIT: cảnh trải từ 5 cm (cánh quạt) tới 3 km (chân
+        // trời). Đệm tuyến tính ở tỉ lệ đó không phân biệt được hai mặt cách nhau
+        // vài cm ở xa → mặt đất sọc ngang nhấp nháy (z-fighting) — đúng ảnh báo lỗi.
+        gl={{
+          antialias: !effects || !q.post,
+          powerPreference: "high-performance",
+          logarithmicDepthBuffer: true,
+          toneMapping: effects && q.post ? THREE.NoToneMapping : THREE.NeutralToneMapping,
+        }}
+        camera={{ position: [4, 3, 6], fov: 45, near: 0.05, far: 3000 }}
         className="!absolute inset-0"
       >
-        <PerformanceMonitor onDecline={() => setDpr((d) => Math.max(1, d - 0.25))} onIncline={() => setDpr((d) => Math.min(q.dpr[1], d + 0.25))} />
+        <LabelProjector />
         <Suspense fallback={null}>
           <Lighting timeOfDay={timeOfDay} shadowMap={q.shadowMap} shadows={q.shadows} />
           <Ground origin={origin} layer={ground} radius={q.tiles} />
@@ -344,11 +391,22 @@ export function TwinScene({
           {origin && showMission ? <Mission3D origin={origin} /> : null}
           {origin && showTrail ? <Trail3D origin={origin} /> : null}
           {showGeofence ? <GeofenceVolume /> : null}
-          <DroneRig origin={origin} showBeam={showBeam} />
+          <DroneRig origin={origin} showBeam={showBeam} showCamera={showCamera} />
+          {q.shadows ? <ShadowCatcher follow={droneState.position} /> : null}
+          {showField ? <FieldProps /> : null}
+          {showField ? <FieldScenery night={sunDirection(timeOfDay).y < 0.02} /> : null}
+          {showClouds && quality !== "low" ? <SkyClouds night={sunDirection(timeOfDay).y < 0.02} /> : null}
           <CameraRig mode={camera} />
-          {effects ? <Effects mode={camera} quality={quality} dof={effects} /> : null}
+          {effects ? <Effects quality={quality} /> : null}
         </Suspense>
       </Canvas>
+      <LabelOverlay />
+      {gpu.software ? (
+        <div className="pointer-events-none absolute bottom-3 left-3 max-w-sm rounded-lg bg-black/70 px-3 py-2 text-[11.5px] leading-snug text-white" data-testid="twin-software-render">
+          Máy đang vẽ 3D bằng CPU ({gpu.renderer}) — đã tự hạ chất lượng về Thấp để trang không bị đứng. Bật tăng tốc phần cứng
+          trong trình duyệt để có hình đẹp.
+        </div>
+      ) : null}
       {children}
     </div>
   );

@@ -20,9 +20,10 @@
 import { RoundedBox } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import * as THREE from "three";
 
+import { SceneLabel } from "./labels";
 import { batteryLabelTexture, brushedTexture, carbonTexture, gpsTopTexture, propBlurTexture } from "./textures";
 
 /** Nửa đường chéo motor–motor của S500: 500 mm / 2. */
@@ -81,11 +82,54 @@ function useMaterials() {
     const ledGreen = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.4, 5, 1.6), toneMapped: false });
     const ledRed = new THREE.MeshBasicMaterial({ color: new THREE.Color(6, 0.3, 0.2), toneMapped: false });
     const strobe = new THREE.MeshBasicMaterial({ color: new THREE.Color(9, 9, 9), toneMapped: false, transparent: true, opacity: 0 });
-    return { carbon, armWhite, armRed, bell, anodized, steel, prop, propTip, blur, rubber, gear, pcb, battery, batteryBody, gpsTop, plastic, lens, ledGreen, ledRed, strobe };
+    const heatShrink = new THREE.MeshStandardMaterial({ color: "#1f64c8", roughness: 0.45 });
+    const wireRed = new THREE.MeshStandardMaterial({ color: "#d32f2f", roughness: 0.5 });
+    const wireBlack = new THREE.MeshStandardMaterial({ color: "#16181c", roughness: 0.5 });
+    const wireYellow = new THREE.MeshStandardMaterial({ color: "#e7b416", roughness: 0.5 });
+    const gold = new THREE.MeshStandardMaterial({ color: "#d9a93a", metalness: 1, roughness: 0.25 });
+    return { heatShrink, wireRed, wireBlack, wireYellow, gold, carbon, armWhite, armRed, bell, anodized, steel, prop, propTip, blur, rubber, gear, pcb, battery, batteryBody, gpsTop, plastic, lens, ledGreen, ledRed, strobe };
   }, []);
 }
 
 type Mats = ReturnType<typeof useMaterials>;
+
+/** Độ tách rời hiện tại (0 = lắp, 1 = tách hết) — hỏi mỗi khung hình. */
+type ExplodeFn = () => number;
+const NO_EXPLODE: ExplodeFn = () => 0;
+
+/**
+ * Nhóm tách rời: ở `explode = 0` nằm đúng chỗ lắp; tăng dần thì dời theo
+ * `offset` (mét). Nhãn (khi bật) đi theo bộ phận.
+ */
+function Part({
+  offset,
+  explode,
+  label,
+  showLabel,
+  labelAt = [0, 0, 0],
+  children,
+}: {
+  offset: [number, number, number];
+  explode: ExplodeFn;
+  label?: string;
+  showLabel?: boolean;
+  labelAt?: [number, number, number];
+  children: ReactNode;
+}) {
+  const g = useRef<THREE.Group>(null);
+  useFrame(() => {
+    const e = explode();
+    if (g.current) g.current.position.set(offset[0] * e, offset[1] * e, offset[2] * e);
+  });
+  return (
+    <group ref={g}>
+      {children}
+      {showLabel && label ? (
+        <SceneLabel id={`part-${label}`} tone="part" offset={labelAt} text={label} opacity={() => Math.max(0, Math.min(1, (explode() - 0.35) / 0.4))} />
+      ) : null}
+    </group>
+  );
+}
 
 /** Một lá cánh: mặt bằng thuôn nhọn (Shape) đùn mỏng, gốc ở tâm quay. */
 function useBladeGeometry() {
@@ -181,6 +225,19 @@ function Arm({ m, def }: { m: Mats; def: MotorDef }) {
       <mesh position={[0, -0.013, len / 2 + 0.02]} material={def.front ? m.armRed : m.armWhite} castShadow>
         <boxGeometry args={[0.008, 0.006, len * 0.9]} />
       </mesh>
+      {/* ESC dán trên tay (bọc co nhiệt xanh) + bó dây 3 pha chạy tới motor */}
+      <mesh position={[0, 0.014, 0.075]} material={m.heatShrink} castShadow>
+        <boxGeometry args={[0.022, 0.008, 0.045]} />
+      </mesh>
+      {[
+        [-0.006, m.wireRed],
+        [0, m.wireBlack],
+        [0.006, m.wireYellow],
+      ].map(([x, mat]) => (
+        <mesh key={x as number} position={[x as number, 0.0135, 0.075 + len * 0.36]} rotation={[Math.PI / 2, 0, 0]} material={mat as THREE.Material}>
+          <cylinderGeometry args={[0.0018, 0.0018, len * 0.62, 6]} />
+        </mesh>
+      ))}
       {/* đèn dưới đầu tay: trước xanh, sau đỏ */}
       <mesh position={[0, -0.014, len + 0.008]} material={def.front ? m.ledGreen : m.ledRed}>
         <sphereGeometry args={[0.0065, 16, 12]} />
@@ -222,12 +279,14 @@ function LandingGear({ m }: { m: Mats }) {
   );
 }
 
-function Body({ m, strobe }: { m: Mats; strobe: RefObject<THREE.Mesh | null> }) {
+function Body({ m, strobe, explode, labels }: { m: Mats; strobe: RefObject<THREE.Mesh | null>; explode: ExplodeFn; labels: boolean }) {
   return (
     <group>
       {/* tấm dưới + tấm trên + trụ đỡ */}
       <RoundedBox args={[0.18, 0.004, 0.2]} radius={0.002} position={[0, BODY_Y, 0]} castShadow receiveShadow material={m.carbon} />
-      <RoundedBox args={[0.14, 0.004, 0.16]} radius={0.002} position={[0, BODY_Y + 0.045, 0]} castShadow receiveShadow material={m.carbon} />
+      <Part offset={[0, 0.14, 0]} explode={explode} label="Tấm thân trên · sợi carbon" showLabel={labels} labelAt={[0.06, BODY_Y + 0.05, 0.06]}>
+        <RoundedBox args={[0.14, 0.004, 0.16]} radius={0.002} position={[0, BODY_Y + 0.045, 0]} castShadow receiveShadow material={m.carbon} />
+      </Part>
       {[
         [0.055, 0.065],
         [-0.055, 0.065],
@@ -238,13 +297,23 @@ function Body({ m, strobe }: { m: Mats; strobe: RefObject<THREE.Mesh | null> }) 
           <cylinderGeometry args={[0.0035, 0.0035, 0.043, 10]} />
         </mesh>
       ))}
+      {/* bo chia nguồn + jack XT60 vàng */}
+      <mesh position={[0, BODY_Y + 0.006, 0.03]} material={m.pcb}>
+        <boxGeometry args={[0.05, 0.004, 0.05]} />
+      </mesh>
+      <mesh position={[0, BODY_Y - 0.004, 0.09]} material={m.gold}>
+        <boxGeometry args={[0.016, 0.008, 0.012]} />
+      </mesh>
       {/* chồng mạch FC (SpeedyBee F405 V5) giữa hai tấm */}
-      <mesh position={[0, BODY_Y + 0.018, 0]} material={m.pcb} castShadow>
-        <boxGeometry args={[0.042, 0.008, 0.042]} />
-      </mesh>
-      <mesh position={[0, BODY_Y + 0.03, 0]} material={m.pcb} castShadow>
-        <boxGeometry args={[0.038, 0.006, 0.038]} />
-      </mesh>
+      <Part offset={[0, 0.07, 0]} explode={explode} label="FC SpeedyBee F405 V5 · ArduCopter" showLabel={labels} labelAt={[0, BODY_Y + 0.04, 0]}>
+        <mesh position={[0, BODY_Y + 0.018, 0]} material={m.pcb} castShadow>
+          <boxGeometry args={[0.042, 0.008, 0.042]} />
+        </mesh>
+        <mesh position={[0, BODY_Y + 0.03, 0]} material={m.pcb} castShadow>
+          <boxGeometry args={[0.038, 0.006, 0.038]} />
+        </mesh>
+      </Part>
+      <Part offset={[0, -0.16, 0]} explode={explode} label="Pin LiPo 4S 5200 mAh" showLabel={labels} labelAt={[0.05, BODY_Y - 0.03, 0]}>
       {/* pin LiPo dưới bụng, có quai dán */}
       <group position={[0, BODY_Y - 0.03, 0.005]}>
         <mesh material={[m.battery, m.battery, m.batteryBody, m.batteryBody, m.batteryBody, m.batteryBody]} castShadow receiveShadow>
@@ -256,6 +325,8 @@ function Body({ m, strobe }: { m: Mats; strobe: RefObject<THREE.Mesh | null> }) 
           </mesh>
         ))}
       </group>
+      </Part>
+      <Part offset={[0, 0.2, 0.06]} explode={explode} label="GPS Holybro M10 + la bàn IST8310" showLabel={labels} labelAt={[0, BODY_Y + 0.17, 0.05]}>
       {/* cột GPS phía sau + cục GPS */}
       <group position={[0, BODY_Y + 0.047, 0.05]}>
         <mesh position={[0, 0.045, 0]} material={m.carbon} castShadow>
@@ -268,6 +339,8 @@ function Body({ m, strobe }: { m: Mats; strobe: RefObject<THREE.Mesh | null> }) 
           <circleGeometry args={[0.028, 36]} />
         </mesh>
       </group>
+      </Part>
+      <Part offset={[0, 0.02, -0.16]} explode={explode} label="TFmini Plus · đo vật cản" showLabel={labels} labelAt={[0, BODY_Y + 0.04, -0.108]}>
       {/* TFmini Plus ở mũi: hộp đen, hai thấu kính nhìn thẳng trước (−Z) */}
       <group position={[0, BODY_Y + 0.012, -0.108]}>
         <mesh material={m.plastic} castShadow>
@@ -279,6 +352,8 @@ function Body({ m, strobe }: { m: Mats; strobe: RefObject<THREE.Mesh | null> }) 
           </mesh>
         ))}
       </group>
+      </Part>
+      <Part offset={[0, -0.08, -0.14]} explode={explode} label="ESP32-CAM · camera + AI" showLabel={labels} labelAt={[0, BODY_Y - 0.04, -0.095]}>
       {/* ESP32-CAM dưới mũi, nghiêng nhìn xuống 15° */}
       <group position={[0, BODY_Y - 0.012, -0.095]} rotation={[-0.26, 0, 0]}>
         <mesh material={m.pcb} castShadow>
@@ -288,6 +363,13 @@ function Body({ m, strobe }: { m: Mats; strobe: RefObject<THREE.Mesh | null> }) 
           <cylinderGeometry args={[0.0045, 0.0045, 0.005, 16]} />
         </mesh>
       </group>
+      </Part>
+      {/* ăng-ten thu RC (FS-iA6B) chĩa chéo ra sau, lệch 90° nhau cho sóng ổn định */}
+      {[-1, 1].map((side) => (
+        <mesh key={side} position={[side * 0.035, BODY_Y + 0.07, 0.085]} rotation={[0.9, 0, side * 0.9]} material={m.wireBlack}>
+          <cylinderGeometry args={[0.0014, 0.0014, 0.08, 5]} />
+        </mesh>
+      ))}
       {/* đèn nháy trắng trên nóc — chỉ nháy khi ARMED */}
       <mesh ref={strobe} position={[0, BODY_Y + 0.052, -0.05]} material={m.strobe}>
         <sphereGeometry args={[0.006, 12, 10]} />
@@ -299,9 +381,13 @@ function Body({ m, strobe }: { m: Mats; strobe: RefObject<THREE.Mesh | null> }) 
 export interface DroneModelProps {
   /** Hỏi mỗi khung hình: cánh có đang quay không (thường = ARMED). */
   spinning: () => boolean;
+  /** Hỏi mỗi khung hình: độ tách rời 0..1 (chế độ Xưởng). Mặc định 0 — lắp nguyên. */
+  explode?: ExplodeFn;
+  /** Hiện nhãn linh kiện khi tách rời. */
+  labels?: boolean;
 }
 
-export function DroneModel({ spinning }: DroneModelProps) {
+export function DroneModel({ spinning, explode = NO_EXPLODE, labels = false }: DroneModelProps) {
   const m = useMaterials();
   const strobe = useRef<THREE.Mesh>(null);
   useFrame(({ clock }) => {
@@ -313,14 +399,23 @@ export function DroneModel({ spinning }: DroneModelProps) {
   });
   return (
     <group>
-      <Body m={m} strobe={strobe} />
+      <Body m={m} strobe={strobe} explode={explode} labels={labels} />
       {MOTORS.map((def, i) => (
-        <group key={i}>
+        <Part
+          key={i}
+          offset={[def.x * 0.55, 0, def.z * 0.55]}
+          explode={explode}
+          label={i === 0 ? "Tay + ESC + motor + cánh 10\"" : undefined}
+          showLabel={labels && i === 0}
+          labelAt={[def.x, BODY_Y + 0.09, def.z]}
+        >
           <Arm m={m} def={def} />
           <Motor m={m} def={def} spinning={spinning} />
-        </group>
+        </Part>
       ))}
-      <LandingGear m={m} />
+      <Part offset={[0, -0.12, 0]} explode={explode} label="Càng đáp S500" showLabel={labels} labelAt={[0.12, 0.05, 0]}>
+        <LandingGear m={m} />
+      </Part>
     </group>
   );
 }

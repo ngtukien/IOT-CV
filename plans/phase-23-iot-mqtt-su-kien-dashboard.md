@@ -59,7 +59,7 @@ backend/tests/test_recorder.py           MỚI
 frontend/src/components/Iot/IotPanel.tsx             MỚI
 frontend/src/components/MapView/DetectionMarkers.tsx MỚI
 frontend/src/store/iot.ts                            MỚI
-frontend/src/app/App.tsx                             (CHỈ gắn IotPanel)
+frontend/src/pages/OverviewPage.tsx                  (CHỈ gắn IotPanel — web GCS v2: App.tsx chỉ còn router + dịch vụ toàn cục, panel sống trong trang)
 frontend/src/components/MapView/MapView.tsx          (CHỈ gắn DetectionMarkers)
 
 scripts/mqtt_probe.py                    MỚI — subscriber test client

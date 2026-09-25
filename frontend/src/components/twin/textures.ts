@@ -209,3 +209,106 @@ export function fallbackGroundTexture(): THREE.CanvasTexture {
     return t;
   });
 }
+
+/**
+ * Màn hình laptop ở trạm mặt đất: một "ảnh chụp" thu nhỏ của chính GCS này
+ * (PFD, bản đồ, thanh trạng thái) vẽ bằng canvas. Phát sáng nhẹ (không tone-map).
+ */
+export function laptopScreenTexture(): THREE.CanvasTexture {
+  return remember("laptop", () => {
+    const [c, ctx] = canvas(512, 320);
+    ctx.fillStyle = "#0e1522";
+    ctx.fillRect(0, 0, 512, 320);
+    ctx.fillStyle = "#162235";
+    ctx.fillRect(0, 0, 512, 26);
+    ctx.fillStyle = "#56e0f3";
+    ctx.font = "600 14px 'Chakra Petch', sans-serif";
+    ctx.fillText("IOT-CV GCS", 10, 18);
+    // PFD
+    const g = ctx.createLinearGradient(0, 40, 0, 190);
+    g.addColorStop(0, "#1b5bb0");
+    g.addColorStop(0.5, "#6fa9e6");
+    g.addColorStop(0.5, "#7a4d22");
+    g.addColorStop(1, "#3b240d");
+    ctx.fillStyle = g;
+    ctx.fillRect(12, 40, 180, 150);
+    ctx.strokeStyle = "#f2b53a";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(52, 115);
+    ctx.lineTo(92, 115);
+    ctx.moveTo(112, 115);
+    ctx.lineTo(152, 115);
+    ctx.stroke();
+    // bản đồ
+    ctx.fillStyle = "#2f3b2a";
+    ctx.fillRect(204, 40, 296, 268);
+    ctx.strokeStyle = "#8a7a55";
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(430, 40);
+    ctx.lineTo(470, 308);
+    ctx.stroke();
+    ctx.strokeStyle = "#f2b53a";
+    ctx.setLineDash([8, 6]);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(300, 200);
+    ctx.lineTo(360, 120);
+    ctx.lineTo(420, 180);
+    ctx.lineTo(300, 200);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#56e0f3";
+    ctx.beginPath();
+    ctx.arc(300, 200, 7, 0, Math.PI * 2);
+    ctx.fill();
+    // ô số
+    ctx.fillStyle = "#1a2638";
+    for (let i = 0; i < 4; i += 1) ctx.fillRect(12 + (i % 2) * 92, 200 + Math.floor(i / 2) * 54, 86, 48);
+    ctx.fillStyle = "#3ee6a0";
+    ctx.font = "600 20px monospace";
+    ctx.fillText("5.0 m", 20, 232);
+    ctx.fillText("84 %", 112, 232);
+    ctx.fillText("3D 12", 20, 286);
+    ctx.fillText("GUIDED", 106, 286);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    return t;
+  });
+}
+
+/** Sọc cam–trắng của ống gió (5 dải, đúng chuẩn ống gió sân bay). */
+export function stripeTexture(): THREE.CanvasTexture {
+  return remember("stripe", () => {
+    const [c, ctx] = canvas(256, 32);
+    for (let i = 0; i < 5; i += 1) {
+      ctx.fillStyle = i % 2 === 0 ? "#ff5a1f" : "#f7f7f5";
+      ctx.fillRect((i * 256) / 5, 0, 256 / 5 + 1, 32);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+let cloudUrl: string | null = null;
+
+/** Texture mây mềm cho drei `<Clouds>` — data URL tự sinh thay cho ảnh trên CDN. */
+export function cloudTextureUrl(): string {
+  if (cloudUrl) return cloudUrl;
+  const [c, ctx] = canvas(256, 256);
+  for (let i = 0; i < 28; i += 1) {
+    const x = 128 + (Math.random() - 0.5) * 120;
+    const y = 128 + (Math.random() - 0.5) * 80;
+    const r = 30 + Math.random() * 50;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, "rgba(255,255,255,0.35)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 256);
+  }
+  cloudUrl = c.toDataURL("image/png");
+  return cloudUrl;
+}
