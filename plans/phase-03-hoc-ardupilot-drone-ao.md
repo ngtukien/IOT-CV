@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| ĐÃ XONG (2026-09-22, PR #29) | Phase 02 | ~6 giờ | Không |
+| PHẦN MÁY XONG (2026-09-22, PR #29; rà soát lại 2026-09-25) — còn 3 cổng của người học, xem `plans/PROGRESS.md` | Phase 02 | ~6 giờ | Không |
 
 ## Mục tiêu
 

@@ -48,6 +48,54 @@ DA_ARM = 0b1000_0000  # MAV_MODE_FLAG_SAFETY_ARMED
 
 CHUOI_TREN_KHONG = ["ALT_HOLD", "LOITER", "GUIDED"]
 
+# Bay tay ở LOITER: cổng pass Phase 03 đòi "LOITER bay tay", không chỉ "đổi được
+# sang LOITER". Tới 25/09/2026 phần này chưa từng chạy được: harness nối bằng
+# sysid 250 nên ArduPilot bỏ qua mọi RC override (xem harness._connect).
+CANH_VUONG_M = 15.0
+# ALT_HOLD với ga ở giữa (1500) phải giữ nguyên độ cao. Ga thấp thì nó tụt —
+# nên một lần "đổi mode được" chưa nói gì về việc ALT_HOLD có làm đúng việc.
+GIU_ALT_HOLD_S = 6.0
+LECH_CAO_TOI_DA_M = 1.0
+
+
+def thu_tac_dung(sitl: SitlInstance, ten: str, tac_dung: dict) -> list[tuple[str, str]]:
+    """Ngoài "đổi được mode", thử mode đó có LÀM ĐÚNG VIỆC không. Ghi số đo vào
+    `tac_dung` để `kiem_tac_dung` chấm; trả các dòng cho bảng kết quả."""
+    if ten == "ALT_HOLD":
+        tac_dung["lech_cao_m"] = giu_do_cao(sitl)
+        return [("ALT_HOLD giữ độ cao, ga ở giữa", f"lệch {tac_dung['lech_cao_m']:.1f} m")]
+    if ten == "LOITER":
+        tac_dung["chang"] = sitl.square_via_rc(CANH_VUONG_M)
+        mo_ta = ", ".join(f"{c['chang']} {c['khoang_cach_m']} m" for c in tac_dung["chang"])
+        return [("LOITER bay tay hình vuông bằng RC", mo_ta)]
+    return []
+
+
+def kiem_tac_dung(tac_dung: dict) -> str | None:
+    """Trả câu báo lỗi, hoặc None nếu ALT_HOLD và LOITER đều làm đúng việc."""
+    lech = tac_dung.get("lech_cao_m")
+    if lech is None or lech > LECH_CAO_TOI_DA_M:
+        return f"ALT_HOLD lệch độ cao {lech} m khi ga ở giữa (tối đa {LECH_CAO_TOI_DA_M} m)"
+    chang = tac_dung.get("chang", [])
+    # Mỗi chặng phải đi được ít nhất 80% cạnh. Chặng ~0 m nghĩa là RC override
+    # không vào — đúng triệu chứng của lỗi sysid 250.
+    ngan = [c for c in chang if c["khoang_cach_m"] < CANH_VUONG_M * 0.8]
+    if len(chang) != 4 or ngan:
+        return f"Bay tay ở LOITER không đủ quãng: {chang}"
+    return None
+
+
+def giu_do_cao(sitl: SitlInstance) -> float:
+    """Giữ ga ở giữa GIU_ALT_HOLD_S giây, trả độ lệch độ cao lớn nhất (m)."""
+    giua = {1: 1500, 2: 1500, 3: 1500, 4: 1500}
+    goc = sitl.get_position()["alt_rel_m"]
+    lech = 0.0
+    het = time.monotonic() + GIU_ALT_HOLD_S
+    while time.monotonic() < het:
+        sitl.rc_override(giua)
+        lech = max(lech, abs(sitl.get_position(timeout=3.0)["alt_rel_m"] - goc))
+    return lech
+
 
 def mission_toi_thieu(lat_deg: float, lon_deg: float) -> list[dict]:
     """Một mission 2 item đủ để AUTO có việc mà làm.
@@ -96,6 +144,7 @@ def mission_toi_thieu(lat_deg: float, lon_deg: float) -> list[dict]:
 def main() -> int:
     ket_qua: list[tuple[str, str]] = []
     da_qua: list[str] = []
+    tac_dung: dict = {}
 
     with SitlInstance(harness.run_dir(USE_DIR), speedup=5) as sitl:
         # --- 1. STABILIZE, dưới đất ---------------------------------------
@@ -129,6 +178,7 @@ def main() -> int:
             ket_qua.append(
                 (f"{ten} trên không", f"đạt sau {time.monotonic() - t0:.1f}s, alt {alt:.1f} m")
             )
+            ket_qua.extend(thu_tac_dung(sitl, ten, tac_dung))
 
         # --- 4. AUTO, có mission thật để chạy -------------------------------
         harness.upload_mission(sitl, mission_toi_thieu(lat0, lon0))
@@ -230,6 +280,15 @@ def main() -> int:
 
     if thieu:
         print(f"THIẾU mode: {sorted(thieu)}", file=sys.stderr)
+        return 1
+    # AUTO phải thật sự tới một waypoint. Bản trước in "KHÔNG TỚI ĐƯỢC" vào bảng
+    # rồi vẫn PASS, vì "AUTO" được thêm vào da_qua trước khi biết nó có chạy.
+    if toi_wp is None:
+        print("AUTO không tới waypoint nào trong 60 s", file=sys.stderr)
+        return 1
+    loi_tac_dung = kiem_tac_dung(tac_dung)
+    if loi_tac_dung:
+        print(loi_tac_dung, file=sys.stderr)
         return 1
 
     # TIỀN ĐỀ trước, kết luận sau. Nếu máy bay không thật sự rời home thì "RTL

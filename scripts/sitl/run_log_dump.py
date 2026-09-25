@@ -47,6 +47,15 @@ THU_MUC_QUET = [
     LOGS_DIR,
 ]
 
+# Log mặc định lấy của `run_mode_chain.py`: đó là runner DUY NHẤT bay qua nhiều
+# mode, mà cổng pass 03.6 đòi chỉ ra CẢ đồ thị độ cao LẪN các lần đổi mode. Bản
+# trước lấy .BIN mới nhất của bất kỳ runner nào — từ Phase 04 đó thường là log
+# của run_avoid_brake.py, không có chuỗi đổi mode nào đáng xem.
+THU_MUC_UU_TIEN = [
+    harness.RUN_DIR_BASE / "mode-chain" / "logs",
+    harness.RUN_DIR_BASE / "mode-chain",
+]
+
 
 def doc_log(duong_dan: Path) -> tuple[list[dict], list[dict]]:
     """Đọc .BIN, trả (các mẫu độ cao, các lần đổi mode)."""
@@ -106,7 +115,7 @@ def main() -> int:
         if not log_bin.is_file():
             raise SitlError(f"Không thấy file {log_bin}")
     else:
-        tim = harness.find_latest_bin(THU_MUC_QUET)
+        tim = harness.find_latest_bin(THU_MUC_UU_TIEN) or harness.find_latest_bin(THU_MUC_QUET)
         if tim is None:
             raise SitlError(
                 "Không thấy file .BIN nào. Chạy một runner bay trước đã, ví dụ:\n"
@@ -207,6 +216,15 @@ Sinh bởi `scripts/sitl/run_log_dump.py`. Đây là dữ liệu bay, không com
             f"Độ cao lớn nhất chỉ {alt_max:.2f} m (cần ≥ {ALT_TOI_THIEU_M} m) — "
             "đây là log máy bay chưa rời mặt đất, không dùng cho đồ thị độ cao được. "
             "Chạy một runner bay trước, hoặc chỉ đích danh file .BIN.",
+            file=sys.stderr,
+        )
+        return 1
+    # Cổng 03.6 đòi "các lần đổi mode". Log bay một mode suốt không chỉ ra được
+    # điều đó, nên không được PASS — bản trước chỉ in một dòng "Lưu ý" rồi vẫn xanh.
+    if so_chuyen_tiep < 1:
+        print(
+            "Log không có lần đổi mode nào — không dùng cho cổng 03.6 được. "
+            "Chạy run_mode_chain.py trước, hoặc chỉ đích danh log có đổi mode.",
             file=sys.stderr,
         )
         return 1

@@ -198,17 +198,23 @@ Máy: Ubuntu 24.04.4, 32 core, 19 GB RAM, ổ WSL `/dev/sdd` còn 915 GB.
 
 Plan: plans/phase-03-hoc-ardupilot-drone-ao.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 21/09/2026 · Ngày xong: ______ *(còn 3 cổng của người học)*
 
 - [x] Bay trọn `GUIDED` → `LOITER` → `ALT_HOLD` → `RTL` → `DISARMED`, không crash.
-      *(`run_mode_chain.py`: 7/7 mode, hai chuyến, không crash, RTL về home 0,0 m.)*
-- [ ] Chạy được mission 5 waypoint (`TAKEOFF` → 3 `WAYPOINT` → `RTL`) ở `AUTO`; `wp list` khớp Mission Planner.
-      *Phần script XONG (`run_mission_auto.py`: tới đủ waypoint [1,2,3,4,5], đọc lại khớp từng
-      trường). Còn nợ phần người: mở Mission Planner đối chiếu `wp list` bằng mắt.*
+      *(`run_mode_chain.py`: 7/7 mode, hai chuyến, không crash, RTL về home 0,0 m. Từ 25/09/2026
+      runner còn **bay tay thật** ở LOITER — hình vuông 4 chặng 15,2–15,4 m bằng RC override — và
+      giữ ALT_HOLD với ga ở giữa, lệch 0,3 m. Trước đó phần bay tay chưa từng chạy, xem Ghi chú.)*
+- [x] Chạy được mission 5 waypoint (`TAKEOFF` → 3 `WAYPOINT` → `RTL`) ở `AUTO`; `wp list` khớp Mission Planner.
+      *(`run_mission_auto.py`: tới đủ waypoint [1,2,3,4,5], đọc lại khớp từng trường. 25/09/2026:
+      Mission Planner nối vào cùng SITL, `PLAN → Read`, bảng 5 lệnh khớp **từng trường** (lệnh, lat,
+      lon, alt, frame) với mission đọc ngược từ FC — ảnh `docs/so-tay/anh/03-mp-wp-list.png`, sổ tay
+      03 mục 11. Hướng kiểm là script nạp → MP đọc; tự vẽ mission trong MP vẫn là bài tập 03.6.)*
 - [ ] Có **3 dòng `PreArm:` khác nhau** chép nguyên văn vào sổ tay, mỗi dòng kèm giải thích tự viết.
-- [ ] Mở được log `.BIN` trên UAV Log Viewer; chỉ ra đồ thị độ cao **và** các lần đổi mode.
-      *Phần script XONG (`run_log_dump.py` rút 1218 mẫu `CTUN` + các lần đổi mode ra CSV).
-      Còn nợ phần người: mở `.BIN` trên plot.ardupilot.org và tự chỉ ra hai thứ đó.*
+- [x] Mở được log `.BIN` trên UAV Log Viewer; chỉ ra đồ thị độ cao **và** các lần đổi mode.
+      *(25/09/2026: log của `run_mode_chain.py` mở trên plot.ardupilot.org, đồ thị `CTUN.Alt`
+      (max 20,03 m) phủ 8 dải mode có nhãn GUIDED → ALT_HOLD → LOITER → GUIDED → AUTO → LAND →
+      GUIDED → RTL — ảnh `docs/so-tay/anh/03-log-viewer.png`. `run_log_dump.py` rút cùng dữ liệu
+      ra CSV và từ nay FAIL nếu log không có lần đổi mode nào.)*
 - [ ] 9 dòng checklist bài tập ở việc 03.6 tick hết.
 - [ ] Viết được câu trả lời tự luận "GUIDED khác AUTO ở chỗ nào" **trước khi** đọc đáp án.
 - [x] `logs/sitl/.gitkeep` đã commit; không file `.BIN` nào lọt vào git.
@@ -216,6 +222,16 @@ Ngày bắt đầu: ______ · Ngày xong: ______
       CSV vừa sinh bị `logs/sitl/*` chặn đúng như thiết kế.)*
 
 Ghi chú:
+
+**25/09/2026 — rà soát lại toàn bộ Phase 03 + 04, chạy lại trọn bộ runner.** Ba cổng còn trống
+(`PreArm:` tự giải thích, checklist 03.6, câu trả lời GUIDED/AUTO) là **bài của người học**, cố ý
+không tick hộ. Hai lỗi đã sửa trong runner Phase 03, cả hai cùng kiểu "báo xanh không chứng minh":
+(1) `run_mode_chain.py` in "KHÔNG TỚI ĐƯỢC" khi AUTO không tới waypoint mà vẫn PASS → nay FAIL;
+(2) `run_log_dump.py` PASS với log 0 lần đổi mode và tự lấy `.BIN` mới nhất của bất kỳ runner nào
+(thường là log Phase 04) → nay ưu tiên log `run_mode_chain` và FAIL nếu không có lần đổi mode.
+Cổng "LOITER bay tay" trước đây được tick trong khi hàm bay tay `square_via_rc()` chưa từng chạy
+được (harness nối sysid 250, ArduPilot bỏ qua RC override) — nay runner bay tay thật và kiểm quãng.
+Chạy lại cả bộ bằng `bash scripts/sitl/run-all.sh`: 7/7 PASS trong ~5,5 phút.
 
 **21/09/2026 — phạm vi Phase 03 đã đổi, chủ dự án quyết.** Plan gốc bắt tự bay hết
 ~6 giờ. Nay cắt đôi: phần cơ học lặp lại do script chạy, người học giữ đúng ba việc
@@ -322,17 +338,56 @@ phase này không code gì. Phạm vi đổi thì lệnh cấm đó hết đúng
 
 Plan: plans/phase-04-param-va-tranh-vat-can-ao.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/09/2026 · Ngày xong: 25/09/2026
 
-- [ ] `firmware/ardupilot/params/sitl/` có đủ 3 snapshot (`00-sitl-default`, `01-sitl-base-loaded`, `02-sitl-avoid`), đã commit.
-- [ ] `params/sitl/README.md` có bảng "SITL nhận / từ chối" đủ **9 dòng**, quan sát thật; mục "Param SITL từ chối" liệt kê hoặc ghi rõ "không có".
-- [ ] Nạp được bộ param nền; có ảnh chụp cửa sổ so sánh (hoặc log `param load`).
-- [ ] `graph RANGEFINDER.distance` (hoặc ô `Sonar Range`) hiện số đổi theo độ cao.
-- [ ] **Thấy AVOID phanh máy bay** trước vật cản ảo ở LOITER; có ảnh chụp màn hình. *(Nếu SITL thiếu `PRX_*`: ghi `HOÃN: sang Phase 22` + bằng chứng, đừng tick.)*
-- [ ] Ghi được ba giá trị `RNGFND1_TYPE` (`1` / `100` / `20`) và dùng ở đâu.
-- [ ] Đã ghi dòng kết luận về `PRX_*` vào Ghi chú (Phase 11 và 14 sẽ đọc).
+- [x] `firmware/ardupilot/params/sitl/` có đủ 3 snapshot (`00-sitl-default`, `01-sitl-base-loaded`, `02-sitl-avoid`), đã commit.
+      *(`00` = 1370 param gốc; `02` = file avoid dự án + TFmini ảo, cấu hình đã thấy phanh.)*
+- [x] `params/sitl/README.md` có bảng "SITL nhận / từ chối" đủ **9 dòng**, quan sát thật; mục "Param SITL từ chối" liệt kê hoặc ghi rõ "không có".
+      *(Cả 9 dòng "nhận". Từ chối: `SERVO_BLH_POLES`, `SERVO_BLH_TRATE`, `AVOID_ANG_MAX`. Kiểm đủ 51/51 dòng của hai file.)*
+- [x] Nạp được bộ param nền; có ảnh chụp cửa sổ so sánh (hoặc log `param load`).
+      *(Log `run_param_load.py` trong sổ tay 04 mục 10.)*
+- [x] **TFmini Plus ảo** đọc số đổi theo khoảng cách tới vật cản. *(Đổi từ "`graph RANGEFINDER.distance` đổi theo độ cao", xem Ghi chú.)*
+      *(133 mẫu trong tầm, lệch trung bình 0,36 m so với khoảng cách tính từ GPS; lần bay 240 s: 934 mẫu, 0,28 m.)*
+- [x] **Thấy AVOID phanh máy bay** trước vật cản ảo ở LOITER; có ảnh chụp màn hình.
+      *(`run_avoid_brake.py` PASS, có đối chứng `AVOID_ENABLE 0` bay xuyên cột. Ảnh Mission Planner:
+      `docs/so-tay/anh/04-mp-avoid-phanh.png`; đồ thị telemetry: `docs/so-tay/anh/04-avoid-phanh.png`.)*
+- [x] Ghi được ba giá trị `RNGFND1_TYPE` (`1` / `100` / `20`) và dùng ở đâu. *(Sổ tay 04 mục 5.)*
+- [x] Đã ghi dòng kết luận về `PRX_*` vào Ghi chú (Phase 11 và 14 sẽ đọc).
 
-Ghi chú: 
+Ghi chú:
+
+**KẾT LUẬN (Phase 11 và 14 đọc dòng này):** SITL **CÓ** nhóm `PRX_*` (`PRX1_TYPE 4` nhận); AVOID
+**thử được** trên SITL với TFmini Plus ảo trên SERIAL3 và nguyên file avoid của dự án — đã thấy
+phanh, không hoãn sang Phase 22. SITL bật gần như mọi feature nên điều này **không** chứng minh
+custom build có `PRX_*`: Phase 14 kiểm theo danh sách ở `firmware/ardupilot/params/sitl/README.md`.
+
+**25/09/2026 — phạm vi đổi, chủ dự án quyết:** dự án chỉ có **một** cảm biến khoảng cách là TFmini
+Plus (đã mua). Bỏ bài lidar 360° LD06 và bài rangefinder analog của plan gốc. Thay bằng bộ mô
+phỏng `benewake_tfmini` có sẵn trong SITL, nên thử được đúng cấu hình drone thật. Cổng "rangefinder
+đổi theo độ cao" viết lại thành "TFmini đổi theo khoảng cách", vì TFmini nhìn thẳng trước, không
+nhìn xuống. Bài OA BendyRuler (tuỳ chọn) không làm: `OA_TYPE 0` trên drone thật, và một tia không
+đủ dữ liệu cho BendyRuler.
+
+**Phát hiện cho Phase 11 (bản nháp base):** `SERIAL5_BAUD,19` vô tác dụng — ArduPilot ép cứng
+115200 cho cổng ESC telemetry, đọc lại sau reboot là 115, cả trên board thật. `SERVO_BLH_*` SITL
+không có (chỉ board ChibiOS có). `AVOID_ANG_MAX` không được biên dịch trong 4.7.1 mặc định, tức
+tránh vật cản ở AltHold nhiều khả năng không có trên drone thật.
+
+**Phát hiện cho Phase 22 (bay thật):** lao tới 3,8 m/s thì lấn margin ~1 m (dừng ở 1,01–1,12 m thay
+vì 2 m); giữ cần thì dao động tới–lùi 1,4–3,2 m, chu kỳ ~4 s, do `AVOID_BACKUP_SPD 0.75`. Ô "Sonar
+Range" của Mission Planner **luôn 0** với TFmini nhìn thẳng trước (ArduPilot chỉ gửi gói
+`RANGEFINDER` cho rangefinder nhìn xuống) — không phải cảm biến hỏng.
+
+**Bốn lỗi im lặng tìm ra trên đường, đã sửa:** (1) harness nối sysid 250 nên mọi RC override bị
+bỏ qua, `square_via_rc()` của Phase 03 chưa từng có tác dụng → 255; (2) harness đọc nhầm HEARTBEAT
+của GCS khác thành mode của drone → lọc theo sysid; (3) `run_sitl.sh` hướng dẫn "lặp lại `-A`"
+nhưng cờ sau đè cờ trước → biến mới `SITL_DEVICES`; (4) chính runner param-load bản đầu lưu giá
+trị sau reboot mà quên so, nên xếp `SERIAL5_BAUD` là "nhận" → đã thêm loại "FC tự đổi sau reboot".
+Runner Phase 03 `run_mode_chain.py` chạy lại sau hai bản sửa harness: vẫn PASS 7/7.
+
+**Lệch với plan, cố ý:** plan liệt kê sửa `scripts/run_sitl.sh`; phase này còn sửa
+`scripts/sitl/harness.py` + `scripts/sitl/README.md` (hai lỗi harness ở trên) và thêm hai runner
+`run_param_load.py`, `run_avoid_brake.py` thay cho gõ tay MAVProxy.
 
 ## Phase 05 — Backend MAVLink + telemetry
 

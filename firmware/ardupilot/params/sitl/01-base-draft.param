@@ -1,0 +1,105 @@
+# BAN NHAP cho Phase 04 - CHI de nap thu vao SITL, KHONG nap len board that.
+# Chep nguyen van tu plans/reports/260921-research-sitl-firmware-toolchain.md muc 4.6.
+# File chinh thuc firmware/ardupilot/params/01-base.param do Phase 11 so huu va chot;
+# khi file do ton tai, scripts/sitl/run_param_load.py dung file do thay cho file nay.
+#
+# 01-base.param - cau hinh nen truoc chuyen bay dau
+# Board: SpeedyBee F405 V5 | ArduCopter 4.7.1 CUSTOM BUILD (custom.ardupilot.org)
+# Nap SAU khi 00-after-flash.param da luu.
+# Cach load: Mission Planner -> Config/Tuning -> Full Parameter List
+#            -> Load from file -> Write Params -> reboot FC
+#
+# CHUA bao gom: obstacle avoidance (xem obstacle-avoidance-tfminiplus-serial3.param)
+#               radio calibration, compass calibration, ESC calibration
+#               -> ba thu do PHAI lam bang wizard, khong nap bang file param.
+
+# ---------- khung ----------
+# FRAME_CLASS 1 = Quad, FRAME_TYPE 1 = X  (khung S500)
+FRAME_CLASS,1
+FRAME_TYPE,1
+
+# ---------- cong serial ----------
+# SERIAL1 = module Bluetooth noi bo, ArduPilot KHONG dung duoc -> de None
+SERIAL1_PROTOCOL,-1
+
+# SERIAL2 = danh cho ESP32 MAVLink bridge (DOT 3, chua lap).
+# UART2 la cong duy nhat co DMA. De 2 = MAVLink2 san.
+SERIAL2_PROTOCOL,2
+SERIAL2_BAUD,57
+
+# SERIAL3 = TFmini Plus (nap tu file obstacle-avoidance-*.param, ghi lai o day de doi chieu)
+# Mac dinh cua board la MSP DisplayPort nhung ban custom build da TAT OSD/MSP.
+SERIAL3_PROTOCOL,9
+SERIAL3_BAUD,115
+
+# SERIAL4 = GPS Holybro M10 (u-blox). 5 = GPS, baud 230 = 230400 (mac dinh cua board)
+SERIAL4_PROTOCOL,5
+SERIAL4_BAUD,230
+
+# SERIAL5 = ESC telemetry (OX32 4in1). 16 = ESC Telemetry, 19200 la mac dinh board
+SERIAL5_PROTOCOL,16
+SERIAL5_BAUD,19
+
+# SERIAL6 = receiver FlySky iA6B qua iBUS tren chan R6. 23 = RCIN
+SERIAL6_PROTOCOL,23
+
+# ---------- receiver ----------
+# RC_PROTOCOLS la BITMASK. bit2 = IBUS -> gia tri 4.
+# Chi bat iBUS (thay vi 1 = All) de tranh nhan nham protocol.
+RC_PROTOCOLS,4
+
+# ---------- GPS ----------
+# Ten param doi tu GPS_TYPE -> GPS1_TYPE tu ban 4.6 tro di.
+# 2 = uBlox (M10 la u-blox; firmware custom da BO driver NMEA)
+GPS1_TYPE,2
+
+# ---------- compass ----------
+# Board KHONG co compass tich hop. M10 mang IST8310 tren I2C.
+# ArduPilot tu do driver -> khong ep bang param.
+# PHAI chay Onboard Mag Calibration SAU khi lap len khung.
+COMPASS_ENABLE,1
+COMPASS_USE,1
+
+# ---------- motor / ESC ----------
+# 5 = DShot300. Bat dau bang 300 (dung sai nhieu tot hon 600).
+# Nang len 6 = DShot600 SAU khi da bay on, neu muon.
+MOT_PWM_TYPE,5
+# So cuc nam cham cua motor. 14 la mac dinh, dung cho HAU HET motor 2212/2216.
+# KIEM TRA datasheet motor thuc te; sai so nay -> RPM telemetry sai.
+SERVO_BLH_POLES,14
+# 10Hz du cho hien thi; nang len 100 khi bat harmonic notch theo RPM.
+SERVO_BLH_TRATE,10
+
+# ---------- pin 4S ----------
+# 4 = Analog Voltage and Current (mac dinh cua board)
+BATT_MONITOR,4
+# CANH BAO: README board ghi VOLT_MULT 11.2 / AMP_PERVLT 1,
+#           nhung hwdef.dat ghi 11.0 / 25.0. Hai nguon MAU THUAN.
+#           Dat theo hwdef roi PHAI hieu chinh bang dong ho van nang:
+#           Mission Planner -> Setup -> Optional Hardware -> Battery Monitor
+#           -> go dien ap do duoc vao o "Measured battery voltage".
+BATT_VOLT_MULT,11.0
+BATT_AMP_PERVLT,25.0
+# Dien dung THUC TE cua pin, doi theo pin ban mua.
+BATT_CAPACITY,5000
+# Nguong 4S: 3.5V/cell = 14.0V (canh bao), 3.3V/cell = 13.2V (nguy hiem).
+# Bao thu cho pin moi; siet lai sau khi biet sut ap thuc te.
+BATT_LOW_VOLT,14.0
+BATT_CRT_VOLT,13.2
+BATT_LOW_MAH,1000
+BATT_FS_LOW_ACT,2
+BATT_FS_CRT_ACT,1
+# Bo qua kiem tra dien ap pin luc khoi dong o lan dau tien de tranh
+# bao loi nham khi chua hieu chinh xong. DAT LAI 0 sau khi calib xong.
+BATT_ARM_VOLT,0
+
+# ---------- failsafe co ban ----------
+FS_THR_ENABLE,1
+FS_EKF_ACTION,1
+FS_GCS_ENABLE,0
+
+# ---------- log ----------
+# Board co 16MB dataflash. Ghi log ngay tu khi cam dien (khong doi arm)
+# de bat duoc loi luc khoi dong.
+LOG_BITMASK,176126
+LOG_DISARMED,1
