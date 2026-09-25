@@ -126,6 +126,15 @@ def _is_valid_coordinate(lat: float, lon: float) -> bool:
     return not (lat == 0.0 and lon == 0.0)
 
 
+def _ra_day_la_0(lat: float, lon: float) -> bool:
+    """(lat, lon) có thành (0, 0) trên dây không — MISSION_ITEM_INT chở toạ độ
+    dạng số nguyên nhân 1e7, nên mọi giá trị dưới nửa đơn vị 1e-7 độ đều ra 0.
+    So như vậy thay vì `== 0.0`: so bằng trực tiếp trên float là thứ không nên
+    tin, và "bằng 0 trên dây" mới là điều FC thật sự nhìn thấy."""
+    nua_don_vi = 0.5e-7
+    return abs(lat) < nua_don_vi and abs(lon) < nua_don_vi
+
+
 def validate_mission(
     waypoints: list[Waypoint],
     home: tuple[float, float] | None = None,
@@ -178,7 +187,7 @@ def validate_mission(
 
         # LAND với (0, 0) = hạ cánh tại chỗ, quy ước của MAVLink. TAKEOFF thì
         # Copter luôn cất cánh tại chỗ. Hai trường hợp đó không kiểm toạ độ.
-        tai_cho = wp.command == MISSION_CMD_LAND and wp.lat == 0.0 and wp.lon == 0.0
+        tai_cho = wp.command == MISSION_CMD_LAND and _ra_day_la_0(wp.lat, wp.lon)
         kiem_toa_do = wp.command not in _LENH_CHI_ALT and not tai_cho
         if kiem_toa_do and not _is_valid_coordinate(wp.lat, wp.lon):
             errors.append(f"WP{wp.seq}: toạ độ không hợp lệ ({wp.lat}, {wp.lon})")

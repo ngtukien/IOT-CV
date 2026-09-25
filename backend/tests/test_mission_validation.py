@@ -149,3 +149,12 @@ def test_alt_dung_bang_tran_duoc_phep_vuot_mot_chut_bi_chan():
 def test_alt_dung_bang_san_duoc_phep():
     assert validate_mission([_wp(1, alt=2.0)], HOME) == []
     assert any("thấp hơn" in e for e in validate_mission([_wp(1, alt=1.99)], HOME))
+
+
+def test_land_gan_0_duoi_nua_don_vi_1e7_la_ha_tai_cho():
+    # 3e-8 độ ra dây thành 0 (nhân 1e7 rồi làm tròn) -> FC hiểu là "tại chỗ".
+    land = Waypoint(seq=5, lat=3e-8, lon=-3e-8, alt=0.0, command=21)
+    assert validate_mission([land], HOME) == []
+    # 2e-7 độ thì ra dây là 2 -> toạ độ thật (và xa home) -> phải bị kiểm.
+    land_xa = Waypoint(seq=6, lat=2e-7, lon=0.0, alt=0.0, command=21)
+    assert validate_mission([land_xa], HOME) != []
