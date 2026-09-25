@@ -23,6 +23,7 @@ import time
 
 from backend import config
 from backend.events import BUS
+from backend.mavlink import proximity
 from backend.mavlink.connection import MSG_ID_HOME_POSITION, MavlinkConnection
 from backend.schemas import EventPayload, Telemetry, TelemetryState
 
@@ -45,6 +46,17 @@ __all__ = [
     "statustext_event",
     "update_state",
 ]
+
+# Gói của Mission Protocol mà thread đọc chuyển thẳng cho `MissionManager`
+# (Phase 07). Khai ở đây — nơi định tuyến — chứ không ở mission.py: mission.py
+# import control.py, control.py import file này, nên chiều ngược lại là vòng.
+MISSION_MESSAGE_TYPES = (
+    "MISSION_REQUEST",
+    "MISSION_REQUEST_INT",
+    "MISSION_ACK",
+    "MISSION_COUNT",
+    "MISSION_ITEM_INT",
+)
 
 # Bit MAV_MODE_FLAG_SAFETY_ARMED trong HEARTBEAT.base_mode
 _ARMED_FLAG = 0b1000_0000
@@ -173,6 +185,8 @@ def update_state(state: TelemetryState, msg, now: float | None = None) -> Teleme
         voltage = getattr(msg, "voltage_battery", 65535)
         if voltage not in (0, 65535):
             state.battery_voltage = voltage / 1000.0
+        # Bit PROXIMITY, không phải LASER_POSITION — xem khối ĐÃ ĐO ở proximity.py.
+        state.rangefinder_healthy = proximity.rangefinder_healthy_from_sys_status(msg)
         # ekf_ok KHÔNG lấy từ đây — xem nhánh EKF_STATUS_REPORT bên dưới và
         # khối chú thích của `_ekf_ok_tu_flags`.
 
@@ -189,6 +203,24 @@ def update_state(state: TelemetryState, msg, now: float | None = None) -> Teleme
     elif msg_type == "HOME_POSITION":
         state.home_lat = msg.latitude / 1e7
         state.home_lon = msg.longitude / 1e7
+
+    elif msg_type == "DISTANCE_SENSOR":
+        # Phase 07 §7.6.1. orientation 0..7 = tám cung 45°, 0 = mũi.
+        orient = int(getattr(msg, "orientation", -1))
+        metres = proximity.distance_sensor_m(msg)
+        if orient == proximity.ROTATION_FORWARD:
+            state.obstacle_distance = metres
+            state.proximity_clear = proximity.distance_sensor_is_clear(msg)
+            state.proximity_updated = timestamp
+        if 0 <= orient < proximity.SECTOR_COUNT:
+            sectors = list(state.obstacle_sectors)
+            sectors[orient] = metres
+            state.obstacle_sectors = sectors
+
+    elif msg_type == "OBSTACLE_DISTANCE":
+        # Phase 07 §7.6.2. SITL dự án KHÔNG phát gói này (đo 25/09/2026) — đường
+        # của cảm biến 360° nếu sau này gắn thêm.
+        state.obstacle_sectors = proximity.aggregate_obstacle_sectors(msg)
 
     elif msg_type == "VFR_HUD":
         state.ground_speed = msg.groundspeed
@@ -251,7 +283,24 @@ def build_telemetry(state: TelemetryState, now: float | None = None) -> Telemetr
     if state.last_update is not None:
         link_age_ms = int((timestamp - state.last_update) * 1000)
 
-    fields = state.model_dump(exclude={"connected", "last_update"})
+    fields = state.model_dump(
+        exclude={"connected", "last_update", "proximity_updated", "proximity_clear"}
+    )
+
+    # Proximity: số đo cũ KHÔNG được hiện như số đo mới. Quá PROXIMITY_STALE_S
+    # thì che hết thành null — một con số mét đứng im trên màn hình trong khi
+    # cảm biến đã chết là một lời nói dối về khoảng cách.
+    age_s = None if state.proximity_updated is None else timestamp - state.proximity_updated
+    if age_s is None or age_s > config.PROXIMITY_STALE_S:
+        fields["obstacle_distance"] = None
+        fields["obstacle_sectors"] = [None] * proximity.SECTOR_COUNT
+    fields["avoid_state"] = proximity.avoid_state(
+        fields["obstacle_distance"],
+        state.mode,
+        healthy=state.rangefinder_healthy,
+        age_s=age_s,
+        clear=state.proximity_clear,
+    )
     return Telemetry(
         **fields,
         connected=state.connected and is_link_alive(state, now=timestamp),
@@ -273,10 +322,14 @@ class TelemetryReader:
         connection: MavlinkConnection | None = None,
         state: TelemetryState | None = None,
         bus=BUS,
+        mission_sink=None,
     ) -> None:
         self.connection = connection or MavlinkConnection()
         self.state = state or TelemetryState()
         self.bus = bus
+        # Nơi nhận gói MISSION_* (Phase 07) — thường là `MissionManager.on_message`.
+        # Gán sau khi dựng được, vì MissionManager cần chính connection của reader.
+        self.mission_sink = mission_sink
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
@@ -333,8 +386,11 @@ class TelemetryReader:
             self.state.connected = False
             self.connection.close()
             if not self._stop.is_set():
+                # Mức `error` (Phase 07 §7.7): mất link là mất MỌI thứ backend
+                # biết về máy bay. Backend KHÔNG gửi RTL/LAND — gửi vào đâu? FC
+                # tự lo bằng failsafe của nó (FS_GCS_ENABLE).
                 self.bus.emit(
-                    "warn",
+                    "error",
                     "mavlink",
                     "link.lost",
                     f"Mất liên lạc với flight controller ({self.connection.endpoint})",
@@ -424,6 +480,14 @@ class TelemetryReader:
             # đợi của người đang chờ (Phase 06, việc 6.1.1).
             if msg.get_type() == "COMMAND_ACK":
                 self.connection.route_ack(msg)
+                continue
+
+            # Cùng lý do với COMMAND_ACK: upload mission chạy ở thread khác và
+            # không được tự đọc socket. Nhưng MISSION_COUNT/ITEM không có gì cho
+            # `state`, nên không đi tiếp xuống update_state.
+            if msg.get_type() in MISSION_MESSAGE_TYPES:
+                if self.mission_sink is not None:
+                    self.mission_sink(msg)
                 continue
 
             update_state(self.state, msg)

@@ -135,6 +135,19 @@ DEADMAN_LOG_PATH = str(
 AVOID_MARGIN_M = _env_float("AVOID_MARGIN_M", 2.0)
 AVOID_DIST_MAX_M = _env_float("AVOID_DIST_MAX_M", 5.0)
 RANGEFINDER_MAX_M = _env_float("RANGEFINDER_MAX_M", 6.0)
+# Số đo khoảng cách cũ hơn chừng này thì `avoid_state` = UNKNOWN (đang mù),
+# KHÁC với OFF (trống trải). Không có khoá tương ứng trong param của FC.
+PROXIMITY_STALE_S = _env_float("PROXIMITY_STALE_S", 2.0)
+
+# Mission protocol (Phase 07 §7.3). Chờ mỗi MISSION_REQUEST tối đa bao lâu, và
+# gửi lại MISSION_COUNT bao nhiêu lần trước khi bỏ cuộc.
+MISSION_ITEM_TIMEOUT_S = _env_float("MISSION_ITEM_TIMEOUT_S", 2.0)
+MISSION_RETRIES = _env_int("MISSION_RETRIES", 3)
+# Readback: sai số cho phép khi so mission đọc lại với mission vừa gửi.
+MISSION_READBACK_ALT_TOL_M = _env_float("MISSION_READBACK_ALT_TOL_M", 0.1)
+# Pin dưới ngưỡng này thì phát cảnh báo (Phase 07 §7.7) — CHỈ cảnh báo, không
+# tự RTL. Failsafe pin thật nằm trên FC.
+BATTERY_WARN_PCT = _env_int("BATTERY_WARN_PCT", 25)
 
 # ---------------------------------------------------------------------------
 # Vision (GIAI ĐOẠN 19, 74, 75)
@@ -148,6 +161,29 @@ DETECTION_COOLDOWN_S = _env_float("DETECTION_COOLDOWN_S", 4.0)
 YOLO_DEVICE = _env_str("YOLO_DEVICE", "0")  # "0" = GPU 0, "cpu" để ép CPU
 DETECTION_IMGSZ = _env_int("DETECTION_IMGSZ", 640)
 VISION_ENABLED = _env_bool("VISION_ENABLED", True)  # tắt hẳn vision khi test bay
+
+# Nguồn video GIẢ (Phase 07 §7.8.3) — camera thật chỉ có từ Phase 17. Bật thì
+# backend tự phục vụ một luồng MJPEG lặp video mẫu ở `/api/video/fake-source`
+# và `stream.py` đọc từ ĐÓ, như đọc từ bất kỳ URL nào khác. Tắt (0) thì đọc
+# `CAMERA_STREAM_URL` (ESP32-CAM thật).
+CAMERA_FAKE = _env_bool("CAMERA_FAKE", True)
+CAMERA_FAKE_CLIP = str(
+    (PROJECT_ROOT / _env_str("CAMERA_FAKE_CLIP", "backend/vision/assets/sample-clip.mp4")).resolve()
+)
+CAMERA_FAKE_FPS = _env_float("CAMERA_FAKE_FPS", 15.0)
+# Box giả gửi mỗi chừng này ms (§7.8.3: 300 ms).
+FAKE_DETECTION_INTERVAL_MS = _env_int("FAKE_DETECTION_INTERVAL_MS", 300)
+# Khung mới nhất cũ hơn chừng này thì camera coi như MẤT (`camera.available`).
+CAMERA_STALE_S = _env_float("CAMERA_STALE_S", 2.0)
+
+
+def camera_source_url() -> str:
+    """URL mà `stream.py` đọc. `stream.py` không biết nguồn là giả hay thật —
+    chỗ DUY NHẤT phân biệt là ở đây."""
+    if CAMERA_FAKE:
+        return f"http://127.0.0.1:{BACKEND_PORT}/api/video/fake-source"
+    return CAMERA_STREAM_URL
+
 
 # ---------------------------------------------------------------------------
 # MQTT (GIAI ĐOẠN 76)
@@ -174,4 +210,5 @@ def safety_limits() -> dict[str, float | int]:
         "avoid_margin_m": AVOID_MARGIN_M,
         "avoid_dist_max_m": AVOID_DIST_MAX_M,
         "rangefinder_max_m": RANGEFINDER_MAX_M,
+        "proximity_stale_s": PROXIMITY_STALE_S,
     }

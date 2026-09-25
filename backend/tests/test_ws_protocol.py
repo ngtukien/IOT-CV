@@ -229,14 +229,17 @@ def test_version_khac_1_bi_tu_choi():
         assert loi["data"]["ref"] == "c-9"
 
 
-def test_lenh_cua_phase_sau_tra_not_implemented():
+def test_lenh_cua_phase_sau_tra_not_implemented(monkeypatch):
     """Lệnh có trong hợp đồng nhưng chưa ai hiện thực -> nói RÕ phase nào làm.
 
-    Dùng `cmd.mission.upload` (Phase 07). Bài này vốn dùng `cmd.arm`, nhưng
-    Phase 06 đã hiện thực arm nên nó chuyển sang trả `not_connected` — đúng
-    hành vi mới, sai bài test cũ. Đổi sang một lệnh THẬT SỰ còn chờ thay vì hạ
-    yêu cầu: nhánh `not_implemented` vẫn phải có người canh.
+    Từ Phase 07 MỌI lệnh chiều lên đều đã có handler — không còn lệnh thật nào
+    rơi vào nhánh này. Nhánh vẫn phải có người canh (phase sau sẽ thêm lệnh mới
+    vào hợp đồng trước khi hiện thực), nên dựng lại cảnh đó bằng cách tạm gỡ
+    handler của `cmd.mission.upload` (Phase 07), thay vì xoá bài test.
     """
+    import backend.ws as ws_mod
+
+    monkeypatch.delitem(ws_mod.COMMAND_HANDLERS, "cmd.mission.upload")
     with TestClient(app) as client, client.websocket_connect("/ws") as ws:
         gui(ws, "cmd.mission.upload", {"waypoints": []}, id_="c-3")
 

@@ -165,3 +165,108 @@ def stack_gia(*, mode: str = "GUIDED", armed: bool = True, gps_fix_type: int = 3
     safety = SafetyState(current_mode=mode)
     control = FlightControl(conn, state=state)
     return conn, fake, state, safety, control
+
+
+# ---------------------------------------------------------------------------
+# Phase 07 — flight controller giả biết Mission Protocol.
+# ---------------------------------------------------------------------------
+class FakeMissionFC:
+    """Bắt chước phía FC của Mission Protocol, đủ để test `MissionManager`.
+
+    Móc vào `conn.send` như `tu_dong_ack`: mỗi gói MISSION_* ta gửi đi sinh ngay
+    gói trả lời, bơm thẳng vào `manager.on_message` — đúng đường thread telemetry
+    sẽ đi ngoài đời thật.
+
+    Kịch bản điều chỉnh được:
+      `order`        thứ tự seq FC HỎI (mặc định 0..n-1). Lặp một seq = FC hỏi lại.
+      `request_type` "MISSION_REQUEST_INT" hoặc bản cũ "MISSION_REQUEST".
+      `ack`          mã MISSION_ACK cuối upload (0 = accepted).
+      `silent`       FC im lặng hoàn toàn (thử timeout).
+      `mangle`       hàm (item dict) -> item dict, áp khi FC trả item lúc đọc lại
+                     — dựng cảnh "FC giữ khác cái ta gửi".
+      `mission_start_result` COMMAND_ACK.result cho MAV_CMD_MISSION_START.
+    """
+
+    def __init__(
+        self,
+        conn,
+        fake: FakeMAVLink,
+        manager,
+        *,
+        order: list[int] | None = None,
+        request_type: str = "MISSION_REQUEST_INT",
+        ack: int = 0,
+        silent: bool = False,
+        mangle=None,
+        mission_start_result: int = 0,
+    ) -> None:
+        self.conn = conn
+        self.fake = fake
+        self.manager = manager
+        self.order = order
+        self.request_type = request_type
+        self.ack = ack
+        self.silent = silent
+        self.mangle = mangle
+        self.mission_start_result = mission_start_result
+        self.stored: dict[int, dict] = {}
+        self._pending: list[int] = []
+        self._count = 0
+        goc = conn.send
+
+        def send(fn, *args, **kwargs):
+            ket_qua = goc(fn, *args, **kwargs)
+            ten, payload = fake.sent[-1]
+            self._react(ten, payload.get("args", ()))
+            return ket_qua
+
+        conn.send = send
+
+    def _push(self, msg_type: str, **fields) -> None:
+        fields.setdefault("target_system", 254)
+        fields.setdefault("mission_type", 0)
+        self.manager.on_message(FakeMessage(msg_type, **fields))
+
+    def _next_request(self) -> None:
+        if self._pending:
+            self._push(self.request_type, seq=self._pending.pop(0))
+        else:
+            self._push("MISSION_ACK", type=self.ack)
+
+    def _react(self, ten: str, a: tuple) -> None:
+        if self.silent:
+            return
+        if ten == "mission_count_send":
+            self._count = a[2]
+            self._pending = list(self.order) if self.order is not None else list(range(a[2]))
+            self._next_request()
+        elif ten == "mission_item_int_send":
+            self.stored[a[2]] = {
+                "seq": a[2],
+                "frame": a[3],
+                "command": a[4],
+                "param1": a[7],
+                "x": a[11],
+                "y": a[12],
+                "z": a[13],
+            }
+            self._next_request()
+        elif ten == "mission_request_list_send":
+            self._push("MISSION_COUNT", count=len(self.stored))
+        elif ten == "mission_request_int_send":
+            item = dict(self.stored[a[2]])
+            if self.mangle is not None:
+                item = self.mangle(item)
+            self._push("MISSION_ITEM_INT", **item)
+        elif ten == "mission_clear_all_send":
+            self.stored.clear()
+            self._push("MISSION_ACK", type=0)
+        elif ten == "command_long_send" and a[2] == 300:
+            self.conn.route_ack(
+                FakeMessage("COMMAND_ACK", command=300, result=self.mission_start_result)
+            )
+
+    # -- tiện ích cho assert --------------------------------------------------
+    def seq_da_tra_loi(self) -> list[int]:
+        """Các seq ta đã gửi MISSION_ITEM_INT, theo thứ tự gửi."""
+        return [p["args"][2] for n, p in self.fake.sent if n == "mission_item_int_send"]
