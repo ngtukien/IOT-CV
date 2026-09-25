@@ -546,7 +546,7 @@ Plan: plans/phase-07-backend-mission-proximity-safety.md
 
 Ngày bắt đầu: 25/09/2026 · Ngày xong: 25/09/2026
 
-- [x] `uv run pytest` → **263 passed** (trước phase: 131); **6 test cũ** của `test_mission_validation.py` không sửa dòng nào (xem Ghi chú: plan sai về cách giữ được điều này).
+- [x] `uv run pytest` → **264 passed** (trước phase: 131); **6 test cũ** của `test_mission_validation.py` không sửa dòng nào (xem Ghi chú: plan sai về cách giữ được điều này).
 - [x] Coverage `safety` 99% · `mission` 90% · `deadman` 93% · `proximity` 97% — tổng **93%**, `--cov-fail-under=80` PASS.
 - [x] **Bốn phép thử phá**: 7 / 1 / 2 / 6 test đỏ. Phép 2 lần đầu **0 test đỏ** → thêm test biên `MAX_ALT` rồi mới đỏ. Sửa tạm đã hoàn nguyên, `git diff` sạch trên các dòng đó. Bảng ở sổ tay mục 11.
 - [x] **Mission Planner Read WPs** đọc thẳng từ FC ra đúng TAKEOFF + 4 WAYPOINT + RTL, đúng toạ độ, đúng alt, frame Relative, không lệch dòng. Ảnh `docs/so-tay/anh/07-mp-read-wps.png`.
