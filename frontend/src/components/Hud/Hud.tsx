@@ -14,6 +14,7 @@
  *  3. Mỗi ô có tooltip giải thích cho người mới.
  */
 import type { CSSProperties, ReactNode } from "react";
+import { useMemo } from "react";
 
 import {
   Activity,
@@ -23,12 +24,13 @@ import {
   Compass,
   Gauge,
   Mountain,
-  Plane,
   Satellite,
   ShieldCheck,
   TrendingUpDown,
 } from "lucide-react";
 
+import { IconHorizon } from "@/components/icons";
+import { Sparkline } from "@/components/kit";
 import { Panel } from "@/components/Panel";
 import { useLimits } from "@/hooks/useLimits";
 import {
@@ -46,6 +48,8 @@ import {
 import type { Tone } from "@/lib/format";
 import { GPS_FIX_3D, GPS_FIX_LABEL } from "@/lib/protocol";
 import { cn } from "@/lib/utils";
+import { recentSeries, useHistoryTick } from "@/store/history";
+import type { Telemetry } from "@/lib/protocol";
 import { useTelemetryStore } from "@/store/telemetry";
 
 import { PrimaryFlightDisplay } from "./PrimaryFlightDisplay";
@@ -63,6 +67,17 @@ const TONE_PILL: Record<Tone, string> = {
  * (điều kiện bay là `gps_fix_type`, do FC quyết).
  */
 const SAT_BARS = [4, 6, 8, 10, 12];
+
+/** Cửa sổ của sparkline trong ô số: 60 s gần nhất. */
+const TREND_WINDOW_MS = 60_000;
+
+/** Xu hướng 60 s của một trường — vẽ lại mỗi giây, không theo nhịp 8 Hz. */
+function Trend({ pick, color, min }: { pick: (d: Telemetry) => number | null | undefined; color?: string; min?: number }) {
+  const version = useHistoryTick(1000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const values = useMemo(() => recentSeries(pick, TREND_WINDOW_MS), [version]);
+  return <Sparkline values={values} color={color} min={min} height={16} />;
+}
 
 function Pill({ tone, children, title }: { tone: Tone; children: ReactNode; title: string }) {
   return (
@@ -104,14 +119,23 @@ function AltitudeCell() {
       icon={Mountain}
       hint="Độ cao SO VỚI ĐIỂM CẤT CÁNH (home), không phải so với mực nước biển. Giới hạn do backend đặt."
       value={formatNumber(alt, 1, "m")}
-      sub={`so với điểm cất cánh · giới hạn ${limits ? formatNumber(limits.max_alt, 0, "m") : NO_VALUE}`}
+      sub={`so với home · giới hạn ${limits ? formatNumber(limits.max_alt, 0, "m") : NO_VALUE}`}
+      trend={<Trend pick={(d) => d.relative_alt} min={0} />}
     />
   );
 }
 
 function SpeedCell() {
   const speed = useTelemetryStore((s) => s.telemetry?.ground_speed);
-  return <StatBlock label="Tốc độ" icon={Gauge} hint="Tốc độ so với mặt đất, theo GPS." value={formatNumber(speed, 2, "m/s")} />;
+  return (
+    <StatBlock
+      label="Tốc độ"
+      icon={Gauge}
+      hint="Tốc độ so với mặt đất, theo GPS."
+      value={formatNumber(speed, 2, "m/s")}
+      trend={<Trend pick={(d) => d.ground_speed} min={0} />}
+    />
+  );
 }
 
 function HeadingCell() {
@@ -188,6 +212,7 @@ function BatteryCell() {
       value={formatNumber(remaining, 0, "%")}
       tone={batteryTone(remaining)}
       meter={hasValue(remaining) ? remaining / 100 : null}
+      trend={<Trend pick={(d) => d.battery_voltage} color="var(--hud-green)" />}
       sub={`${formatNumber(voltage, 1, "V")} · ${formatNumber(current, 1, "A")}`}
     />
   );
@@ -222,26 +247,32 @@ function EkfCell() {
   );
 }
 
-export function Hud({ style }: { style?: CSSProperties }) {
+export function Hud({ style, className }: { style?: CSSProperties; className?: string }) {
   return (
-    <Panel title="Màn hình bay" icon={Plane} actions={<ModeArmed />} style={style}>
-      <div className="flex flex-wrap gap-3 p-3">
-        <div className="min-w-[380px] flex-[1.5_1_420px] self-start rounded-lg border border-border bg-black/30 p-2">
+    <Panel
+      title="Màn hình bay"
+      subtitle="Tư thế · tốc độ · độ cao · hướng mũi"
+      icon={IconHorizon}
+      actions={<ModeArmed />}
+      style={style}
+      className={className}
+      variant="instrument"
+      testId="hud-panel"
+    >
+      <div className="flex flex-col gap-2.5 p-2.5">
+        {/* Màn hình bay giữ nền TỐI ở cả hai theme — như thiết bị thật trong buồng lái. */}
+        <div className="dark rounded-xl border border-white/8 bg-[oklch(0.13_0.02_262)] p-2 text-foreground shadow-[inset_0_0_40px_oklch(0_0_0/45%)]">
           <PrimaryFlightDisplay />
         </div>
-        <div className="grid min-w-[300px] flex-[1_1_300px] grid-cols-2 content-start gap-2">
-          <div className="col-span-2">
-            <AltitudeCell />
-          </div>
+        <div className="grid grid-cols-2 content-start gap-1.5">
+          <AltitudeCell />
           <SpeedCell />
           <HeadingCell />
           <ClimbCell />
           <GpsCell />
           <BatteryCell />
           <LinkAgeCell />
-          <div className="col-span-2">
-            <EkfCell />
-          </div>
+          <EkfCell />
         </div>
       </div>
     </Panel>

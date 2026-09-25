@@ -11,6 +11,8 @@
  */
 import { hasValue } from "@/lib/format";
 
+import { usePfdIds, useTestId } from "./pfdContext";
+
 export interface Box {
   x: number;
   y: number;
@@ -55,6 +57,9 @@ export function AttitudeIndicator({ roll, pitch, box }: AttitudeIndicatorProps) 
   const cx = box.x + box.w / 2;
   const cy = box.y + box.h / 2;
   const rollR = box.h / 2 - 16;
+  const { prefix } = usePfdIds();
+  const horizonId = useTestId("horizon");
+  const pointerId = useTestId("roll-pointer");
 
   const shownPitch = known ? Math.max(-PITCH_CLAMP_DEG, Math.min(PITCH_CLAMP_DEG, pitch)) : 0;
   // Máy bay nghiêng phải (roll dương) thì chân trời nhìn thấy xoay sang TRÁI.
@@ -80,32 +85,34 @@ export function AttitudeIndicator({ roll, pitch, box }: AttitudeIndicatorProps) 
     >
       <title>Chân trời giả: phần xanh là trời, phần nâu là đất. Nghiêng (roll) và chúc/ngóc (pitch) của drone.</title>
       <defs>
-        <clipPath id="pfd-attitude-clip">
+        <clipPath id={`${prefix}-attitude-clip`}>
           <rect x={box.x} y={box.y} width={box.w} height={box.h} rx="14" />
         </clipPath>
-        <clipPath id="pfd-ladder-clip">
+        <clipPath id={`${prefix}-ladder-clip`}>
           <circle cx={cx} cy={cy} r={LADDER_RADIUS} />
         </clipPath>
-        <linearGradient id="pfd-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#0b3a7a" />
-          <stop offset="100%" stopColor="#2f7fd6" />
+        <linearGradient id={`${prefix}-sky`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0a2d63" />
+          <stop offset="70%" stopColor="#2a6fc4" />
+          <stop offset="100%" stopColor="#7fb6e8" />
         </linearGradient>
-        <linearGradient id="pfd-ground" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7a4a1c" />
-          <stop offset="100%" stopColor="#3b220c" />
+        <linearGradient id={`${prefix}-ground`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#8a5a2b" />
+          <stop offset="35%" stopColor="#6a4119" />
+          <stop offset="100%" stopColor="#2e1b0a" />
         </linearGradient>
       </defs>
 
-      <g clipPath="url(#pfd-attitude-clip)">
+      <g clipPath={`url(#${prefix}-attitude-clip)`}>
         {known ? (
           <>
-          <g style={horizonStyle} data-testid="horizon">
-            <rect x={cx - 600} y={cy - 900} width="1200" height="900" fill="url(#pfd-sky)" />
-            <rect x={cx - 600} y={cy} width="1200" height="900" fill="url(#pfd-ground)" />
+          <g style={horizonStyle} data-testid={horizonId}>
+            <rect x={cx - 600} y={cy - 900} width="1200" height="900" fill={`url(#${prefix}-sky)`} />
+            <rect x={cx - 600} y={cy} width="1200" height="900" fill={`url(#${prefix}-ground)`} />
             <line x1={cx - 600} y1={cy} x2={cx + 600} y2={cy} stroke="white" strokeWidth="1.5" />
           </g>
           {/* Vùng cắt đứng yên (nhóm ngoài), thang xoay theo chân trời (nhóm trong). */}
-          <g clipPath="url(#pfd-ladder-clip)">
+          <g clipPath={`url(#${prefix}-ladder-clip)`}>
           <g style={horizonStyle}>
             {LADDER_DEG.map((deg) => {
               const y = cy - deg * PX_PER_PITCH_DEG;
@@ -133,7 +140,7 @@ export function AttitudeIndicator({ roll, pitch, box }: AttitudeIndicatorProps) 
         ) : (
           <>
             <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="#1f2937" />
-            <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="url(#pfd-nodata)" />
+            <rect x={box.x} y={box.y} width={box.w} height={box.h} fill={`url(#${prefix}-nodata)`} />
             <text x={cx} y={cy + 4} textAnchor="middle" className="fill-zinc-300 text-[12px] font-semibold tracking-widest">
               KHÔNG CÓ SỐ ĐO TƯ THẾ
             </text>
@@ -156,7 +163,7 @@ export function AttitudeIndicator({ roll, pitch, box }: AttitudeIndicatorProps) 
           style={pointerStyle}
           d={`M ${cx} ${cy - rollR + 2} l -7 11 h 14 z`}
           className="fill-hud-amber"
-          data-testid="roll-pointer"
+          data-testid={pointerId}
         />
       ) : null}
 

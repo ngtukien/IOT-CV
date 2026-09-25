@@ -10,8 +10,18 @@ import L from "leaflet";
 /** Phần tử bên trong icon drone được xoay theo heading (xem DroneMarker). */
 export const DRONE_ROTOR_ATTR = "data-rotate";
 
-const ARROW_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true">
-  <path d="M16 2 L27 28 L16 22 L5 28 Z" fill="oklch(0.84 0.13 205)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+/**
+ * Drone có hướng: quadcopter nhìn từ trên + mũi tên chỉ hướng mũi, vòng sáng
+ * nhạt quanh để nổi trên cả ảnh vệ tinh lẫn bản đồ sáng.
+ */
+const ARROW_SVG = `<svg viewBox="0 0 40 40" aria-hidden="true">
+  <circle cx="20" cy="20" r="17" fill="oklch(0.84 0.13 205 / 0.18)" stroke="oklch(0.84 0.13 205 / 0.55)" stroke-width="1"/>
+  <g stroke="white" stroke-width="2.6" stroke-linecap="round"><path d="M13 13 27 27M27 13 13 27"/></g>
+  <g fill="oklch(0.2 0.03 255)" stroke="oklch(0.84 0.13 205)" stroke-width="1.6">
+    <circle cx="12" cy="12" r="4.2"/><circle cx="28" cy="12" r="4.2"/><circle cx="12" cy="28" r="4.2"/><circle cx="28" cy="28" r="4.2"/>
+  </g>
+  <path d="M20 4.5 25 15 H15 Z" fill="oklch(0.84 0.13 205)" stroke="white" stroke-width="1.4" stroke-linejoin="round"/>
+  <rect x="16.5" y="16.5" width="7" height="7" rx="1.6" fill="oklch(0.84 0.13 205)" stroke="white" stroke-width="1.4"/>
 </svg>`;
 
 const DOT_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true">
@@ -27,8 +37,8 @@ const DOT_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true">
 export const DRONE_ICON_ARROW = L.divIcon({
   className: "map-icon",
   html: `<div class="map-drone" ${DRONE_ROTOR_ATTR} style="transform: rotate(0deg)">${ARROW_SVG}</div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
 });
 
 export const DRONE_ICON_DOT = L.divIcon({
@@ -41,8 +51,8 @@ export const DRONE_ICON_DOT = L.divIcon({
 export const HOME_ICON = L.divIcon({
   className: "map-icon",
   html: `<div class="map-home" aria-label="Điểm home">H</div>`,
-  iconSize: [22, 22],
-  iconAnchor: [11, 11],
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
 });
 
 const wpIconCache = new Map<string, L.DivIcon>();
@@ -71,6 +81,23 @@ export function waypointIcon(label: string, kind: "draft" | "readback", hasError
       iconAnchor: [px / 2, px / 2],
     });
     wpIconCache.set(key, icon);
+  }
+  return icon;
+}
+
+const insertCache = new Map<string, L.DivIcon>();
+
+/** Nút "+" giữa chặng (trang Nhiệm vụ) kèm độ dài chặng. */
+export function insertHandleIcon(label: string): L.DivIcon {
+  let icon = insertCache.get(label);
+  if (!icon) {
+    icon = L.divIcon({
+      className: "map-icon",
+      html: `<div class="map-insert"><span class="map-insert__plus">+</span><span class="map-insert__label">${label}</span></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9],
+    });
+    insertCache.set(label, icon);
   }
   return icon;
 }

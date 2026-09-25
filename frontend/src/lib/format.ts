@@ -96,3 +96,19 @@ export function modeTone(mode: string | null | undefined): Tone {
   if (mode === "RTL" || mode === "LAND") return "warn";
   return "neutral";
 }
+
+/** Khoảng thời gian `mm:ss`, hoặc `h:mm:ss` khi quá một giờ. Âm/không phải số → `—`. */
+export function formatDuration(seconds: Maybe): string {
+  if (!hasValue(seconds) || seconds < 0) return NO_VALUE;
+  const s = Math.floor(seconds);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s % 60)}` : `${pad(m)}:${pad(s % 60)}`;
+}
+
+/** Khoảng cách gọn: dưới 1 km in mét, từ 1 km in km một số lẻ. */
+export function formatDistance(meters: Maybe): string {
+  if (!hasValue(meters)) return NO_VALUE;
+  return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
+}

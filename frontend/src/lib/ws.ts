@@ -59,8 +59,8 @@ export interface GcsSocketOptions {
   onMessage(msg: ServerEnvelope): void;
   onState(state: SocketState, info: StateInfo): void;
   onNotice?(notice: SocketNotice): void;
-  /** Mọi frame nhận được, kể cả hỏng — dấu hiệu đường dây còn sống. */
-  onFrame?(at: number): void;
+  /** Mọi frame nhận được, kể cả hỏng — dấu hiệu đường dây còn sống. `size` = số ký tự. */
+  onFrame?(at: number, size: number): void;
   createSocket?: (url: string) => WebSocketLike;
   random?: () => number;
   now?: () => number;
@@ -160,7 +160,7 @@ export function createGcsSocket(opts: GcsSocketOptions): GcsSocket {
 
     sock.onmessage = (ev) => {
       armSilenceWatch();
-      opts.onFrame?.(now());
+      opts.onFrame?.(now(), typeof ev.data === "string" ? ev.data.length : 0);
       const result = parseServerMessage(ev.data);
       if (result.kind === "message") {
         opts.onMessage(result.message);
