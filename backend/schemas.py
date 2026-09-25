@@ -409,12 +409,58 @@ class EventsPayload(BaseModel):
     events: list[EventPayload]
 
 
+class TelemetrySample(BaseModel):
+    """Một gói telemetry đã gửi, kèm thời điểm gửi (Unix epoch GIÂY)."""
+
+    ts: float
+    data: Telemetry
+
+
+class TelemetryHistoryPayload(BaseModel):
+    """`GET /api/telemetry/history` — vòng đệm của backend (`backend/history.py`).
+
+    Chỉ có mẫu lúc link CÒN SỐNG; khoảng mất link là khoảng trống, không phải
+    chuỗi `None`. `hz` là nhịp ghi danh nghĩa, `capacity_s` là độ dài vòng đệm.
+    """
+
+    samples: list[TelemetrySample]
+    hz: float
+    capacity_s: float
+
+
+class SystemPayload(BaseModel):
+    """`GET /api/system` — thông tin vận hành cho trang Hệ thống của web.
+
+    Chỉ ĐỌC. Không có ngưỡng an toàn nào ở đây (ngưỡng ở `limits`).
+    """
+
+    backend_version: str
+    contract_version: int
+    python: str
+    platform: str
+    pid: int
+    started_at: float  # Unix epoch giây
+    uptime_s: float
+    endpoint: str
+    telemetry_hz: float
+    ws_clients: int
+    link_alive: bool
+    vision_enabled: bool
+    camera_fake: bool
+    camera_source: str
+    history_samples: int
+    history_capacity_s: float
+    events_buffered: int
+
+
 REST_MODELS: dict[str, type[BaseModel]] = {
     "GET /api/status": StatusPayload,
     "GET /api/config": ConfigPayload,
     "GET /api/mission": MissionPayload,
     "POST /api/mission": MissionUploadResult,
     "GET /api/events": EventsPayload,
+    "GET /api/telemetry/history": TelemetryHistoryPayload,
+    "GET /api/system": SystemPayload,
 }
 
 

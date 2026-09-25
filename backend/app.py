@@ -18,8 +18,11 @@ Endpoint:
     GET  /api/events?limit=100    - lịch sử sự kiện
     GET  /api/video/stream        - MJPEG, fan-out từ MỘT kết nối tới nguồn
     GET  /api/video/fake-source   - nguồn MJPEG giả (CAMERA_FAKE=1)
+    GET  /api/telemetry/history   - lịch sử telemetry backend giữ (biểu đồ web)
+    GET  /api/system              - thông tin vận hành (trang Hệ thống)
     WS   /ws                      - hai chiều, theo Hợp đồng WebSocket (schemas.py)
-    /                             - frontend tĩnh đã build (frontend/dist)
+    /                             - frontend tĩnh đã build (frontend/dist), kể cả
+                                    các đường dẫn trang của web (/mission, /3d…)
 """
 
 from __future__ import annotations
@@ -30,6 +33,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend import __version__, config
 from backend.api import build_router
@@ -118,7 +122,39 @@ async def ws(websocket: WebSocket) -> None:
     await websocket_endpoint(HUB, websocket)
 
 
+def is_client_route(path: str) -> bool:
+    """Đường dẫn này có phải một TRANG của web (router phía trình duyệt) không.
+
+    Web GCS v2 có nhiều trang (`/mission`, `/3d`, `/logs`…) nhưng chỉ MỘT file
+    `index.html`; trình duyệt tự chọn trang theo URL. Mở thẳng `/mission` (gõ
+    vào thanh địa chỉ, bấm F5) thì server phải trả `index.html`, không phải 404.
+
+    KHÔNG áp cho:
+      - `api/...` — client REST gọi sai route phải nhận 404 thật, không phải
+        một trang HTML 200 làm nó tưởng đã thành công;
+      - file có đuôi (`.js`, `.png`…) — asset thiếu phải là 404 để thấy lỗi build.
+    """
+    # Starlette chuẩn hoá bằng `os.path.normpath`: trên Windows đó là `\`.
+    clean = path.replace("\\", "/").strip("/")
+    if clean == "api" or clean.startswith("api/") or clean == "ws" or clean.startswith("ws/"):
+        return False
+    last = clean.rsplit("/", 1)[-1]
+    return "." not in last
+
+
+class SpaStaticFiles(StaticFiles):
+    """`StaticFiles` + trả `index.html` cho đường dẫn trang của web (xem trên)."""
+
+    async def get_response(self, path: str, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 404 or not is_client_route(path):
+                raise
+            return await super().get_response("index.html", scope)
+
+
 # Mount cuối cùng để không che các route /api và /ws ở trên. Đừng đảo thứ tự.
 _FRONTEND_DIR = config.PROJECT_ROOT / "frontend" / "dist"
 if _FRONTEND_DIR.is_dir():
-    app.mount("/", StaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")
+    app.mount("/", SpaStaticFiles(directory=_FRONTEND_DIR, html=True), name="frontend")
