@@ -7,6 +7,7 @@ import {
   haversineM,
   nextTrail,
   pickMapCenter,
+  routeToPoints,
 } from "../../src/lib/geo";
 import type { LatLon } from "../../src/lib/geo";
 
@@ -81,5 +82,36 @@ describe("nextTrail — lọc vệt đường", () => {
     expect(t).toHaveLength(TRAIL_MAX_POINTS);
     expect(t[0][0]).toBeCloseTo(HOME[0] + 25 * 1e-4, 9);
     expect(t.at(-1)?.[0]).toBeCloseTo(HOME[0] + (TRAIL_MAX_POINTS + 24) * 1e-4, 9);
+  });
+});
+
+describe("routeToPoints — lộ trình terra-draw (GeoJSON) → điểm", () => {
+  it("GeoJSON xếp [lng, lat]: đảo đúng sang { lat, lon }", () => {
+    // Nếu đảo nhầm, lat = 106.66 là toạ độ không hợp lệ (> 90) → điểm bị bỏ, test đỏ.
+    expect(routeToPoints([[106.660172, 10.762622]])).toEqual([{ lat: 10.762622, lon: 106.660172 }]);
+  });
+
+  it("giữ nguyên thứ tự các đỉnh theo nét vẽ", () => {
+    const pts = routeToPoints([
+      [149.1652, -35.3632],
+      [149.1654, -35.3630],
+      [149.1655, -35.3633],
+    ]);
+    expect(pts.map((p) => p.lon)).toEqual([149.1652, 149.1654, 149.1655]);
+    expect(pts.map((p) => p.lat)).toEqual([-35.3632, -35.363, -35.3633]);
+  });
+
+  it("bỏ đỉnh trùng hệt đỉnh liền trước (chặng 0 m) và đỉnh không hợp lệ", () => {
+    const pts = routeToPoints([
+      [149.1652, -35.3632],
+      [149.1652, -35.3632],
+      [Number.NaN, -35.3632],
+      [149.1654, -35.363],
+    ]);
+    expect(pts).toHaveLength(2);
+  });
+
+  it("nét rỗng thì không có điểm nào", () => {
+    expect(routeToPoints([])).toEqual([]);
   });
 });

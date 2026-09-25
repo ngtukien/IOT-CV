@@ -79,3 +79,23 @@ export function nextTrail(
   const next = [...trail, here];
   return next.length > TRAIL_MAX_POINTS ? next.slice(next.length - TRAIL_MAX_POINTS) : next;
 }
+
+/**
+ * Lộ trình vẽ bằng `terra-draw` (GeoJSON LineString) → danh sách điểm.
+ *
+ * ⚠️ GeoJSON xếp toạ độ `[lng, lat]` — NGƯỢC với Leaflet và với MAVLink
+ * (`lat, lon`). Đổi nhầm thứ tự là waypoint rơi sang bán cầu khác; hàm này là
+ * chỗ DUY NHẤT đảo lại. Bỏ đỉnh không hợp lệ và đỉnh trùng hệt đỉnh liền trước
+ * (bấm hai lần cùng một chỗ lúc kết thúc nét vẽ sinh ra chặng dài 0 m).
+ */
+export function routeToPoints(coordinates: readonly (readonly number[])[]): { lat: number; lon: number }[] {
+  const points: { lat: number; lon: number }[] = [];
+  for (const [lng, lat] of coordinates) {
+    const p = toLatLon(lat, lng);
+    if (!p) continue;
+    const last = points.at(-1);
+    if (last && last.lat === p[0] && last.lon === p[1]) continue;
+    points.push({ lat: p[0], lon: p[1] });
+  }
+  return points;
+}

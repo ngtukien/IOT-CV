@@ -8,11 +8,16 @@
  *
  * Bấm lên bản đồ chỉ thêm điểm vào BẢN NHÁP trong trình duyệt. Không gì được gửi
  * xuống drone cho tới khi người dùng bấm NẠP MISSION.
+ *
+ * Hai cách thêm điểm, loại trừ nhau: bấm từng điểm (mặc định) hoặc "Vẽ lộ
+ * trình" (terra-draw, `RouteDrawControl`). Lúc đang vẽ, bấm-để-thêm TẮT —
+ * không thì mỗi cú bấm đặt đỉnh cũng sinh thêm một waypoint thừa.
  */
-import { Eraser, LocateFixed, Map as MapIcon } from "lucide-react";
+import { Eraser, LocateFixed, Map as MapIcon, Spline } from "lucide-react";
 import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { toast } from "sonner";
 
 import { Panel } from "@/components/Panel";
 import { Button } from "@/components/ui/button";
@@ -28,6 +33,7 @@ import { GeofenceCircle } from "./GeofenceCircle";
 import { HomeMarker } from "./HomeMarker";
 import { MissionLayer } from "./MissionLayer";
 import { geofenceLabel } from "./paths";
+import { RouteDrawControl } from "./RouteDrawControl";
 import { TrailLayer } from "./TrailLayer";
 
 import "./map.css";
@@ -60,10 +66,11 @@ function ViewController({ follow }: { follow: boolean }) {
 }
 
 /** Bấm bản đồ → thêm một điểm vào bản nháp, độ cao = độ cao mặc định (kẹp theo giới hạn). */
-function ClickToAdd() {
+function ClickToAdd({ enabled }: { enabled: boolean }) {
   const limits = useLimits();
   useMapEvents({
     click(e) {
+      if (!enabled) return;
       const { addWaypoint, defaultAlt } = useMissionStore.getState();
       addWaypoint(e.latlng.lat, e.latlng.lng, effectiveDefaultAlt(defaultAlt, limits));
     },
@@ -71,7 +78,7 @@ function ClickToAdd() {
   return null;
 }
 
-function Legend() {
+function Legend({ drawing }: { drawing: boolean }) {
   const home = useHome();
   const limits = useLimits();
   const hasPosition = useTelemetryStore((s) => typeof s.telemetry?.lat === "number" && typeof s.telemetry?.lon === "number");
@@ -101,14 +108,26 @@ function Legend() {
         </p>
       ) : null}
       {!hasPosition ? <p className="text-muted-foreground">Chưa có vị trí GPS của drone.</p> : null}
-      <p className="text-muted-foreground">Bấm lên bản đồ để thêm waypoint vào bản nháp.</p>
+      {drawing ? (
+        <p className="text-hud-amber" data-testid="draw-hint">
+          Đang vẽ lộ trình: bấm từng đỉnh · bấm lại đỉnh cuối hoặc Enter để xong · Esc để huỷ nét.
+        </p>
+      ) : (
+        <p className="text-muted-foreground">Bấm lên bản đồ để thêm waypoint vào bản nháp.</p>
+      )}
     </div>
   );
 }
 
 export function MapView({ style }: { style?: CSSProperties }) {
   const [follow, setFollow] = useState(false);
+  const [drawing, setDrawing] = useState(false);
   const trailLength = useTelemetryStore((s) => s.trail.length);
+
+  const onRouteDone = useCallback((added: number) => {
+    setDrawing(false);
+    if (added > 0) toast.success(`Đã thêm ${added} waypoint từ lộ trình vẽ`, { description: "Vào bản nháp — chưa gửi gì xuống drone." });
+  }, []);
 
   return (
     <Panel
@@ -119,6 +138,15 @@ export function MapView({ style }: { style?: CSSProperties }) {
       bodyClassName="relative min-h-[420px]"
       actions={
         <>
+          <Button
+            size="xs"
+            variant={drawing ? "default" : "outline"}
+            aria-pressed={drawing}
+            onClick={() => setDrawing((d) => !d)}
+          >
+            <Spline aria-hidden />
+            {drawing ? "Dừng vẽ" : "Vẽ lộ trình"}
+          </Button>
           <Button
             size="xs"
             variant={follow ? "default" : "outline"}
@@ -152,7 +180,8 @@ export function MapView({ style }: { style?: CSSProperties }) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <ViewController follow={follow} />
-        <ClickToAdd />
+        <ClickToAdd enabled={!drawing} />
+        <RouteDrawControl active={drawing} onDone={onRouteDone} />
         <HomeMarker />
         <GeofenceCircle />
         <TrailLayer />
@@ -160,7 +189,7 @@ export function MapView({ style }: { style?: CSSProperties }) {
         {/* Vẽ sau cùng để nằm trên mọi lớp khác. */}
         <DroneMarker />
       </MapContainer>
-      <Legend />
+      <Legend drawing={drawing} />
     </Panel>
   );
 }

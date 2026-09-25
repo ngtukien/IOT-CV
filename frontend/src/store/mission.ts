@@ -65,6 +65,8 @@ interface MissionStore {
   readback: ReadbackMission | null;
 
   addWaypoint(lat: number, lon: number, alt: number): void;
+  /** Nối cả một lộ trình (vẽ bằng terra-draw) vào cuối bản nháp, cùng một độ cao. */
+  addWaypoints(points: readonly { lat: number; lon: number }[], alt: number): void;
   updateAlt(id: string, alt: number): void;
   setTakeoffAlt(alt: number): void;
   setFinalCommand(command: FinalCommand): void;
@@ -155,6 +157,8 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
   readback: null,
 
   addWaypoint: (lat, lon, alt) => set((s) => ({ waypoints: [...s.waypoints, { id: newId(), lat, lon, alt }] })),
+  addWaypoints: (points, alt) =>
+    set((s) => ({ waypoints: [...s.waypoints, ...points.map((p) => ({ id: newId(), lat: p.lat, lon: p.lon, alt }))] })),
   updateAlt: (id, alt) => set((s) => ({ waypoints: s.waypoints.map((w) => (w.id === id ? { ...w, alt } : w)) })),
   setTakeoffAlt: (takeoffAlt) => set({ takeoffAlt }),
   setFinalCommand: (finalCommand) => set({ finalCommand }),

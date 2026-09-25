@@ -75,6 +75,21 @@ describe("bản nháp mission", () => {
     expect(items().map((w) => w.seq)).toEqual([1, 2, 3, 4, 5]);
   });
 
+  it("lộ trình vẽ (addWaypoints) nối vào CUỐI bản nháp, id riêng từng điểm, seq liên tục", () => {
+    s().addWaypoint(HOME[0] + 1e-4, HOME[1], 5);
+    s().addWaypoints(
+      [
+        { lat: HOME[0] + 2e-4, lon: HOME[1] },
+        { lat: HOME[0] + 3e-4, lon: HOME[1] },
+      ],
+      6,
+    );
+    expect(s().waypoints.map((w) => w.alt)).toEqual([5, 6, 6]);
+    expect(new Set(s().waypoints.map((w) => w.id)).size).toBe(3);
+    expect(items().map((w) => w.seq)).toEqual([1, 2, 3, 4, 5]);
+    expect(items()[2].lat).toBeCloseTo(HOME[0] + 2e-4, 12);
+  });
+
   it("sửa độ cao chỉ đổi đúng điểm có id đó", () => {
     add4();
     const target = s().waypoints[2];
