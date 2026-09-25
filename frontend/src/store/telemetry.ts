@@ -46,6 +46,12 @@ interface TelemetryStore {
   status: StatusPayload | null;
   events: LogEntry[];
   detection: DetectionPayload | null;
+  /**
+   * Lúc TRÌNH DUYỆT nhận `detection` gần nhất (ms, `Date.now()`). Là một sự kiện,
+   * không phải giá trị dẫn xuất: `frame_ts` là mốc phía nguồn (không phải epoch)
+   * nên không dùng được để biết box đã cũ chưa (Phase 10 §10.5.3).
+   */
+  detectionAt: number | null;
   connection: ConnectionState;
   /** Khi nào thử nối lại (ms, `Date.now()`), `null` khi không chờ. Để hiện đếm ngược. */
   nextRetryAt: number | null;
@@ -57,7 +63,7 @@ interface TelemetryStore {
   applyStatus(s: StatusPayload): void;
   /** Trả `true` nếu là dòng mới (chưa có) — để quyết có bật toast không. */
   pushEvent(e: LogEntry): boolean;
-  applyDetection(d: DetectionPayload): void;
+  applyDetection(d: DetectionPayload, at?: number): void;
   setConnection(c: ConnectionState, nextRetryAt?: number | null): void;
   markMessage(at: number): void;
   clearTrail(): void;
@@ -94,6 +100,7 @@ export const useTelemetryStore = create<TelemetryStore>((set, get) => ({
   status: null,
   events: [],
   detection: null,
+  detectionAt: null,
   connection: "connecting",
   nextRetryAt: null,
   lastMessageAt: null,
@@ -102,7 +109,7 @@ export const useTelemetryStore = create<TelemetryStore>((set, get) => ({
   applyTelemetry: (telemetry) => set({ telemetry, trail: nextTrail(get().trail, telemetry) }),
   clearTrail: () => set({ trail: [] }),
   applyStatus: (status) => set({ status }),
-  applyDetection: (detection) => set({ detection }),
+  applyDetection: (detection, at = Date.now()) => set({ detection, detectionAt: at }),
   markMessage: (lastMessageAt) => set({ lastMessageAt }),
   setConnection: (connection, nextRetryAt = null) =>
     set(
@@ -111,7 +118,7 @@ export const useTelemetryStore = create<TelemetryStore>((set, get) => ({
         : // Mất socket thì số trên HUD không còn là số SỐNG nữa. Xoá để HUD hiện
           // `—` ("không biết"), thay vì đứng im ở số cũ trông như drone đang
           // treo yên một chỗ. `status` giữ lại: endpoint/phiên bản vẫn đúng.
-          { connection, nextRetryAt, telemetry: null, detection: null },
+          { connection, nextRetryAt, telemetry: null, detection: null, detectionAt: null },
     ),
 
   pushEvent: (entry) => {

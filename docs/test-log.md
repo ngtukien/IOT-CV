@@ -105,3 +105,46 @@ Pytest xanh toàn bộ trong khi cả ba lỗi này đều đang sống. Đây l
 | Sự kiện đổ tội sai | `"Mode đổi sang GUIDED — web mất quyền lái"` trong khi GUIDED nằm TRONG whitelist | Không test nào đọc `detail.reason` của sự kiện |
 
 Cả ba đã sửa và đều có test hồi quy chạy được **không cần SITL**.
+
+---
+
+## Phase 10 — web điều khiển, vật cản, video, E2E dead-man
+
+**Môi trường:** ArduCopter SITL headless (`sitl-headless.sh`, `--speedup=1`) trong WSL2
+Ubuntu · backend FastAPI `tcp:127.0.0.1:5760` phục vụ bản build `frontend/dist` ở
+cổng 8000 · Playwright 1.63.0 + Chromium · `MAX_VELOCITY=1.0`, `MAX_ALT=10`,
+`MANUAL_COMMAND_TIMEOUT_MS=300`. Bài #9 dùng phiên riêng `run_backend_avoid.py`
+(TFmini Plus ảo + lưới cột), backend nghe `tcp:127.0.0.1:5763`.
+
+**Ngày:** 2026-09-25 · **Người chạy:** Claude (phiên `/t1k:cook` Phase 10).
+Không bài nào cần bấm tay: mọi thao tác đi qua trình duyệt thật (Playwright), số đo
+đọc bằng một socket quan sát chỉ-đọc tới backend.
+
+| # | Bài | Cách chạy | Kết quả | Đạt |
+|---|---|---|---|---|
+| 1 | Cất cánh từ web | `acceptance.spec.ts` | GUIDED → ARM (gõ `ARM` trong hộp) → TAKEOFF; HUD 5,0 m; marker trên bản đồ | ✓ |
+| 2 | Giữ W → tiến theo mũi | `acceptance.spec.ts` | `ground_speed` 1,00 m/s; 3 s dịch 2,1 m hướng 352°, mũi 351° | ✓ |
+| 3 | Thả W → dừng | `acceptance.spec.ts` | < 0,2 m/s sau 1306 ms (yêu cầu ≤ 3 s) | ✓ |
+| 4 | Đóng tab → dừng | `deadman.spec.ts` (2 lần) | `web_disconnected`, `vx=vy=vz=0`, `sent: true`, sau **6 ms** và **7 ms** (yêu cầu < 300 ms); trang mới thấy < 0,2 m/s | ✓ |
+| 5 | Mất tiêu điểm → dừng | `acceptance.spec.ts --headed` | cửa sổ khác giành focus: < 0,2 m/s sau 1062 ms; phím W trên sơ đồ tự nhả | ✓ |
+| 6 | Mission từ web | `acceptance.spec.ts` | 3 điểm bấm bản đồ → nạp + đọc lại khớp → AUTO (hộp xác nhận ghi số item) → dòng "KHÔNG tự tránh" hiện → hết mission, hạ cánh, disarm (50 s) | ✓ |
+| 7 | HOLD | `acceptance.spec.ts` | giữ W rồi bấm HOLD: LOITER, < 0,2 m/s sau 1304 ms, WEB CONTROL tự tắt | ✓ |
+| 8 | Mất camera | `camera-loss.spec.ts` | nguồn giả chạy riêng ở 8081, giết tiến trình giữa chừng: CAMERA OFFLINE sau 2,3 s; link xanh, HUD có số, bản đồ hiện, mode không đổi, không toast đỏ, LOITER vẫn được FC nhận; bật lại nguồn → hình về | ✓ |
+| 9 | Vật cản | `avoid.spec.ts` + `run_backend_avoid.py` | LOITER: OFF → NEAR (+75,9 s) → ACTIVE (+77,0 s), sau đó dao động NEAR/ACTIVE theo nhịp phanh; không có dòng cảnh báo. GUIDED: NEAR → OFF, **không lần nào ACTIVE**, dòng "KHÔNG tự tránh" hiện suốt | ✓ |
+
+Box nhận diện (cổng pass "2 kích thước cửa sổ"): đọc điểm ảnh canvas. Cửa sổ
+1600×1000 → canvas 430×323, box 19,3% × 25,4%; cửa sổ 1100×900 → canvas 640×480,
+box 19,2% × 25,6%. Kỳ vọng từ `fake_stream.py`: 19% × 25,3% (khung 640×480), trong
+lề 1/16. Canvas lệch ảnh ≤ 1 px mỗi phía.
+
+### Hai lần đỏ trước khi xanh
+
+- `smoke.spec.ts` lần đầu đỏ vì 20 dòng `ERR_CONNECTION_REFUSED` trong console. Thông
+  điệp đó không ghi URL; ghép `location().url` vào thì thấy đều là ảnh nền
+  `tile.openstreetmap.org` — máy không tới được máy chủ bản đồ. Không phải lỗi GCS.
+- Bài #5 lần đầu đỏ: cửa sổ khác giành focus mà trang không nhận `blur`, phím W vẫn
+  "đang giữ". Nguyên nhân là Playwright giả lập focus cho mọi trang. Tắt giả lập bằng
+  CDP `Emulation.setFocusEmulationEnabled` + chạy `--headed` thì `blur` là sự kiện
+  thật, và bài xanh. Test đỏ được đúng lúc cơ chế không chạy — đó là bằng chứng nó đo
+  thật.
+

@@ -14,7 +14,9 @@ import { ERROR_CODE_LABEL } from "@/lib/protocol";
 import type { ServerEnvelope } from "@/lib/protocol";
 import { setActiveSocket } from "@/lib/uplink";
 import { createGcsSocket, wsUrlFromLocation } from "@/lib/ws";
+import { handleControlAck, handleControlError, warnOverdueCommands } from "@/hooks/controlUplink";
 import { handleMissionAck, handleMissionError, handleMissionProgress } from "@/hooks/missionUplink";
+import { useControlStore } from "@/store/control";
 import { useMissionStore } from "@/store/mission";
 import { fromServerEvent, useTelemetryStore, webEvent } from "@/store/telemetry";
 
@@ -36,6 +38,7 @@ function handleMessage(msg: ServerEnvelope): void {
       return;
     case "status":
       store.applyStatus(msg.data);
+      useControlStore.getState().syncWebControl(msg.data.safety.web_control_enabled);
       return;
     case "detection":
       store.applyDetection(msg.data);
@@ -54,6 +57,8 @@ function handleMessage(msg: ServerEnvelope): void {
     case "error": {
       // Lỗi của lần nạp mission: panel mission tự hiện và tự bật toast phù hợp.
       if (handleMissionError(msg.data)) return;
+      // Lỗi của lệnh bay (Phase 10): gắn về đúng nút, gộp lỗi lái tay lặp lại.
+      if (handleControlError(msg.data)) return;
       // Backend từ chối một message của chính tab này.
       const label = ERROR_CODE_LABEL[msg.data.code as keyof typeof ERROR_CODE_LABEL] ?? msg.data.code;
       store.pushEvent(webEvent("warn", `ws.error.${msg.data.code}`, `${label}: ${msg.data.message}`, { ref: msg.data.ref ?? null }));
@@ -61,7 +66,8 @@ function handleMessage(msg: ServerEnvelope): void {
       return;
     }
     case "ack":
-      // Phase 09 chỉ có một lệnh chậm là nạp mission; các ack khác là của Phase 10.
+      // Lệnh bay (Phase 10) khớp theo `ref`; không khớp thì là của nạp mission.
+      if (handleControlAck(msg.data)) return;
       handleMissionAck(msg.data);
       return;
     case "pong":
@@ -103,13 +109,16 @@ export function useWebSocket(): void {
         } else if (state === "closed" && wasOpen) {
           wasOpen = false;
           useMissionStore.getState().onSocketLost();
+          useControlStore.getState().onSocketLost();
           store.pushEvent(webEvent("warn", "ws.lost", "Mất kết nối với backend — đang thử nối lại"));
         }
       },
     });
     setActiveSocket(sock);
+    const overdueTimer = setInterval(warnOverdueCommands, 1000);
 
     return () => {
+      clearInterval(overdueTimer);
       history.abort();
       setActiveSocket(null);
       sock.close();
