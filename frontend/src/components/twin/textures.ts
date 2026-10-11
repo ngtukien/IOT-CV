@@ -7,6 +7,8 @@
  */
 import * as THREE from "three";
 
+import { rng } from "@/lib/seededRandom";
+
 const cache = new Map<string, THREE.Texture>();
 
 function canvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -63,16 +65,17 @@ export function carbonTexture(): THREE.CanvasTexture {
 /** Vân xước kim loại chải (brushed) — dùng làm roughnessMap cho vỏ motor. */
 export function brushedTexture(): THREE.CanvasTexture {
   return remember("brushed", () => {
+    const rand = rng(11);
     const [c, ctx] = canvas(256, 64);
     ctx.fillStyle = "rgb(120,120,120)";
     ctx.fillRect(0, 0, 256, 64);
     for (let i = 0; i < 900; i += 1) {
-      const y = Math.random() * 64;
-      const v = 90 + Math.random() * 90;
+      const y = rand() * 64;
+      const v = 90 + rand() * 90;
       ctx.strokeStyle = `rgba(${v},${v},${v},0.5)`;
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(256, y + (Math.random() - 0.5) * 2);
+      ctx.lineTo(256, y + (rand() - 0.5) * 2);
       ctx.stroke();
     }
     const t = new THREE.CanvasTexture(c);
@@ -141,13 +144,14 @@ export function gpsTopTexture(): THREE.CanvasTexture {
 /** Bãi đáp: vòng tròn + chữ H, nền bê tông có hạt. */
 export function landingPadTexture(): THREE.CanvasTexture {
   return remember("pad", () => {
+    const rand = rng(12);
     const S = 512;
     const [c, ctx] = canvas(S, S);
     ctx.fillStyle = "#5b6068";
     ctx.fillRect(0, 0, S, S);
     const img = ctx.getImageData(0, 0, S, S);
     for (let i = 0; i < img.data.length; i += 4) {
-      const n = (Math.random() - 0.5) * 26;
+      const n = (rand() - 0.5) * 26;
       img.data[i] += n;
       img.data[i + 1] += n;
       img.data[i + 2] += n;
@@ -192,14 +196,15 @@ export function propBlurTexture(): THREE.CanvasTexture {
 /** Mặt đất dự phòng khi không tải được ảnh bản đồ: cỏ tối có hạt, lặp. */
 export function fallbackGroundTexture(): THREE.CanvasTexture {
   return remember("ground", () => {
+    const rand = rng(13);
     const S = 256;
     const [c, ctx] = canvas(S, S);
     ctx.fillStyle = "#34402f";
     ctx.fillRect(0, 0, S, S);
     for (let i = 0; i < 2600; i += 1) {
-      const v = Math.random();
+      const v = rand();
       ctx.fillStyle = v > 0.5 ? `rgba(90,110,70,${0.25 * v})` : `rgba(20,26,18,${0.35 * (1 - v)})`;
-      ctx.fillRect(Math.random() * S, Math.random() * S, 2, 2);
+      ctx.fillRect(rand() * S, rand() * S, 2, 2);
     }
     const t = new THREE.CanvasTexture(c);
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -298,11 +303,12 @@ let cloudUrl: string | null = null;
 /** Texture mây mềm cho drei `<Clouds>` — data URL tự sinh thay cho ảnh trên CDN. */
 export function cloudTextureUrl(): string {
   if (cloudUrl) return cloudUrl;
+  const rand = rng(14);
   const [c, ctx] = canvas(256, 256);
   for (let i = 0; i < 28; i += 1) {
-    const x = 128 + (Math.random() - 0.5) * 120;
-    const y = 128 + (Math.random() - 0.5) * 80;
-    const r = 30 + Math.random() * 50;
+    const x = 128 + (rand() - 0.5) * 120;
+    const y = 128 + (rand() - 0.5) * 80;
+    const r = 30 + rand() * 50;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, "rgba(255,255,255,0.35)");
     g.addColorStop(1, "rgba(255,255,255,0)");
