@@ -25,7 +25,7 @@ function KeyCap({ code, hint, held, wide }: KeyCapProps) {
         wide ? "w-20" : "w-10",
         on
           ? "border-hud-amber/70 bg-hud-amber/20 text-hud-amber shadow-[0_0_14px_-4px] shadow-hud-amber"
-          : "border-border bg-white/4 text-foreground/80",
+          : "border-border bg-foreground/4 text-foreground/80 shadow-[inset_0_-2px_0] shadow-foreground/10",
       )}
     >
       <span className="font-mono text-sm leading-none font-semibold">{KEY_LABEL[code]}</span>

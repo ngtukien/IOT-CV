@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 22 (tránh vật cản thật + tuning xong), Phase 23 (MQTT + pipeline sự kiện) | ~44 giờ | Có (drone bay được, camera ESP32-CAM, thước dây / máy đo khoảng cách, bãi bay dài ≥ 100 m, pin dự phòng) |
+| chưa bắt đầu | Phase 22 (tránh vật cản thật + tuning xong), Phase 23 (MQTT + pipeline sự kiện) | ~44 giờ | Có (drone bay được, camera ESP32-S3 + OV3660, thước dây / máy đo khoảng cách, bãi bay dài ≥ 100 m, pin dự phòng) |
 
 ## Mục tiêu
 
@@ -90,7 +90,7 @@ logs/                                      (dữ liệu chuyến bay, đã gitig
 
 **Ba đường lấy RSSI, thử theo thứ tự:**
 
-1. **Ưu tiên — ESP32-CAM tự báo.** Firmware Phase 12 gọi `WiFi.RSSI()` và trả qua endpoint `/status` dạng JSON. Đây là RSSI ở đúng đầu nối yếu nhất, nên là con số đáng tin nhất. **Chưa xác minh** firmware hiện tại có endpoint này không — đọc `firmware/camera/` trước.
+1. **Ưu tiên — camera ESP32-S3 tự báo.** Firmware Phase 12 gọi `WiFi.RSSI()` và trả qua endpoint `/status` dạng JSON. Đây là RSSI ở đúng đầu nối yếu nhất, nên là con số đáng tin nhất. **Chưa xác minh** firmware hiện tại có endpoint này không — đọc `firmware/camera/` trước.
 2. **Dự phòng — DroneBridge.** **Chưa xác minh** DroneBridge for ESP32 có phơi RSSI qua HTTP hay qua bản tin MAVLink `RADIO_STATUS` hay không. Kiểm tra bằng cách mở web UI của DroneBridge và bằng `mavproxy` xem có bản tin `RADIO_STATUS` nào tới không.
 3. **Dự phòng cuối — phía laptop.** `netsh wlan show interfaces` báo tín hiệu của **kết nối mà laptop đang là client**. Khi laptop là **hotspot**, lệnh này **chưa xác minh** là có liệt kê tín hiệu từng máy trạm hay không. Nếu không, thử `netsh wlan show hostednetwork`.
 
@@ -265,7 +265,7 @@ Kết quả ghi vào `docs/test-matrix-hong-hoc.md` — file này là một chư
 
 | # | Kịch bản | Quy trình thao tác | Hành vi mong đợi | Tiêu chí pass | Bằng chứng | Lặp khi bay? |
 |---|---|---|---|---|---|---|
-| **F1** | Mất camera | Đang stream, rút cáp nguồn ESP32-CAM | Video dừng; web báo `camera: offline`; **telemetry và control không đổi**; drone giữ nguyên chế độ bay | Không có **bất kỳ** mode change nào trong log FC trong 30 s quanh thời điểm rút; `uav/health` retained chuyển `camera:"offline"` trong ≤ 5 s | `backend.jsonl`, ảnh màn hình panel IoT, output `mqtt_probe.py` | ✅ treo 5 m |
+| **F1** | Mất camera | Đang stream, rút cáp nguồn bo camera ESP32-S3 | Video dừng; web báo `camera: offline`; **telemetry và control không đổi**; drone giữ nguyên chế độ bay | Không có **bất kỳ** mode change nào trong log FC trong 30 s quanh thời điểm rút; `uav/health` retained chuyển `camera:"offline"` trong ≤ 5 s | `backend.jsonl`, ảnh màn hình panel IoT, output `mqtt_probe.py` | ✅ treo 5 m |
 | **F2** | Tiến trình nhận diện sập | Tìm PID của tiến trình vision rồi `Stop-Process -Id <pid> -Force` | Web báo `detector: offline`; **luồng MJPEG vẫn hiển thị** (fan-out không phụ thuộc AI); MAVLink không ảnh hưởng | Telemetry giữ 1 Hz liên tục trước/trong/sau (kiểm bằng `seq` không có lỗ hổng bất thường); video vẫn chạy | `backend.jsonl`, `mqtt_probe.py` cho `uav/telemetry` | ❌ chỉ bench / SITL |
 | **F3** | Đóng trình duyệt khi đang giữ W | Vào GUIDED, giữ phím W, đóng tab đột ngột (không nhả phím, không bấm nút dừng) | WebSocket đóng → dead-man 300 ms → vận tốc về 0 → chuyển **LOITER** | Log có `deadman_triggered` trong ≤ 400 ms kể từ lúc socket đóng; log FC ghi mode → LOITER | `backend.jsonl`, `.bin` (dòng mode change) | ✅ treo 5 m, bãi trống |
 | **F4a** | Mất Wi-Fi, `FS_GCS_ENABLE=0` | Tắt hotspot Windows (`netsh wlan stop hostednetwork` hoặc tắt trong Settings) | Drone **giữ nguyên chế độ hiện tại**, KHÔNG RTL; web mất kết nối | Không có mode change nào trong `.bin`; RC vẫn điều khiển được bình thường | `.bin`, video quay màn hình | ✅ |
@@ -540,9 +540,9 @@ Demo là lúc mọi thứ dễ hỏng nhất: sai thời tiết, Wi-Fi bị chi�
 
 Bốn điểm đính chính trong `docs/bao-cao-tong-quan-du-an.md` và một lần viết lại `README.md`.
 
-**Điểm 1 — fps của ESP32-CAM ở VGA.** Dòng ~336 hiện ghi *"ESP32-CAM đạt 15–25 khung/giây ở VGA"*. Số đo thật là **14.19 fps** (nghiên cứu AI §4.2). **Kết luận không đổi** — cần ~2.4 fps để chồng lấn dọc 80% ở 8 m / 3 m/s, nên 14.19 fps vẫn dư biên ~6 lần, và luận điểm "fps không phải nút thắt, chất lượng ảnh mới là" vẫn đúng. Chỉ sửa con số và thêm câu về SVGA (8.25 fps, vẫn dư biên ~3.4 lần).
+**Điểm 1 — fps của camera ở VGA.** *(12/10/2026: camera thật là ESP32-S3 + OV3660; mọi số dưới đây — 15–25, 14.19, 8.25 fps — là của ESP32-CAM/OV2640. Thay bằng số đo thật ở Phase 17, giữ cách lập luận.)* Dòng ~336 hiện ghi *"ESP32-CAM đạt 15–25 khung/giây ở VGA"*. Số đo thật là **14.19 fps** (nghiên cứu AI §4.2). **Kết luận không đổi** — cần ~2.4 fps để chồng lấn dọc 80% ở 8 m / 3 m/s, nên 14.19 fps vẫn dư biên ~6 lần, và luận điểm "fps không phải nút thắt, chất lượng ảnh mới là" vẫn đúng. Chỉ sửa con số và thêm câu về SVGA (8.25 fps, vẫn dư biên ~3.4 lần).
 
-**Điểm 2 — rủi ro #3 về bản IPEX.** Dòng ~305 và ~830 hiện mô tả sai cơ chế: không có SKU "bản IPEX" riêng. Board AI-Thinker ESP32-CAM tiêu chuẩn **đã có sẵn đế hàn u.FL/IPEX trên mạch** cùng một **điện trở 0 Ω** chọn đường anten; chuyển sang anten ngoài là **thao tác hàn dịch điện trở đó**. Sửa thành: mua board thường (~180.000₫) + anten 2.4 GHz IPEX (~13.000₫) và tự dịch điện trở. Xoá luôn con số giai thoại "32% lên 94% ở 45 m" nếu có — đó **không phải benchmark có đối chứng**.
+**Điểm 2 — rủi ro #3 về bản IPEX.** *(12/10/2026: điểm này chỉ áp dụng cho ESP32-CAM, đã loại — thay vì sửa thì xoá hẳn rủi ro #3 khỏi báo cáo.)* Dòng ~305 và ~830 hiện mô tả sai cơ chế: không có SKU "bản IPEX" riêng. Board AI-Thinker ESP32-CAM tiêu chuẩn **đã có sẵn đế hàn u.FL/IPEX trên mạch** cùng một **điện trở 0 Ω** chọn đường anten; chuyển sang anten ngoài là **thao tác hàn dịch điện trở đó**. Sửa thành: mua board thường (~180.000₫) + anten 2.4 GHz IPEX (~13.000₫) và tự dịch điện trở. Xoá luôn con số giai thoại "32% lên 94% ở 45 m" nếu có — đó **không phải benchmark có đối chứng**.
 
 **Điểm 3 — quy kết đúng số liệu SAHI.** Dòng ~550 ghi SAHI tăng AP **6.8%** / **12.7%** trên VisDrone. Nghiên cứu AI §7 nói rõ: **không có số liệu SAHI + YOLO trên VisDrone được công bố; con số đó là của FCOS.** Sửa thành nêu đúng nguồn: "được báo cáo với FCOS trên VisDrone; **chưa có số liệu công bố cho YOLO**, nhóm phải tự đo."
 

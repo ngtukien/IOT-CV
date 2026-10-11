@@ -1,61 +1,59 @@
 /**
- * Khung một trang duy nhất của GCS. Không có router: GCS không có trang thứ hai.
+ * Gốc của web GCS v2: nhiều trang, MỘT kết nối.
  *
- * Vị trí các ô viết sẵn cho Phase 09/10 (xem `layout.css`), để các phase sau
- * chỉ thay NỘI DUNG ô, không phải sắp xếp lại lưới.
+ * Mọi thứ phải sống qua việc đổi trang đều gắn ở đây, KHÔNG ở trang nào:
+ *   - `useWebSocket`       — đúng MỘT socket cho cả ứng dụng (đổi trang không
+ *                            mở lại socket, nên không mất quyền lái);
+ *   - `useManualControl`   — phím lái + vòng gửi 10 Hz + bẫy mất tiêu điểm;
+ *   - `useHoldShortcut`    — phím H = HOLD ở mọi trang;
+ *   - `useMissionReadback` — lớp "mission đã nạp" luôn khớp FC;
+ *   - `useAnnouncer`       — cảnh báo bằng âm thanh;
+ *   - `useApplySettings`   — theme, chuyển động.
  *
- * Phase 08 chỉ NHÌN: chưa có nút nào gửi lệnh bay (SAFETY.md mục 1).
- * Phase 09 thêm bản đồ và trình soạn mission. Lệnh duy nhất nó gửi là NẠP
- * mission (`auto_start: false`) — nạp không làm drone bay.
- * Phase 10 thay ba ô chờ: chế độ bay + lái tay (ô `mode`), vật cản, video.
- * Mọi lệnh bay đều cần backend cho phép; lái tay còn cần operator TỰ bật
- * WEB CONTROL (SAFETY.md mục 4) — web không bao giờ tự giành quyền.
+ * Router chạy ở trình duyệt; backend trả `index.html` cho mọi đường dẫn trang
+ * (`SpaStaticFiles` trong `backend/app.py`), nên F5 ở `/mission` vẫn đúng trang.
  */
-import { ConnectionBar } from "@/components/ConnectionBar";
-import { EventLog } from "@/components/EventLog";
-import { Hud } from "@/components/Hud/Hud";
-import { MapView } from "@/components/MapView/MapView";
-import { ManualControl } from "@/components/ManualControl/ManualControl";
-import { SafetyBanner } from "@/components/ManualControl/SafetyBanner";
-import { MissionEditor } from "@/components/MissionEditor/MissionEditor";
-import { ModePanel } from "@/components/ModePanel";
-import { ObstaclePanel } from "@/components/ObstaclePanel";
+import { BrowserRouter, Route, Routes } from "react-router";
+
+import { PAGES } from "@/app/routes";
+import { AppShell } from "@/components/shell/AppShell";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { VideoPanel } from "@/components/VideoPanel/VideoPanel";
+import { useAnnouncer } from "@/hooks/useAnnouncer";
+import { useApplySettings, useResolvedTheme } from "@/hooks/useApplySettings";
+import { useHoldShortcut } from "@/hooks/useHoldShortcut";
 import { useManualControl } from "@/hooks/useManualControl";
 import { useMissionReadback } from "@/hooks/useMissionReadback";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import NotFoundPage from "@/pages/NotFoundPage";
 
-import "./layout.css";
-
-export default function App() {
+function GlobalServices() {
   useWebSocket();
   useMissionReadback();
   useManualControl();
+  useHoldShortcut();
+  useAnnouncer();
+  useApplySettings();
+  return null;
+}
 
+export default function App() {
+  const theme = useResolvedTheme();
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex min-h-svh flex-col">
-        {/* Dải cảnh báo quyền lái dính trên cùng, ngay trên thanh kết nối. */}
-        <div className="sticky top-0 z-30">
-          <SafetyBanner />
-        </div>
-        <ConnectionBar />
-        <main className="gcs-grid mx-auto w-full max-w-[1920px] p-3">
-          <Hud style={{ gridArea: "hud" }} />
-          <MapView style={{ gridArea: "map" }} />
-          <VideoPanel style={{ gridArea: "video" }} />
-          <MissionEditor style={{ gridArea: "mission" }} />
-          <div className="flex min-h-0 flex-col gap-3" style={{ gridArea: "mode" }}>
-            <ModePanel />
-            <ManualControl />
-          </div>
-          <ObstaclePanel style={{ gridArea: "obstacle" }} />
-          <EventLog style={{ gridArea: "log" }} />
-        </main>
-      </div>
-      <Toaster theme="dark" position="bottom-right" richColors />
+      <GlobalServices />
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppShell />}>
+            {PAGES.map((p) => {
+              const Page = p.component;
+              return p.path === "/" ? <Route key={p.path} index element={<Page />} /> : <Route key={p.path} path={p.path} element={<Page />} />;
+            })}
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+      <Toaster theme={theme === "night" ? "dark" : "light"} position="bottom-left" richColors />
     </TooltipProvider>
   );
 }

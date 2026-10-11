@@ -29,7 +29,8 @@ Day chinh xac la tinh huong ma luat NO PROPELLERS duoc viet ra de phong.
 - `firmware/dronebridge/README.md` (Phase 12) — bảng cấu hình và sơ đồ đấu dây.
 - `docs/so-tay/12-hotspot-laptop.md` — SSID, mật khẩu, **IP thật của laptop**.
 - `docs/so-tay/13-dau-day.md` — mục T2/R2, mục R3, mục phân bổ nguồn 5V.
-- UBEC 5V 3A, mạch USB-TTL 3,3 V, tụ 470–1000 µF (nếu dùng ESP32-CAM).
+- UBEC 5V 3A, mạch USB-TTL 3,3 V CP2102 (cả hai đã mua — `docs/phan-cung-thuc-te.md`); bo camera
+  ESP32-S3 N16R8 + OV3660; tụ 470–1000 µF chỉ khi bo camera khởi động lại lúc bật Wi-Fi.
 
 ## File và thư mục sở hữu
 
@@ -331,6 +332,13 @@ Vì sao lấy 5 V từ stack chứ không từ UBEC: BEC của stack (2,5 A) đa
 ~50 mA + TFmini 110 mA (đỉnh 140 mA) = ~200 mA — thừa rất nhiều. Còn UBEC thì đang nuôi ESP32 và
 camera, hai thứ gây burst dòng khi Wi-Fi bật, mà TFmini chỉ chịu dao động ±0,5 V.
 
+**AN TOÀN — bẫy 9V ngay cạnh R3:** trên mặt trên của F405 V5, cụm pad chứa R3 là `9V G T3 R3` —
+pad **9V nằm sát** T3/R3 (ảnh chính hãng `assignment/_build/img/official/speedybee/v5_24.jpg`). Và
+UART3 còn ra ở cổng 6 chân "HD Unit Plug" mặt dưới, mà **chân 1 của cổng đó là 9V** (README hwdef
+ArduPilot của bo cảnh báo rõ). TFmini Plus chỉ chịu 5 V ±0,5 V, không có bảo vệ quá áp: dây đỏ
+chỉ được vào pad ghi **5V**, và **không dùng cáp DJI 6 chân** trong hộp cho TFmini. Đo pad bằng
+đồng hồ (cắm pin) trước khi hàn dây đỏ.
+
 Nạp tham số:
 
 ```text
@@ -392,23 +400,20 @@ Loiter/AltHold, và bài test đó thuộc Phase 22 — ngoài bãi rộng, vớ
 
 ### 17.9 Camera lên web với lớp phủ giả
 
-Nhánh camera đã chốt ở Phase 13. Làm theo nhánh tương ứng.
+Camera đã chốt ngày 12/10/2026: **ESP32-S3 N16R8 + OV3660** (`docs/phan-cung-thuc-te.md`).
 
 ```text
-NHANH A - ESP32-CAM AI-Thinker
-  1. Han tu 470-1000uF low-ESR sat chan nguon  <-- BAT BUOC, khong phai tuy chon
-  2. Noi IO0 -> GND, nap bang USB-TTL theo nghi thuc o firmware/camera/README.md
-  3. Thao day IO0, bam RST
-
-NHANH B - XIAO ESP32S3 Sense
-  1. Cam USB-C, chon env xiao_esp32s3, bam Upload
+1. Cam USB-C vao bo camera, nap env esp32s3_n16r8 theo firmware/camera/README.md
+   (Phase 12.5). Khong vao duoc che do nap -> giu BOOT, nhan-nha RST, nha BOOT.
+2. Mo Serial monitor 115200: phai thay "camera init OK", PID 0x3660 va IP cua camera.
+   Khong thay PID 0x3660 -> bang chan camera_pins.h chua khop bo that (Phase 12.3).
 ```
 
 Trước khi nạp, điền `firmware/camera/include/secrets.h` với SSID/mật khẩu hotspot thật.
 
-**AN TOÀN:** cấp nguồn camera từ **UBEC 5V 3A**, không từ pad 5V của stack và không từ chân 3,3 V
-của USB-TTL. ESP32-CAM kéo 250–500 mA lúc khởi động; thiếu dòng thì nó reset liên tục và bạn sẽ đi
-tìm lỗi trong phần mềm trong khi lỗi nằm ở nguồn.
+**AN TOÀN:** cấp nguồn camera từ **UBEC 5V 3A** vào chân 5V của bo, không từ pad 5V của stack và
+không cấp thẳng vào chân 3V3. Camera cộng Wi-Fi tạo xung dòng lúc truyền; thiếu dòng thì bo khởi
+động lại liên tục và bạn sẽ đi tìm lỗi trong phần mềm trong khi lỗi nằm ở nguồn.
 
 Kiểm tra theo thứ tự — **mỗi bước một nghi phạm**:
 
@@ -444,14 +449,15 @@ Kiểm tra theo thứ tự — **mỗi bước một nghi phạm**:
 **Ghi rõ vào sổ tay:** phase này **không** làm gì với AI. Lớp phủ vẫn là dữ liệu giả. Phần nhận
 diện thật thuộc luồng AI riêng (`plans/ai/`), bắt đầu sau khi drone đã bay được.
 
-**Chưa xác minh:** mọi con số fps của camera (cả ESP32-CAM lẫn S3) đều đến từ benchmark cộng đồng,
-không phải số liệu chính thức. **Tự đo và ghi lại** con số của chính bạn — đó là số liệu gốc, và
+**Chưa xác minh:** mọi con số fps camera trong tài liệu (44 fps QVGA, 14 fps VGA…) là benchmark
+cộng đồng của ESP32-CAM/OV2640, chưa từng đo trên ESP32-S3 + OV3660, không phải số liệu chính thức. **Tự đo và ghi lại** con số của chính bạn — đó là số liệu gốc, và
 nó có giá trị hơn mọi con số chép trên mạng.
 
 **Nếu lỗi:**
 - `/stream` mở được nhưng backend không lấy được → kiểm bạn đã đóng tab trình duyệt chưa (camera
   chỉ phục vụ một client).
-- Camera reset khi bật Wi-Fi → brownout. Nhánh A: hàn tụ. Cả hai nhánh: kiểm dòng UBEC khi tải.
+- Camera reset khi bật Wi-Fi → brownout. Kiểm dòng/điện áp UBEC khi tải; hàn tụ 470–1000 µF sát chân
+  5V–GND của bo camera.
 - Ảnh rất giật → giảm `quality` (số lớn hơn) hoặc hạ độ phân giải; đừng bắt đầu ở độ phân giải cao.
 - Camera nối được nhưng ảnh đen → sai bảng chân trong `camera_pins.h`, hoặc thiếu `-DBOARD_HAS_PSRAM`.
 
@@ -525,7 +531,8 @@ Các cổng phụ:
 | Hotspot Windows tự tắt / đổi IP giữa chừng | 4 | 2 | 8 | Ghi vào sổ tay: bật hotspot trước, cấp điện sau; bước 4 của danh sách kiểm lỗi là kiểm IP. |
 | Nạp nhầm bản stock ở Phase 14 → `PRX1_*` không tồn tại, phát hiện ở đây | 2 | 4 | 8 | 17.7 nói rõ triệu chứng và bắt quay lại Phase 14; Phase 14 đã có cổng pass kiểm `PRX1_TYPE`. |
 | Cắm TFmini sai cực → hỏng vĩnh viễn (không có bảo vệ ngược cực) | 3 | 4 | **12** | 17.6 bắt buộc đo từng dây bằng đồng hồ trước khi cấp điện; thử trên USB-TTL trước khi cắm vào bo bay. |
-| Camera brownout khi bật Wi-Fi (nhánh A) | 4 | 2 | 8 | Tụ 470–1000 µF là **bắt buộc** chứ không tuỳ chọn; UBEC riêng; đo điện áp khi đang tải. |
+| Bo camera ESP32-S3 brownout khi bật Wi-Fi | 2 | 2 | 4 | UBEC riêng (đã mua); đo điện áp khi đang tải; hàn tụ 470–1000 µF nếu thấy reset. |
+| Cắm dây đỏ TFmini nhầm pad 9V (nằm sát R3) hoặc dùng cáp DJI 6 chân → cháy TFmini | 2 | 4 | 8 | Cảnh báo ở 17.7; chỉ pad ghi 5V; đo điện áp pad trước khi hàn. |
 | Wi-Fi 2,4 GHz rớt lặt vặt → nếu bật GCS failsafe thì drone tự RTL giữa chừng | 3 | 4 | **12** | `FS_GCS_ENABLE=0` đã nằm trong `01-base.param` và là cổng pass; RC mới là đường dây cứu sinh, không phải Wi-Fi. |
 | Backend và Mission Planner giành nhau cổng 14550 → tưởng ESP32 hỏng | 4 | 2 | 8 | 17.4 nêu rõ và đưa hai cách; khuyến nghị Cách A (dùng một cái) cho phase này. |
 
@@ -544,7 +551,7 @@ Rủi ro điểm 15 (nguồn ESP32) được giảm thiểu bằng yêu cầu c�
 | 17.6 TFmini bench bằng USB-TTL | 0,7 | |
 | 17.7 TFmini vào R3 + nạp param | 0,6 | |
 | 17.8 Panel obstacle hiện số thật | 0,3 | **Cổng pass chính** |
-| 17.9 Camera lên web + lớp phủ giả | 1,2 | Nhánh A tốn thêm ~0,5 h cho hàn tụ + nghi thức nạp |
+| 17.9 Camera lên web + lớp phủ giả | 1,2 | Bo ESP32-S3 nạp qua USB-C, không có nghi thức nạp riêng |
 | 17.10 Bài kiểm tổng 10 phút | 0,3 | Không rời bàn |
 | 17.11 Sổ tay + PROGRESS | 0,5 | Điền nốt các ô *chưa xác minh* của Phase 12 |
 | **Tổng** | **6,8** | Dự phòng thêm 1–1,5 h cho sự cố mạng (tường lửa, IP, hotspot tự tắt) |

@@ -7,6 +7,7 @@ import { SafetyBanner } from "../../src/components/ManualControl/SafetyBanner";
 import { ModePanel } from "../../src/components/ModePanel";
 import { TooltipProvider } from "../../src/components/ui/tooltip";
 import { handleControlAck, handleControlError, warnOverdueCommands } from "../../src/hooks/controlUplink";
+import { useHoldShortcut } from "../../src/hooks/useHoldShortcut";
 import type { LimitsPayload, StatusPayload, Telemetry } from "../../src/lib/protocol";
 import { setActiveSocket } from "../../src/lib/uplink";
 import type { GcsSocket } from "../../src/lib/ws";
@@ -41,6 +42,11 @@ function status(webControl: boolean): StatusPayload {
 
 function world(t: Partial<Telemetry>, webControl = false) {
   useTelemetryStore.setState({ connection: "open", telemetry: { connected: true, ...t } as Telemetry, status: status(webControl) });
+}
+
+function HoldShortcutHost() {
+  useHoldShortcut();
+  return null;
 }
 
 const renderIt = (ui: React.ReactNode) => render(<TooltipProvider>{ui}</TooltipProvider>);
@@ -78,11 +84,25 @@ describe("mức xác nhận (§10.3.2)", () => {
     expect(screen.queryByTestId("confirm-dialog")).toBeNull();
   });
 
-  it("phím H là HOLD", () => {
+  it("phím H là HOLD — gắn ở cấp ứng dụng, có hiệu lực ở MỌI trang", () => {
     world({ mode: "GUIDED" });
-    renderIt(<ModePanel />);
+    // Không render ModePanel: phím H phải chạy cả khi người dùng đang ở trang khác.
+    renderIt(<HoldShortcutHost />);
     fireEvent.keyDown(window, { code: "KeyH" });
     expect(types()).toEqual(["cmd.hold"]);
+  });
+
+  it("phím H không bắn khi đang gõ vào ô nhập, và không lặp khi giữ phím", () => {
+    world({ mode: "GUIDED" });
+    renderIt(
+      <>
+        <HoldShortcutHost />
+        <input data-testid="typing" />
+      </>,
+    );
+    fireEvent.keyDown(screen.getByTestId("typing"), { code: "KeyH" });
+    fireEvent.keyDown(window, { code: "KeyH", repeat: true });
+    expect(types()).toEqual([]);
   });
 
   it("ARM phải gõ chữ ARM mới bấm được xác nhận, và có nhắc tháo cánh", () => {

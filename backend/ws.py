@@ -33,6 +33,7 @@ from pydantic import BaseModel, ValidationError
 
 from backend import __version__, config
 from backend.events import BUS
+from backend.history import TelemetryHistory
 from backend.mavlink.control import ControlError, FlightControl
 from backend.mavlink.deadman import DeadmanLoop
 from backend.mavlink.mission import MissionManager, Waypoint, validate_for_upload
@@ -140,6 +141,7 @@ class WebSocketHub:
         deadman: DeadmanLoop | None = None,
         mission: MissionManager | None = None,
         camera=None,
+        history: TelemetryHistory | None = None,
     ) -> None:
         self.state = state
         self.safety = safety
@@ -154,6 +156,9 @@ class WebSocketHub:
         self.mission = mission
         self.camera = camera
         self.monitor = SafetyMonitor()
+        # Lịch sử gói telemetry đã gửi — chỉ để ĐỌC lại qua REST, không ảnh hưởng
+        # gì tới đường điều khiển.
+        self.history = history or TelemetryHistory(config.TELEMETRY_HISTORY_S, config.TELEMETRY_HZ)
 
         self._clients: dict[str, _Client] = {}
         self._seq = itertools.count(1)
@@ -170,6 +175,11 @@ class WebSocketHub:
         self._last_mode: str | None = None
         self._last_link_alive: bool | None = None
         self._last_camera: bool | None = None
+
+    @property
+    def client_count(self) -> int:
+        """Số socket đang mở — cho `GET /api/system`."""
+        return len(self._clients)
 
     # -- vòng đời socket ----------------------------------------------------
     async def connect(self, ws: WebSocket) -> str:
@@ -555,7 +565,9 @@ class WebSocketHub:
             try:
                 await self._reconcile_control_ownership()
                 await self._observe_safety()
-                await self.broadcast("telemetry", build_telemetry(self.state))
+                telemetry = build_telemetry(self.state)
+                self.history.record(telemetry)
+                await self.broadcast("telemetry", telemetry)
             except Exception:  # noqa: BLE001
                 self._khong_duoc_chet_lang_le("telemetry_loop")
 

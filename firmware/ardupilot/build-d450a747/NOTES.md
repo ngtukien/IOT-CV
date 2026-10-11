@@ -137,3 +137,21 @@ Thử bay trên SITL với đúng bộ param này:
 
 - Nguyên bản: `PreArm: RC not found` — đúng dự kiến, `RC_PROTOCOLS 4` tắt RC ảo của SITL.
 - Bù bit 18 (`RC_PROTOCOLS 262148`, **chỉ cho SITL**): arm, cất cánh 5 m, vẫn GUIDED sau 20 s.
+
+## Chạy lại 12/10/2026 — `FRAME_TYPE 12` và hệ số dòng của SpeedyBee
+
+Sau khi đối chiếu bo thật với tài liệu chính hãng, `01-base.param` đổi hai chỗ (lý do ghi trong
+file): `FRAME_TYPE` 1 → 12 (X Betaflight, khớp nhãn MOTOR 1–4 trên ESC OX32), `BATT_AMP_PERVLT`
+25 → 370,4 và thêm `BATT_AMP_OFFSET 0.0071`. Giờ là **51 dòng** (34 base + 17 avoid).
+
+Runner sửa theo hai chỗ, cả hai chỉ cho SITL:
+
+- Chạy SITL bằng khung vật lý **`bfx`** (`-f bfx`) cho khớp `FRAME_TYPE 12`. Trước đó runner dùng
+  khung mặc định "quad" = mô hình "+" trong khi file đặt X — lệch 45° mà vẫn bay qua được.
+- Lượt thử bay bù thêm hệ số dòng ảo: SITL tính `current_pin_voltage = current/17.0f`
+  (`libraries/AP_HAL_SITL/SITL_State_common.cpp`), nên với 370,4 nó đọc dòng to gấp ~22 lần. Lần
+  chạy đầu không bù: sau 20 s "used 4244 mAh" → failsafe dung lượng → RTL.
+
+`bash scripts/sitl/run-all.sh --chi run_param_load` → `RUN_ALL: PASS` (67 s). `FRAME_TYPE 12`,
+`BATT_AMP_PERVLT 370.4`, `BATT_AMP_OFFSET 0.0071` đều **nhận**; danh sách dòng không nhận vẫn đúng 6
+dòng như trên. Bù bit 18 + dòng 17 A/V: arm, cất cánh 5 m, vẫn GUIDED sau 20 s.

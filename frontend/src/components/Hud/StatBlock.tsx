@@ -53,31 +53,34 @@ interface StatBlockProps {
   meter?: number | null;
   /** Node nhỏ ở góc phải (vd cột sóng GPS). */
   aside?: ReactNode;
+  /** Đường xu hướng 60 s gần nhất (sparkline) dưới giá trị. */
+  trend?: ReactNode;
   className?: string;
 }
 
-export function StatBlock({ label, icon: Icon, value, hint, tone = "neutral", sub, meter, aside, className }: StatBlockProps) {
+export function StatBlock({ label, icon: Icon, value, hint, tone = "neutral", sub, meter, aside, trend, className }: StatBlockProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div
           className={cn(
-            "group relative flex min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-black/20 px-3 py-2 transition-colors hover:border-hud-cyan/30",
+            "well group relative flex min-w-0 flex-col gap-1 px-2.5 py-2 transition-colors hover:border-hud-cyan/35",
             className,
           )}
           data-testid={`stat-${label}`}
           data-tone={tone}
         >
-          <div className="flex items-center gap-1.5 text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
+          <div className="flex items-center gap-1.5 font-display text-[10.5px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
             <Icon className="size-3.5 shrink-0 opacity-80" aria-hidden />
             <span className="truncate">{label}</span>
             {aside ? <span className="ml-auto">{aside}</span> : null}
           </div>
-          <div className={cn("truncate font-mono text-lg leading-none font-semibold tabular-nums", TONE_TEXT[tone])}>
+          <div className={cn("truncate font-mono text-[1.2rem] leading-none font-semibold tabular-nums", TONE_TEXT[tone])}>
             {typeof value === "string" ? <ValueText text={value} /> : value}
           </div>
+          {trend ? <div className="-mx-0.5 -mb-0.5">{trend}</div> : null}
           {meter !== undefined ? (
-            <div className="h-1 overflow-hidden rounded-full bg-white/8">
+            <div className="h-1 overflow-hidden rounded-full bg-foreground/8">
               {meter !== null ? (
                 <div
                   className={cn("h-full rounded-full transition-[width] duration-300", TONE_BAR[tone])}

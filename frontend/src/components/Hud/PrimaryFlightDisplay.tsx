@@ -7,11 +7,15 @@
  * Mỗi phần tử tự subscribe đúng lát cắt của nó trong store (8 Hz).
  * Vạch giới hạn độ cao lấy từ `status.limits.max_alt` — không gõ cứng.
  */
+import { useId } from "react";
+
 import { useLimits } from "@/hooks/useLimits";
+import { cn } from "@/lib/utils";
 import { useTelemetryStore } from "@/store/telemetry";
 
 import { AttitudeIndicator } from "./AttitudeIndicator";
 import type { Box } from "./AttitudeIndicator";
+import { PfdIdContext, useTestId } from "./pfdContext";
 import { HeadingTape, VerticalSpeed, VerticalTape } from "./Tape";
 
 const VIEW_W = 420;
@@ -88,15 +92,29 @@ function Heading() {
   return <HeadingTape box={HEADING} value={heading} title="Hướng mũi: 0° là Bắc (N), 90° là Đông (E)." />;
 }
 
-export function PrimaryFlightDisplay() {
+/**
+ * `instrumented={false}` cho bản PHỤ (ví dụ phủ trên khung 3D): không gắn
+ * `data-testid` — E2E chỉ đọc bản chính.
+ */
+export function PrimaryFlightDisplay({ instrumented = true, className }: { instrumented?: boolean; className?: string }) {
+  const prefix = `pfd${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   return (
-    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="w-full font-mono select-none" data-testid="pfd">
+    <PfdIdContext.Provider value={{ prefix, instrumented }}>
+      <PfdSvg prefix={prefix} className={className} />
+    </PfdIdContext.Provider>
+  );
+}
+
+function PfdSvg({ prefix, className }: { prefix: string; className?: string }) {
+  const tid = useTestId("pfd");
+  return (
+    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className={cn("w-full font-mono select-none", className)} data-testid={tid}>
       <defs>
-        <pattern id="pfd-limit" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <pattern id={`${prefix}-limit`} width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <rect width="8" height="8" fill="#f59e0b" fillOpacity="0.08" />
           <line x1="0" y1="0" x2="0" y2="8" stroke="#f59e0b" strokeOpacity="0.45" strokeWidth="3" />
         </pattern>
-        <pattern id="pfd-nodata" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+        <pattern id={`${prefix}-nodata`} width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="10" stroke="white" strokeOpacity="0.05" strokeWidth="4" />
         </pattern>
       </defs>

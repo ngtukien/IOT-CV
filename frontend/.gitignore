@@ -26,3 +26,6 @@ dist-ssr
 # Playwright (Phase 10): kết quả chạy E2E, không commit
 test-results
 playwright-report
+
+# Ảnh chụp giao diện của scripts/screenshots.ts
+screenshots

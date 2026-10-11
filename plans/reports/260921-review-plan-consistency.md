@@ -1,5 +1,10 @@
 # Review nhất quán bộ kế hoạch `plans/` — 21/09/2026
 
+> **Ghi chú 12/10/2026:** bản ghi nghiên cứu ngày 21/09/2026, giữ nguyên để biết lý do. Phần cứng
+> thật đã đổi: camera là **ESP32-S3 N16R8 + OV3660** (không phải ESP32-CAM / XIAO ESP32S3 Sense);
+> số liệu fps, góc nhìn, dòng điện, anten của ESP32-CAM/OV2640 ở đây chưa đúng cho bo mới. Danh
+> sách linh kiện đúng nhất: `docs/phan-cung-thuc-te.md`.
+
 **Phạm vi audit (chỉ đọc, không sửa file nào):**
 `plans/_phase-index.md`, `plans/_phase-template.md`, `plans/README.md`,
 `plans/phase-00..24-*.md` (25 file), `plans/ai/ai-phase-01..04-*.md` (4 file).

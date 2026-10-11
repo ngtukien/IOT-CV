@@ -105,3 +105,79 @@
   font-size: 12px;
   line-height: 1.4;
 }
+
+/* ---- HORIZON: điều khiển Leaflet theo theme ----------------------------------- */
+
+.leaflet-container {
+  background: var(--canvas-1);
+}
+
+.leaflet-control-attribution {
+  background: color-mix(in oklch, var(--panel-strong) 78%, transparent) !important;
+  color: var(--muted-foreground) !important;
+  font-size: 10px;
+  border-radius: 6px 0 0 0;
+  backdrop-filter: blur(6px);
+}
+.leaflet-control-attribution a {
+  color: var(--hud-cyan) !important;
+}
+
+.leaflet-control-scale-line {
+  background: color-mix(in oklch, var(--panel-strong) 72%, transparent);
+  border-color: var(--foreground) !important;
+  color: var(--foreground);
+  font: 600 10px/1.4 var(--font-mono);
+}
+
+.leaflet-tooltip.map-tooltip {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--panel-edge);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px -12px var(--shadow-tint);
+}
+.leaflet-tooltip-top.map-tooltip::before {
+  border-top-color: var(--popover);
+}
+
+/* Nút "+" chèn điểm giữa chặng. */
+.map-insert {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  cursor: copy;
+}
+.map-insert__plus {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1.5px solid var(--hud-amber);
+  border-radius: 6px;
+  background: oklch(0.2 0.02 256 / 80%);
+  color: var(--hud-amber);
+  font: 700 13px/1 var(--font-mono);
+  opacity: 0.8;
+  transition: transform 160ms var(--ease-out-quint), opacity 160ms;
+}
+.map-insert:hover .map-insert__plus {
+  opacity: 1;
+  transform: scale(1.15);
+}
+.map-insert__label {
+  position: absolute;
+  top: 20px;
+  white-space: nowrap;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: oklch(0.18 0.02 256 / 78%);
+  color: oklch(0.95 0.01 250);
+  font: 600 10px/1.5 var(--font-mono);
+}
+
+.map-drone svg {
+  overflow: visible;
+}

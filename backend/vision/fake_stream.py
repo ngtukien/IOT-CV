@@ -9,15 +9,15 @@ Chiều phụ thuộc chỉ một chiều: file này được nhập kiểu `Mjp
 Hai cách chạy:
 
 - Gắn vào backend ở `GET /api/video/fake-source` (mặc định, `CAMERA_FAKE=1`).
-- Chạy riêng như một "thiết bị" giống ESP32-CAM:
+- Chạy riêng như một "thiết bị" giống camera ESP32-S3 thật:
 
       uv run python -m backend.vision.fake_stream --port 8081
       # rồi CAMERA_FAKE=0 CAMERA_STREAM_URL=http://127.0.0.1:8081/stream
 
 Khung đọc từ một video mẫu thật lặp vô hạn (`backend/vision/assets/sample-clip.mp4`),
 thu về cỡ `CAMERA_FAKE_FRAMESIZE` (mặc định VGA 640×480 cho dễ xem; QVGA 320×240 là
-mốc thiết kế của ESP32-CAM — 44 fps ở QVGA so với 14 fps ở VGA — đặt QVGA để thử
-đúng cỡ đó).
+mốc thiết kế lấy từ benchmark ESP32-CAM — 44 fps ở QVGA so với 14 fps ở VGA; camera thật
+ESP32-S3 + OV3660 chưa đo — đặt QVGA để thử đúng cỡ đó).
 Cần OpenCV: `uv sync --extra vision` (hoặc `--extra dev`).
 """
 

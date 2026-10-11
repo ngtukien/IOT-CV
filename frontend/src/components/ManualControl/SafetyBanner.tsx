@@ -1,6 +1,6 @@
 /**
- * Dải đỏ khi web đang giữ quyền lái (plan Phase 10 §10.1.5). Cố định trên cùng,
- * KHÔNG có nút đóng.
+ * Dải đỏ khi web đang giữ quyền lái (plan Phase 10 §10.1.5). Dính trên cùng MỌI
+ * trang (trên cả header), KHÔNG có nút đóng.
  *
  * Đây không phải trang trí. Người vận hành phải luôn biết website đang có thể
  * làm máy bay di chuyển, và phải luôn nhớ đường thoát: thả phím, Space, hoặc
@@ -23,11 +23,16 @@ export function SafetyBanner() {
     <div
       role="alert"
       data-testid="safety-banner"
-      className="flex items-center justify-center gap-3 bg-hud-red/90 px-4 py-1.5 text-center text-slate-950 shadow-[0_6px_24px_-8px] shadow-hud-red"
+      className="relative flex items-center justify-center gap-3 overflow-hidden bg-hud-red px-4 py-1.5 text-center text-[oklch(0.16_0.03_25)]"
     >
-      <TriangleAlert className="size-5 shrink-0" aria-hidden />
-      <div className="leading-tight">
-        <p className="text-sm font-bold tracking-wide">
+      {/* Sọc chéo chạy chậm — nhận ra từ khoé mắt mà không cần đọc. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-20 [background:repeating-linear-gradient(-45deg,transparent_0_14px,oklch(0.1_0.02_25)_14px_28px)]"
+      />
+      <TriangleAlert className="relative size-5 shrink-0" aria-hidden />
+      <div className="relative leading-tight">
+        <p className="font-display text-sm font-semibold tracking-wide">
           WEB ĐANG GIỮ QUYỀN LÁI{mine ? "" : " (ở một tab khác)"} · Giữ phím để bay · Thả phím hoặc Space để dừng
         </p>
         <p className="text-xs font-medium">RC luôn có quyền cao hơn — gạt mode trên tay điều khiển là web mất quyền ngay</p>

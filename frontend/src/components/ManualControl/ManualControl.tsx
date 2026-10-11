@@ -14,7 +14,9 @@
  * Hai con số lệch nhau là thông tin chẩn đoán: xin 1.0 m/s mà thực tế 0.0 nghĩa
  * là chưa cất cánh, đang bị AVOID phanh, hoặc lệnh không tới nơi.
  */
-import { Gamepad2, Hand, Keyboard, Loader2 } from "lucide-react";
+import { Gamepad2, Hand, Loader2 } from "lucide-react";
+
+import { IconStick } from "@/components/icons";
 import type { CSSProperties } from "react";
 
 import { Panel } from "@/components/Panel";
@@ -36,7 +38,7 @@ function WebControlSwitch() {
   const { on, pending, disabled, blocker, toggle } = useWebControlToggle();
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-white/3 px-3 py-2">
+    <div className="flex flex-col gap-1.5 well px-3 py-2">
       <div className="flex items-center gap-3">
         <Switch
           id="web-control"
@@ -77,7 +79,7 @@ function Readout() {
 
   return (
     <div className="grid grid-cols-2 gap-2 font-mono text-xs">
-      <div className="rounded-lg border border-border bg-white/3 px-3 py-2" data-testid="manual-sent" data-sending={sent !== null}>
+      <div className="well px-3 py-2" data-testid="manual-sent" data-sending={sent !== null}>
         <p className="mb-1 font-sans text-[11px] text-muted-foreground">
           Đang xin{gamepad ? " (tay cầm)" : ""} · trần {formatNumber(maxVelocity, 1, "m/s")}
         </p>
@@ -92,7 +94,7 @@ function Readout() {
         )}
         <p className="mt-1 text-muted-foreground">giữ: {held.length ? held.map((c) => KEY_LABEL[c] ?? c).join(" + ") : "—"}</p>
       </div>
-      <div className="rounded-lg border border-border bg-white/3 px-3 py-2" data-testid="manual-actual">
+      <div className="well px-3 py-2" data-testid="manual-actual">
         <p className="mb-1 font-sans text-[11px] text-muted-foreground">Tốc độ thật (telemetry)</p>
         <p className="text-lg tabular-nums">{formatNumber(groundSpeed, 2, "m/s")}</p>
         <p className="mt-1 font-sans text-[11px] leading-snug text-muted-foreground">
@@ -103,15 +105,17 @@ function Readout() {
   );
 }
 
-export function ManualControl({ style }: { style?: CSSProperties }) {
+export function ManualControl({ style, className }: { style?: CSSProperties; className?: string }) {
   const held = useControlStore((s) => s.manual.held);
   const sending = useControlStore((s) => s.manual.sent !== null);
 
   return (
     <Panel
       title="Lái tay"
-      icon={Keyboard}
+      subtitle="Bàn phím / tay cầm · chỉ khi WEB CONTROL bật"
+      icon={IconStick}
       style={style}
+      className={className}
       testId="manual-control"
       actions={
         <span className="flex items-center gap-1 text-[10px] text-muted-foreground" title="Tay cầm: cắm vào rồi bấm một nút bất kỳ">
@@ -125,7 +129,7 @@ export function ManualControl({ style }: { style?: CSSProperties }) {
       <Readout />
       <Button
         variant="destructive"
-        className="h-9"
+        className="h-10 rounded-lg font-display text-sm font-semibold"
         onClick={stopManualNow}
         disabled={!sending && held.length === 0}
         data-testid="manual-stop"

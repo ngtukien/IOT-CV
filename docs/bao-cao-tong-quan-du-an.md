@@ -5,6 +5,11 @@
 **Phiên bản tài liệu:** v2.0 — 04/09/2026
 **Trạng thái:** Đã chốt cấu hình phần cứng, chuẩn bị đặt hàng
 
+> **Cập nhật phần cứng 12/10/2026:** camera thật là **ESP32-S3 N16R8 + module OV3660**, không phải
+> ESP32-CAM/OV2640 như bản v2.0. Bỏ yêu cầu "bản cổng IPEX" và đế nạp ESP32-CAM-MB. Các phép tính
+> góc nhìn và số fps viết cho OV2640 phải tính/đo lại cho OV3660. Danh sách linh kiện đúng nhất:
+> `docs/phan-cung-thuc-te.md`.
+
 ---
 
 ## MỤC LỤC
@@ -30,7 +35,7 @@
 
 UAV tuần tra tự hành là bài toán ứng dụng điển hình của IoT: một thiết bị bay mang cảm biến, truyền dữ liệu không dây về trạm mặt đất, nơi dữ liệu được xử lý và hiển thị theo thời gian thực. Tuy nhiên, các hệ thống thương mại sử dụng camera chất lượng cao có giá thành vượt xa khả năng của một đồ án sinh viên.
 
-Đề tài này đi theo hướng ngược lại: **cố ý sử dụng camera nhúng giá rẻ (ESP32-CAM, cảm biến OV2640) và biến chất lượng ảnh thấp thành đối tượng nghiên cứu chính**, thay vì coi nó là hạn chế phải chấp nhận. Ảnh thu được bị suy giảm bởi nén JPEG mạnh, nhiễu cảm biến, nhòe chuyển động, méo quang học và hiện tượng rolling shutter — đúng những vấn đề mà môn Xử lý ảnh nghiên cứu.
+Đề tài này đi theo hướng ngược lại: **cố ý sử dụng camera nhúng giá rẻ (ESP32-S3 gắn cảm biến OV3660) và biến chất lượng ảnh thấp thành đối tượng nghiên cứu chính**, thay vì coi nó là hạn chế phải chấp nhận. Ảnh thu được bị suy giảm bởi nén JPEG mạnh, nhiễu cảm biến, nhòe chuyển động, méo quang học và hiện tượng rolling shutter — đúng những vấn đề mà môn Xử lý ảnh nghiên cứu.
 
 ## 1.2. Phát biểu bài toán
 
@@ -51,14 +56,14 @@ Bộ phát hiện đối tượng trong đề tài này đóng vai trò **thư�
 
 **Khối IoT:**
 - Truyền telemetry (vị trí, độ cao, chế độ bay, điện áp pin, số vệ tinh) về laptop qua Wi-Fi
-- Truyền ảnh từ ESP32-CAM về laptop
+- Truyền ảnh từ camera ESP32-S3 về laptop
 - Điều tiết chất lượng luồng ảnh thích ứng theo cường độ tín hiệu
 - Đồng bộ thời gian NTP giữa các nút
 - Công bố sự kiện qua MQTT, hiển thị trên dashboard
 - Đo và báo cáo độ trễ, tỉ lệ mất gói, thời gian đáp ứng lệnh
 
 **Khối Xử lý ảnh:**
-- Đo hồ sơ suy giảm định lượng của ESP32-CAM
+- Đo hồ sơ suy giảm định lượng của camera ESP32-S3 + OV3660
 - Hiệu chuẩn camera, khử méo
 - Mô phỏng suy giảm lên bộ dữ liệu VisDrone, huấn luyện mô hình thích nghi miền
 - So sánh ablation các phương pháp khôi phục ảnh trên ba chiều đánh giá
@@ -76,9 +81,9 @@ Tọa độ GPS tại thời điểm phát hiện là **tọa độ của UAV**,
 
 | # | Đóng góp | Tính mới |
 |---|---|---|
-| 1 | Hồ sơ suy giảm định lượng của ESP32-CAM (MTF, nhiễu, artifact nén, méo, vignetting, rolling shutter) | Dữ liệu gốc, đo trực tiếp, không tồn tại trong tài liệu công khai |
+| 1 | Hồ sơ suy giảm định lượng của camera ESP32-S3 + OV3660 (MTF, nhiễu, artifact nén, méo, vignetting, rolling shutter) | Dữ liệu gốc, đo trực tiếp, không tồn tại trong tài liệu công khai |
 | 2 | Bộ dữ liệu tổng hợp VisDrone-ESP32 sinh bằng tham số suy giảm đo được | Augmentation có căn cứ vật lý thay vì augmentation ngẫu nhiên |
-| 3 | Bộ dữ liệu ảnh cặp thật (ESP32-CAM ↔ điện thoại) căn chỉnh bằng homography | Cho phép tính PSNR/SSIM với tham chiếu thật thay vì suy giảm giả lập |
+| 3 | Bộ dữ liệu ảnh cặp thật (camera ESP32-S3 ↔ điện thoại) căn chỉnh bằng homography | Cho phép tính PSNR/SSIM với tham chiếu thật thay vì suy giảm giả lập |
 | 4 | So sánh ablation 10+ phương pháp khôi phục trên ba chiều: chất lượng ảnh, hiệu năng phát hiện, chi phí tính toán | Định lượng được khoảng cách giữa "đẹp với mắt người" và "tốt cho máy" |
 | 5 | Vòng điều khiển QoS thích ứng nối hai môn học thành một hệ thống thống nhất | Biến thiên chất lượng ảnh do IoT tạo ra chính là đối tượng môn Xử lý ảnh nghiên cứu |
 
@@ -104,8 +109,8 @@ Ba nguyên tắc bất di bất dịch, quyết định toàn bộ kiến trúc:
         ▼                      ▼                      ▼
   KHỐI BAY               KHỐI THỊ GIÁC          KHỐI TRUYỀN THÔNG
         │                      │                      │
-  SpeedyBee F405 V5       ESP32-CAM              ESP32 DevKit
-  ArduPilot Copter        OV2640 + anten         Cầu MAVLink
+  SpeedyBee F405 V5       ESP32-S3 N16R8         ESP32 DevKit
+  ArduPilot Copter        OV3660                 Cầu MAVLink
         │                      │                      │
   GPS M10 + la bàn        Wi-Fi MJPEG            Wi-Fi UDP
         │                      │                      │
@@ -144,7 +149,7 @@ Bàn phím web → WebSocket → Backend → pymavlink → Wi-Fi UDP → ESP32 b
 Flight controller → UART → ESP32 bridge → Wi-Fi UDP → Backend → WebSocket → Web
 
 **Luồng thị giác (băng thông cao):**
-OV2640 → ESP32-CAM (nén JPEG) → Wi-Fi HTTP MJPEG → Backend → Khôi phục ảnh → Bộ phát hiện → Sự kiện MQTT → Dashboard
+OV3660 → ESP32-S3 (nén JPEG) → Wi-Fi HTTP MJPEG → Backend → Khôi phục ảnh → Bộ phát hiện → Sự kiện MQTT → Dashboard
 
 **Luồng an toàn (không qua phần mềm của nhóm):**
 Tay điều khiển RC → iA6B → Flight controller. Đây là đường dự phòng độc lập hoàn toàn, luôn ưu tiên cao nhất.
@@ -172,7 +177,7 @@ Tay điều khiển RC → iA6B → Flight controller. Đây là đường dự 
 | Sạc | **SkyRC iMAX B6AC V2** | Bản AC có nguồn tích hợp, 50W, 1–6 cell, kèm dây XT60. Có sẵn Battery Meter đo từng cell nên không cần mua đồng hồ đo pin rời |
 | Phụ kiện còn thiếu | bát chống rung 30,5×30,5 · dây 16AWG 4,5m · gen co + dây rút | ~280.000 ₫, chặn toàn bộ khâu lắp ráp |
 | UBEC | **5V 3A, đầu vào 2–6S × 2** | Phải nhận được 4S; nguồn riêng cho hai ESP32 |
-| Camera | **ESP32-CAM bản cổng IPEX + anten 2.4G ngoài** | Bản anten PCB chỉ ổn định trong ~10m, không dùng được cho drone |
+| Camera | **ESP32-S3 N16R8 + module OV3660** (chốt và đã có 12/10/2026) | Thay ESP32-CAM bản IPEX của v2.0; tầm Wi-Fi của bo thật chưa đo (Phase 17) |
 | Cầu telemetry | **ESP32 DevKit V1** | Rẻ nhất cho liên kết MAVLink không dây |
 
 ### Đính chính — khẳng định về lỗ bắt FC
@@ -210,7 +215,7 @@ GIAI ĐOẠN 26 và 31.
 | **Khối lượng khô — cấu hình bay** | **1291 g** | |
 | LiPo Ovonic 4S 5300mAh | 423 g | cân thật của hãng |
 | **AUW khi chưa gắn camera** | **≈ 1714 g** | giai đoạn 1–2 |
-| ESP32-CAM + anten + mount + damper | 45 g *(ước)* | đợt 3 |
+| Bo camera ESP32-S3 + OV3660 + mount + damper | 45 g *(ước, chưa cân bo mới)* | đợt 3 |
 | ESP32 bridge + 2 × UBEC | 35 g *(ước)* | đợt 3 |
 | Velcro, dây rút, phụ kiện | 30 g *(ước)* | |
 | **AUW đầy đủ khi có camera** | **≈ 1824 g** | giai đoạn 3 trở đi |
@@ -276,13 +281,13 @@ LiPo 4S ──XT60──┬── ESC 4in1 55A (tầng dưới)  ← tụ 1000µ
                 │                                   ├── SERIAL2 ──► ESP32 bridge (MAVLink)
                 │                                   └── buzzer
                 │
-                ├── UBEC #1 5V 3A ──► ESP32-CAM (5V/GND)
+                ├── UBEC #1 5V 3A ──► camera ESP32-S3 (5V/GND)
                 └── UBEC #2 5V 3A ──► ESP32 bridge (5V/GND)
 ```
 
 FC và ESP32 đều dùng UART mức 3.3V nên nối trực tiếp, không cần mạch chuyển mức. Nối chéo TX–RX và bắt buộc chung GND.
 
-**Không cấp nguồn ESP32 từ BEC của FC.** BEC 5V của V5 tổng cộng chỉ 2,5 A (công bố của SpeedyBee) và đã chia sẻ cho GPS, receiver, buzzer và dải LED. ESP32-CAM rút xung tới 400 mA khi phát ảnh; sụt áp trên đường này có thể làm reset FC hoặc sai số la bàn giữa lúc bay.
+**Không cấp nguồn ESP32 từ BEC của FC.** BEC 5V của V5 tổng cộng chỉ 2,5 A (công bố của SpeedyBee) và đã chia sẻ cho GPS, receiver, buzzer và dải LED. Camera ESP32-S3 + OV3660 rút xung dòng lớn khi phát ảnh (con số 400 mA đo cho ESP32-CAM, chưa đo trên bo mới); sụt áp trên đường này có thể làm reset FC hoặc sai số la bàn giữa lúc bay.
 
 ## 3.4. Bảng cổng nối tiếp ArduPilot cho F405 V5
 
@@ -302,7 +307,7 @@ FC và ESP32 đều dùng UART mức 3.3V nên nối trực tiếp, không cần
 |---|---|---|
 | 1 | **F405 V5 không có la bàn onboard.** GPS M10 phải là bản **GPS + Compass** | Không có la bàn thì Loiter, RTL và Auto **không hoạt động** — mất toàn bộ phần tự hành |
 | 2 | **iA6B chỉ có iBUS, không có SBUS** | Đấu theo hướng dẫn SBUS sẽ không nhận tín hiệu; phải nối chân R6 và đặt `SERIAL6_PROTOCOL = 23` |
-| 3 | **ESP32-CAM phải là bản có cổng IPEX** | Bản anten PCB chỉ ổn định trong ~10 m, vô dụng cho drone. Hai bản nhìn gần giống hệt nhau |
+| 3 | ~~ESP32-CAM phải là bản có cổng IPEX~~ | Không còn áp dụng từ 12/10/2026: camera là ESP32-S3 N16R8 + OV3660. Tầm Wi-Fi của bo mới đo ở Phase 17 |
 | 4 | **Tháp 4-in-1 nằm ở tâm khung** | Dây motor từ đầu càng về giữa không đủ dài; cần thêm ~30 cm dây silicone 20AWG mỗi motor |
 | 5 | **Tụ và dây XT60 là món rời, không hàn sẵn** | Phải tự hàn 4 mối trên đường điện chính; tụ hóa có cực, hàn ngược là nổ |
 | 6 | **Smoke stopper chỉ có ở bản Deluxe** | Đã chọn Deluxe nên có sẵn; nếu đổi sang Standard phải mua rời |
@@ -315,14 +320,14 @@ FC và ESP32 đều dùng UART mức 3.3V nên nối trực tiếp, không cần
 |---|---|---|
 | Flight controller | Tâm khung, trên grommet cao su | **Mũi tên trên bo phải chỉ về phía trước** |
 | GPS + la bàn | Trên mast cao ≥ 8 cm, phía sau | Càng xa ESC và dây nguồn càng tốt — đây là linh kiện nhạy nhiễu từ nhất |
-| ESP32-CAM | Dưới bụng, hướng nadir, qua damper cao su | Xa motor để giảm rung; chân đáp cao của S500 đảm bảo không vướng đất |
+| Camera ESP32-S3 | Dưới bụng, hướng nadir, qua damper cao su | Xa motor để giảm rung; chân đáp cao của S500 đảm bảo không vướng đất |
 | ESP32 bridge | Tầng trên, anten hướng lên | Tách xa anten receiver — cả hai đều 2.4 GHz |
 | 2 × UBEC | Khoang giữa | Hàn nguồn vào PDB tích hợp của S500 |
 | Pin | Dán velcro dưới bụng | Dịch được tới lui để cân trọng tâm |
 
 ## 3.7. Đặc tính camera và kế hoạch bay
 
-Tính toán cho OV2640 ống kính tiêu chuẩn (FOV chéo ~66°, tương đương HFOV 54.9° và VFOV 42.6°), độ phân giải VGA 640×480, hướng nhìn thẳng xuống:
+*(Phần này tính cho OV2640 của bản v2.0 — làm lại với ống kính module OV3660 thật.)* Tính toán cho OV2640 ống kính tiêu chuẩn (FOV chéo ~66°, tương đương HFOV 54.9° và VFOV 42.6°), độ phân giải VGA 640×480, hướng nhìn thẳng xuống:
 
 | Độ cao | Bề rộng khung | Chiều sâu khung | Điểm ảnh / mét | Người đứng (~0.5 m) | Người nằm (~1.7 m) |
 |---|---|---|---|---|---|
@@ -333,7 +338,7 @@ Tính toán cho OV2640 ống kính tiêu chuẩn (FOV chéo ~66°, tương đư�
 
 **Chọn độ cao làm việc: 6 – 8 m.** Ở khoảng này người đứng chiếm 38–50 điểm ảnh — đủ cho bộ phát hiện kết hợp SAHI, đồng thời hạn chế sai lệch do parallax. Độ cao trở thành một biến trong ma trận thí nghiệm (mục 6.4).
 
-Về tốc độ khung hình: để đạt chồng lấn dọc 80% khi bay 3 m/s ở độ cao 8 m chỉ cần khoảng 2.4 khung/giây. ESP32-CAM đạt 15–25 khung/giây ở VGA trên mạng cục bộ, tức dư biên gấp 6–10 lần. Tốc độ khung hình **không** phải nút thắt; chất lượng ảnh mới là.
+Về tốc độ khung hình: để đạt chồng lấn dọc 80% khi bay 3 m/s ở độ cao 8 m chỉ cần khoảng 2.4 khung/giây. ESP32-CAM đạt 15–25 khung/giây ở VGA trên mạng cục bộ, tức dư biên gấp 6–10 lần *(số của ESP32-CAM; camera thật ESP32-S3 + OV3660 chưa đo — đo ở Phase 17)*. Tốc độ khung hình **không** phải nút thắt; chất lượng ảnh mới là.
 
 > **Lưu ý:** Bảng trên dựa trên FOV danh nghĩa. Nhóm sẽ thay bằng giá trị đo thật từ ma trận nội tham số thu được ở bước hiệu chuẩn camera (mục 5.2).
 
@@ -355,7 +360,7 @@ uav-iot-cv/
 │   │   ├── mission.py     # tạo, kiểm tra, tải waypoint
 │   │   └── safety.py      # geofence, kiểm tra tiền bay, failsafe
 │   ├── vision/
-│   │   ├── stream.py      # thu luồng MJPEG từ ESP32-CAM
+│   │   ├── stream.py      # thu luồng MJPEG từ camera ESP32-S3
 │   │   ├── restore.py     # front-end khôi phục ảnh (giao diện thống nhất)
 │   │   ├── detector.py    # YOLO + SAHI + ByteTrack
 │   │   ├── geo.py         # chiếu tọa độ ảnh xuống mặt đất
@@ -367,7 +372,7 @@ uav-iot-cv/
 │   ├── index.html
 │   ├── telemetry.js  control.js  mission.js  map.js  video.js
 ├── esp32/
-│   ├── camera/            # firmware ESP32-CAM + điều tiết thích ứng
+│   ├── camera/            # firmware camera ESP32-S3 + điều tiết thích ứng
 │   └── mavlink_bridge/    # firmware cầu MAVLink
 ├── ml/
 │   ├── scripts/
@@ -411,10 +416,10 @@ Giao diện thuần HTML/CSS/JavaScript, không framework, để giảm phụ th
 | Video | Luồng MJPEG kèm khung bao phát hiện và nhãn tư thế |
 | Sự kiện | Nhật ký phát hiện kèm ảnh chụp và tọa độ |
 
-## 4.4. Firmware ESP32-CAM
+## 4.4. Firmware camera ESP32-S3
 
 Chức năng chính:
-- Khởi tạo OV2640 ở chế độ JPEG, VGA 640×480, sử dụng PSRAM 4 MB, `fb_count = 2`
+- Khởi tạo OV3660 ở chế độ JPEG, VGA 640×480, sử dụng PSRAM (bo N16R8 có 8 MB, chế độ octal), `fb_count = 2`
 - Phục vụ luồng MJPEG qua HTTP
 - **Vòng điều khiển QoS thích ứng** (mục 7.2)
 - Đồng bộ thời gian NTP, đóng dấu thời gian cho từng khung
@@ -465,7 +470,7 @@ Phần này là trọng tâm học thuật của đề tài, gồm năm lớp n�
 
 ## 5.1. Lớp 1 — Đặc tả suy giảm bằng đo đạc
 
-Thay vì phỏng đoán "ảnh ESP32-CAM xấu", nhóm **đo** mức độ xấu bằng các bảng chuẩn chụp trong điều kiện kiểm soát.
+Thay vì phỏng đoán "ảnh camera rẻ xấu", nhóm **đo** mức độ xấu bằng các bảng chuẩn chụp trong điều kiện kiểm soát.
 
 | Đặc tính | Phương pháp đo | Bảng chuẩn |
 |---|---|---|
@@ -486,7 +491,7 @@ Sản phẩm phục vụ hai mục đích: nâng chất lượng ảnh đầu v�
 
 ## 5.3. Lớp 3 — Mô phỏng suy giảm và thích nghi miền
 
-**Vấn đề:** VisDrone là bộ dữ liệu ảnh **đẹp**, chụp bằng camera chất lượng cao. ESP32-CAM cho ảnh **xấu**. Mô hình huấn luyện trên VisDrone hoạt động kém trên ảnh thật của nhóm — đây gọi là khoảng cách miền (domain gap).
+**Vấn đề:** VisDrone là bộ dữ liệu ảnh **đẹp**, chụp bằng camera chất lượng cao. Camera ESP32-S3 + OV3660 giá rẻ cho ảnh **xấu**. Mô hình huấn luyện trên VisDrone hoạt động kém trên ảnh thật của nhóm — đây gọi là khoảng cách miền (domain gap).
 
 **Giải pháp:** dùng hồ sơ suy giảm đo được ở lớp 1 để **áp suy giảm có căn cứ vật lý** lên VisDrone, tạo miền tổng hợp `VisDrone-ESP32`:
 
@@ -536,7 +541,7 @@ Sản phẩm phục vụ hai mục đích: nâng chất lượng ảnh đầu v�
 
 Để PSNR và SSIM có ý nghĩa, cần ảnh tham chiếu **thật** chứ không phải ảnh suy giảm giả lập. Cách làm:
 
-1. Gắn điện thoại ngay cạnh ESP32-CAM trên cùng một giá đỡ
+1. Gắn điện thoại ngay cạnh camera ESP32-S3 trên cùng một giá đỡ
 2. Chụp đồng thời cùng cảnh
 3. Căn chỉnh hai ảnh bằng ORB/SIFT + `cv2.findHomography` + RANSAC
 4. Cắt vùng chồng lấn, thu được cặp (ảnh chất lượng thấp thật, ảnh chất lượng cao thật)
@@ -653,13 +658,13 @@ Báo cáo **không** được dùng con số kiểu "độ chính xác 95%" mà 
 
 | Tầng | Thiết bị | Vai trò |
 |---|---|---|
-| Biên (edge) | ESP32-CAM, ESP32 bridge | Thu cảm biến, nén, truyền, điều tiết thích ứng |
+| Biên (edge) | Camera ESP32-S3, ESP32 bridge | Thu cảm biến, nén, truyền, điều tiết thích ứng |
 | Sương mù (fog) | Laptop trạm mặt đất | Xử lý ảnh, ra quyết định, lưu trữ |
 | Ứng dụng | Web GCS, MQTT broker, dashboard | Trình bày, cảnh báo, tích hợp |
 
 ## 7.2. Đóng góp chính — vòng điều khiển QoS thích ứng
 
-ESP32-CAM tự điều chỉnh `jpeg_quality`, độ phân giải và tốc độ khung hình dựa trên phản hồi từ laptop về cường độ tín hiệu RSSI và độ trễ vòng.
+Camera ESP32-S3 tự điều chỉnh `jpeg_quality`, độ phân giải và tốc độ khung hình dựa trên phản hồi từ laptop về cường độ tín hiệu RSSI và độ trễ vòng.
 
 ```
 Đo RSSI + độ trễ  →  So với ngưỡng  →  Điều chỉnh jpeg_quality / framesize / fps
@@ -727,7 +732,7 @@ Chỉ mở khóa chi phí của giai đoạn sau khi giai đoạn trước đã 
 | Cổng | Chi phí | Điều kiện mở khóa cổng tiếp theo |
 |---|---|---|
 | **G0 — Mô phỏng** | 0 đ | Web GCS điều khiển được drone ảo trong ArduPilot SITL: telemetry, bản đồ, Guided, tải waypoint, bay Auto, RTL |
-| **G1 — Thị giác** | ~450 k | ESP32-CAM hoạt động; hoàn thành lớp 1, 2, 3, 4 của môn Xử lý ảnh |
+| **G1 — Thị giác** | ~450 k | Camera ESP32-S3 hoạt động; hoàn thành lớp 1, 2, 3, 4 của môn Xử lý ảnh |
 | **G2 — Bay thủ công** | ~4 tr | Lắp xong, hiệu chỉnh xong, bay được Stabilize → AltHold → Loiter → RTL bằng tay |
 | **G3 — Tích hợp** | ~1 tr | Bay Auto từ web với drone thật, phát hiện hiển thị trên dashboard |
 
@@ -740,7 +745,7 @@ Chỉ mở khóa chi phí của giai đoạn sau khi giai đoạn trước đã 
 | 1–2 | Cài môi trường, ArduPilot SITL, kết nối MAVLink, telemetry ra web | Drone ảo hiện trên bản đồ |
 | 2–3 | Bản đồ, điều khiển Guided, dead-man switch, các nút Hold/RTL/Land | Điều khiển được drone ảo bằng bàn phím |
 | 3–4 | Tạo, kiểm tra, tải waypoint; bay Auto trên SITL | Hoàn thành cổng G0 |
-| 3–5 | Nhận ESP32-CAM; đo hồ sơ suy giảm; hiệu chuẩn camera; thu ảnh cặp | Có `esp32cam_profile.yaml` và ma trận **K** |
+| 3–5 | Nhận camera ESP32-S3 (đã có 12/10/2026); đo hồ sơ suy giảm; hiệu chuẩn camera; thu ảnh cặp | Có `esp32cam_profile.yaml` và ma trận **K** |
 | 5–7 | Chuyển đổi VisDrone, mô phỏng suy giảm, huấn luyện mô hình A–D | Bảng so sánh 4 mô hình đầu |
 | 6–8 | Ablation khôi phục ảnh, tích hợp SAHI và theo vết | Hoàn thành cổng G1 |
 | 7–9 | Nhận phần cứng bay; kiểm tra từng linh kiện; lắp ráp; hiệu chỉnh | Qua ba cổng an toàn phần cứng |
@@ -827,7 +832,7 @@ Từ **20/07/2026**, drone và phương tiện bay tại Việt Nam phải đăn
 |---|---|---|---|
 | 1 | Mua nhầm GPS không có la bàn | **Cao** | Kiểm tra listing trước khi thanh toán; nếu lỡ thì mua module la bàn I2C rời (~150 k) |
 | 2 | Chưa xin được địa điểm bay | **Cao** | Kiến trúc cổng G1: thu dữ liệu bằng sào, ban công, tầng cao; môn Xử lý ảnh hoàn thành độc lập |
-| 3 | Tầm sóng Wi-Fi ESP32-CAM không đủ | Cao | Bản IPEX + anten ngoài; phương án B là ghi song song lên thẻ SD |
+| 3 | Tầm sóng Wi-Fi của camera ESP32-S3 không đủ | Cao | Đo tầm thật ở Phase 17; phương án B là ghi song song lên thẻ SD |
 | 4 | Rung động làm nhòe ảnh, rolling shutter | Trung bình | Damper cao su, đặt camera xa motor, cân bằng cánh; đồng thời đưa vào hồ sơ suy giảm như một đối tượng nghiên cứu |
 | 5 | **Lực đẩy thực tế thấp hơn ước lượng, drone ì hoặc không cất cánh** | **Cao** | Chọn pin 4S ngay từ đầu (2.9:1 thay vì 2.1:1); **đo lực đẩy trên cân trước lần bay đầu**; dự phòng cánh 1047/1147 |
 | 6 | Drone rơi vỡ giữa kỳ | Trung bình | Mua dự phòng 1 motor, 2 càng, 3 bộ cánh ngay từ đầu |
@@ -895,7 +900,7 @@ Dự án **không** được coi là hoàn thành khi "code xong". Dự án hoà
 | RC | FlySky FS-i6X + iA6B ✅; pin AA hoặc adapter |
 | Nguồn | LiPo Ovonic **4S 5300mAh 110C ×1** ✅ (viên thứ hai để sau, mua đúng cùng loại); SkyRC iMAX B6AC V2 ✅; túi chống cháy ✅; **UBEC 5V 3A đầu vào 2–6S ×2** ⬜ đợt 3; XT60; **dây silicone 16AWG 4,5m** ⬜; tụ 1000µF (có trong bản Deluxe) ✅ |
 | Gắn kết | **Bát chống rung 30,5×30,5** ⬜ *bắt buộc, chưa mua*; gen co nhiều cỡ ⬜; dây rút ⬜ |
-| Thị giác + IoT | ESP32-CAM bản IPEX + anten; đế nạp ESP32-CAM-MB; ESP32 DevKit V1 ×2; thẻ microSD 32GB; mount camera + damper |
+| Thị giác + IoT | Bo camera ESP32-S3 N16R8 + OV3660 (đã có); ESP32 DevKit CP2102 cho DroneBridge (đã có); mạch USB-TTL CP2102; UBEC 5V 3A; thẻ microSD 32GB; mount camera + damper |
 | An toàn | Kính bảo hộ; keo khóa ren Loctite 243; smoke stopper (có trong bản Deluxe); velcro, dây rút, gen co |
 | Hiệu chuẩn | Bảng bàn cờ in A3 trên bìa cứng; thang xám; thước dây |
 

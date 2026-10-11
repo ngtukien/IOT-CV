@@ -46,3 +46,21 @@ export async function fetchEvents(limit: number, init?: RequestInit) {
 export async function fetchMission(init?: RequestInit) {
   return restGet("GET /api/mission", "", init);
 }
+
+/**
+ * Lịch sử telemetry backend đang giữ (chỉ lúc link sống), cũ trước mới sau.
+ * `maxPoints` để backend lấy thưa đều khi cửa sổ dài.
+ */
+export async function fetchTelemetryHistory(seconds: number, init?: RequestInit, maxPoints = 2400) {
+  return restGet("GET /api/telemetry/history", `?seconds=${seconds}&max_points=${maxPoints}`, init);
+}
+
+/** Thông tin vận hành của backend — trang Hệ thống. */
+export async function fetchSystem(init?: RequestInit) {
+  return restGet("GET /api/system", "", init);
+}
+
+/** Cấu hình backend (ngưỡng, endpoint, nhịp telemetry, phiên bản hợp đồng). */
+export async function fetchConfig(init?: RequestInit) {
+  return restGet("GET /api/config", "", init);
+}

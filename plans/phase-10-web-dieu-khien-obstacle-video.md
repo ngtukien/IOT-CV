@@ -256,7 +256,7 @@ ctx.strokeRect(box.x1 * sx, box.y1 * sy, (box.x2 - box.x1) * sx, (box.y2 - box.y
 
 **10.5.4 — mất camera không được ảnh hưởng gì khác.**
 
-> Luật từ `SAFETY.md` mục 9 và comment của `video.js` cũ: *"Khi ESP32-CAM ngắt hoặc process YOLO crash: telemetry vẫn chạy, control vẫn chạy, UAV không đổi mode."*
+> Luật từ `SAFETY.md` mục 9 và comment của `video.js` cũ: *"Khi camera (ESP32-S3) ngắt hoặc process YOLO crash: telemetry vẫn chạy, control vẫn chạy, UAV không đổi mode."*
 
 Trong UI: `<img>` lỗi (`onError`) → panel hiện `"CAMERA OFFLINE"`, thử lại mỗi 5 s, và **không** làm gì khác. Không toast đỏ toàn màn hình, không khoá nút điều khiển, không đổi trạng thái kết nối. Có một bài nghiệm thu riêng cho việc này (bài #8 ở 10.9).
 

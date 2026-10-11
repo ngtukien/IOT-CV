@@ -70,7 +70,7 @@ Nguồn: `plans/_phase-index.md`. Cột "Giờ" là **ước lượng cho ngư�
 | 09 | `phase-09-web-ban-do-mission.md` | Web: Leaflet map, drone marker, trail, home, geofence, mission editor + upload + readback | Không | 07, 08 | 12 |
 | 10 | `phase-10-web-dieu-khien-obstacle-video.md` | Web: WASD/gamepad manual, mode/arm panel, obstacle panel, video panel + overlay (nguồn giả), Playwright E2E dead-man | Không | 09 | 14 |
 | 11 | `phase-11-firmware-ardupilot-param.md` | Giải nén custom build, xác nhận feature, quy ước params `00..07`, `01-base.param`, `02-avoid-tfmini.param`, cách rebuild trên custom.ardupilot.org | Không | 01 | 4,5 |
-| 12 | `phase-12-firmware-esp32-camera.md` | DroneBridge tải + cấu hình sẵn, project PlatformIO camera (2 env), script bench TFmini, hotspot laptop + firewall | Không | 11 | 6,5 |
+| 12 | `phase-12-firmware-esp32-camera.md` | DroneBridge tải + cấu hình sẵn, project PlatformIO camera (ESP32-S3 N16R8 + OV3660), script bench TFmini, hotspot laptop + firewall | Không | 11 | 6,5 |
 | 13 | `phase-13-chuan-bi-lap-rap.md` | Checklist đấu dây từng connector F405 V5, danh sách mua thêm + câu hỏi cho shop, sơ đồ bố trí khung S500, in checklist, tập hàn | Không | 11 | 5,3 |
 | 14 | `phase-14-hang-ve-nap-firmware.md` | Kiểm hàng, chụp ảnh, DFU nạp `arducopter_with_bl.hex`, Mission Planner nhận board, kiểm `PRX1_TYPE`, lưu `00-after-flash` + nạp `01-base` | **Có** | 13 + hàng về | 3,5 |
 | 15 | `phase-15-ban-rc-gps-compass.md` | Bind FS-i6X/iA6B, iBUS trên R6, radio calib, switch map, RC failsafe; GPS M10 + compass I2C, fix, orient; param `02-radio`, `03-gps` | **Có** | 14 | 4,2 |

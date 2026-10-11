@@ -13,6 +13,7 @@
 import { NO_VALUE, formatNumber, hasValue } from "@/lib/format";
 
 import type { Box } from "./AttitudeIndicator";
+import { usePfdIds, useTestId } from "./pfdContext";
 
 type Maybe = number | null | undefined;
 
@@ -63,11 +64,13 @@ export function VerticalTape({
   const yOf = (v: number) => cy - (v - center) * scale;
   const tickX = side === "left" ? box.x + box.w : box.x;
   const dir = side === "left" ? -1 : 1;
-  const clipId = `tape-clip-${testId}`;
+  const { prefix } = usePfdIds();
+  const clipId = `${prefix}-tape-clip-${testId}`;
   const text = formatNumber(value, digits, "");
+  const tid = useTestId(testId);
 
   return (
-    <g data-testid={testId} data-value={text}>
+    <g data-testid={tid} data-value={text}>
       <title>{title}</title>
       <defs>
         <clipPath id={clipId}>
@@ -82,8 +85,8 @@ export function VerticalTape({
             y={box.y}
             width={box.w}
             height={Math.max(0, yOf(limit) - box.y)}
-            fill="url(#pfd-limit)"
-            data-testid={`${testId}-limit`}
+            fill={`url(#${prefix}-limit)`}
+            data-testid={tid ? `${tid}-limit` : undefined}
           />
         ) : null}
         {range(Math.max(center - half, min ?? -Infinity), center + half, minorEvery).map((v) => {
@@ -153,17 +156,19 @@ export function HeadingTape({ box, value, title }: HeadingTapeProps) {
   const cx = box.x + box.w / 2;
   const half = box.w / 2 / scale;
   const text = known ? `${String(Math.round(((value % 360) + 360) % 360)).padStart(3, "0")}°` : NO_VALUE;
+  const { prefix } = usePfdIds();
+  const tid = useTestId("pfd-heading");
 
   return (
-    <g data-testid="pfd-heading" data-value={text}>
+    <g data-testid={tid} data-value={text}>
       <title>{title}</title>
       <defs>
-        <clipPath id="tape-clip-heading">
+        <clipPath id={`${prefix}-tape-clip-heading`}>
           <rect x={box.x} y={box.y} width={box.w} height={box.h} rx="8" />
         </clipPath>
       </defs>
       <rect x={box.x} y={box.y} width={box.w} height={box.h} rx="8" fill="#0b1220" fillOpacity="0.85" stroke="white" strokeOpacity="0.1" />
-      <g clipPath="url(#tape-clip-heading)" opacity={known ? 1 : 0.35}>
+      <g clipPath={`url(#${prefix}-tape-clip-heading)`} opacity={known ? 1 : 0.35}>
         {range(center - half, center + half, 5).map((v) => {
           const x = cx + (v - center) * scale;
           const deg = ((Math.round(v) % 360) + 360) % 360;
@@ -211,9 +216,10 @@ export function VerticalSpeed({ box, value, fullScale, title }: VerticalSpeedPro
   const clamped = known ? Math.max(-fullScale, Math.min(fullScale, value)) : 0;
   const barH = (Math.abs(clamped) / fullScale) * half;
   const up = clamped >= 0;
+  const tid = useTestId("pfd-vsi");
 
   return (
-    <g data-testid="pfd-vsi">
+    <g data-testid={tid}>
       <title>{title}</title>
       <rect x={box.x} y={box.y} width={box.w} height={box.h} rx="4" fill="#0b1220" fillOpacity="0.85" stroke="white" strokeOpacity="0.1" />
       {range(-fullScale, fullScale, 1).map((v) => (

@@ -1,5 +1,10 @@
 # Research: Web GCS stack cho UAV IoT-CV
 
+> **Ghi chú 12/10/2026:** bản ghi nghiên cứu ngày 21/09/2026, giữ nguyên để biết lý do. Phần cứng
+> thật đã đổi: camera là **ESP32-S3 N16R8 + OV3660** (không phải ESP32-CAM / XIAO ESP32S3 Sense);
+> số liệu fps, góc nhìn, dòng điện, anten của ESP32-CAM/OV2640 ở đây chưa đúng cho bo mới. Danh
+> sách linh kiện đúng nhất: `docs/phan-cung-thuc-te.md`.
+
 **Ngày:** 21/09/2026 · **Phạm vi:** chọn stack cho website GCS (telemetry + map/mission + manual control + video YOLO + MQTT)
 
 **Bối cảnh repo:** `backend/` (FastAPI + pymavlink, 824 LOC, telemetry đã chạy, `control.py`/`mission.py` còn stub `NotImplementedError`), `frontend/` (550 LOC vanilla JS + Leaflet CDN), license **MIT**.

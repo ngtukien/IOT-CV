@@ -113,3 +113,6 @@ firmware/dronebridge/bin/
 # dung y (PRX_*, OAPATHPLANNER, TFMINIPLUS...). Dong "!" nay PHAI nam SAU dong
 # "*.log" o phia tren, neu khong git van bo qua file.
 !firmware/ardupilot/**/build.log
+
+# Bài tập môn học, không thuộc dự án
+assignment/

@@ -691,10 +691,10 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 
 - [ ] `firmware/dronebridge/bin/` có file `.bin`; `git status` **không** liệt kê nó.
 - [ ] `firmware/dronebridge/README.md` có đủ 5 mục; bảng cấu hình điền hết trừ 3 ô *chưa xác minh*.
-- [ ] `pio run -e esp32cam` → `SUCCESS`.
-- [ ] `pio run -e xiao_esp32s3` → `SUCCESS`, **hoặc** board id đã được sửa theo `pio boards` và ghi chú "chưa xác minh" đã được cập nhật kèm ngày.
+- [ ] `pio run -e esp32s3_n16r8` → `SUCCESS`; ghi chú "CHUA build thu" trong `platformio.ini` đã đổi thành đã build, kèm ngày.
+- [ ] Bảng chân camera đã đối chiếu với ảnh/sơ đồ bo thật **trước khi nạp**; có bo thì log `esp_camera_init` OK và `PID 0x3660`.
 - [ ] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`.
-- [ ] `firmware/camera/README.md` có nghi thức nạp ESP32-CAM (`IO0 → GND`) và cảnh báo nguồn.
+- [ ] `firmware/camera/README.md` có cách nạp bo ESP32-S3 (kể cả giữ BOOT + nhấn RST khi không vào được chế độ nạp) và cảnh báo nguồn.
 - [ ] `py -3.13 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp.
 - [ ] Hotspot laptop bật được ở 2,4 GHz; SSID/mật khẩu đã vào `secrets.h`; IP laptop đã ghi vào `docs/so-tay/12-hotspot-laptop.md`.
 - [ ] `Get-NetFirewallRule -DisplayName "IOTCV*"` trả về rule UDP 14550.
@@ -709,7 +709,7 @@ Plan: plans/phase-13-chuan-bi-lap-rap.md
 Ngày bắt đầu: ______ · Ngày xong: ______
 
 - [ ] `docs/so-tay/13-mua-sam.md` có đủ 11 dòng món kèm cột "chặn phase nào"; **đơn hàng đã đặt**.
-- [ ] Camera đã chốt nhánh (A/B/C) **hoặc** đã đặt 10 món còn lại và ghi rõ camera đặt sau.
+- [x] Camera đã chốt: ESP32-S3 N16R8 + OV3660, đã có (12/10/2026).
 - [ ] `docs/so-tay/13-dau-day.md` có: bảng tra 10 cổng, mục GPS với 3 lỗi kinh điển, mục TFmini với màu dây, mục phân bổ nguồn 5V, hai điều cấm, danh sách 12 mối hàn có ô tick.
 - [ ] `docs/so-tay/13-bo-tri-khung.md` có sơ đồ nhìn từ trên và bảng 6 quyết định vị trí kèm lý do.
 - [ ] Ba tờ checklist đã **in ra giấy** và đang nằm cạnh bàn; mỗi tờ có dòng "KHÔNG CÁNH QUẠT" ở đầu trang.
@@ -729,15 +729,23 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] Motor: đủ **2 ren thuận + 2 ren nghịch** (đã tự vặn tay kiểm, không tin nhãn hộp).
 - [ ] Pin: 4 cell đều trong khoảng 3,80–3,85 V, lệch < 0,05 V.
 - [ ] Device Manager hiện `STM32 BOOTLOADER` khi vào DFU (không có dấu chấm than).
+- [ ] Firmware gốc đã sao lưu, file đúng 1.048.576 byte trong `D:\IOT_Tools\downloads\speedybee-f405v5\` (hoặc đã ghi lý do bỏ qua ở 14.3b).
 - [ ] STM32CubeProgrammer báo Download thành công với `arducopter_with_bl.hex`.
-- [ ] Mission Planner CONNECT được; banner ghi `ArduCopter V4.7.1` + `SpeedyBeeF405V5`.
+- [ ] Mission Planner CONNECT được; banner ghi `ArduCopter V4.7.1 (dbe79216)` + `speedybeef4v5`.
 - [ ] **Tìm thấy `PRX1_TYPE`, `RNGFND1_TYPE`, `AVOID_ENABLE` trong Full Parameter List.**
+- [ ] Baro được nhận (`press_abs` ≈ 1000 hPa, không có lỗi Baro); nghiêng bo thì pitch/roll đổi đúng dấu (14.5b).
 - [ ] `firmware/ardupilot/params/00-after-flash.param` đã lưu **và đã commit**.
 - [ ] `01-base.param` đã Write + reboot; 8 tham số then chốt đọc lại đúng giá trị.
 - [ ] Danh sách tham số bị từ chối đã ghi vào `docs/so-tay/14-nap-firmware.md` và ngắn hơn danh sách của SITL (Phase 11.7).
 - [ ] **Chưa cắm pin lần nào trong phase này.**
 
-Ghi chú: 
+Ghi chú: 12/10/2026 — chưa nạp, chờ người dùng cắm bo. Đã soi 8 ảnh FC thật
+(`picture/FC-speedybee-f405-v5/`) với 41 ảnh chính hãng: đúng F405 V5 bản "Model Aircraft", không
+thấy hư hỏng; jumper SBUS hở (đúng cho iBUS), jumper "BARO →" đã nối thiếc từ nhà máy. Kích hoạt
+app SpeedyBee **không cần** cho đường DFU. Plan đã thêm 14.3b (sao lưu firmware gốc) và 14.5b (kiểm
+baro + hướng gyro); banner đúng là `speedybeef4v5`. `01-base.param` đổi `FRAME_TYPE` 12 và hệ số
+dòng 370,4 / 0,0071 — `run_param_load` trên SITL khung `bfx` PASS. Người dùng chọn: Claude chạy
+lệnh nạp + sao lưu, người dùng chỉ giữ BOOT và cắm cáp.
 
 ## 🔧 Phase 15 — Bàn: RC + GPS + compass
 
@@ -814,8 +822,8 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 
 - [ ] Khung lắp xong; đặt trên mặt bàn phẳng, 4 đầu cần cùng mặt phẳng, khung không bập bênh, không cần nào cong hay rơ.
 - [ ] **Không có lỗ khoan mới nào trên tấm đế S500.**
-- [ ] 4 motor bắt chắc, quay trơn bằng tay, cần đã dán nhãn `M1` `M2` `M3` `M4` đúng quy ước Quad X của ArduPilot (M1 trước-phải CCW, M2 sau-trái CCW, M3 trước-trái CW, M4 sau-phải CW).
-- [ ] 4 motor đã phân loại theo chiều ren và đặt đúng vị trí (2 ren cho vị trí CCW ở M1/M2, 2 ren cho vị trí CW ở M3/M4); cánh vặn vào bằng tay được, không phải dùng lực.
+- [ ] 4 motor bắt chắc, quay trơn bằng tay, cần đã dán nhãn số + vị trí đúng quy ước Quad X Betaflight = nhãn in trên ESC (M1 sau-phải CW, M2 trước-phải CCW, M3 sau-trái CCW, M4 trước-trái CW); mỗi motor nối vào pad ESC cùng số.
+- [ ] 4 motor đã phân loại theo chiều ren và đặt đúng vị trí (2 ren phải cho vị trí CCW ở M2/M3, 2 ren trái cho vị trí CW ở M1/M4); cánh vặn vào bằng tay được, không phải dùng lực.
 - [ ] 12 mối hàn nối dài dây motor đã bọc gen; với **cả 4 motor**: thông mạch từng pha OK, 3 điện trở giữa các pha bằng nhau, **không pha nào chạm vỏ motor hay chạm ốc khung**.
 - [ ] Đo continuity `BAT+` ↔ `BAT−`: **không kêu bíp liên tục**. Đo `BAT+` ↔ ốc khung: **không kêu**.
 - [ ] Tụ 1000 µF đã hàn sát pad `BAT+`/`BAT−` của ESC, **đúng cực** (đã đối chiếu vạch dấu trên thân tụ, có ảnh `04-tu-dien.jpg`).
@@ -824,7 +832,7 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] Hai anten iA6B vuông góc 90°, phần đầu nhạy duỗi thẳng, cách dây nguồn motor ≥ 5 cm.
 - [ ] GPS M10 trên cột ở phía đuôi, mũi tên GPS cùng hướng mũi tên FC (hoặc đã ghi lại độ lệch cho `COMPASS_ORIENT`).
 - [ ] TFmini Plus chĩa thẳng trước; nhìn dọc theo hướng ống kính **không thấy bất kỳ phần nào của drone**; nguồn lấy từ BEC của stack (không dùng chung UBEC với ESP32).
-- [ ] ESP32 bridge + board camera + UBEC 5V 3A cố định chắc; tụ 470–1000 µF đã hàn sát chân nguồn board camera; bát camera lắp được cho cả ESP32-S3 lẫn ESP32-CAM.
+- [ ] ESP32 bridge + board camera + UBEC 5V 3A cố định chắc; tụ 470–1000 µF đã hàn sát chân nguồn board camera nếu Phase 17 thấy reset; bát camera vừa bo ESP32-S3 thật.
 - [ ] Pin gắn bằng velcro **và** dây đai; xách drone lên bằng pin thì pin không xê dịch; vị trí pin đã đánh dấu bút dạ.
 - [ ] Treo drone (đã có pin, chưa có cánh) trên hai đầu ngón tay tại hai điểm đối xứng qua tâm → nằm ngang trong ±5°.
 - [ ] `docs/do-dac/18-can-khoi-luong.md` đã điền đủ số cân thật; tỉ số `4800 g / AUW` ≥ 2 : 1.
@@ -846,7 +854,7 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] `Onboard Mag Calibration` chạy **ngoài trời**, thanh tiến trình tới 100% không tụt lùi; offset tổng nhỏ; chĩa mũi drone về Bắc thật thì biểu tượng trên bản đồ Mission Planner cũng chỉ Bắc (lệch ≤ 15°); không còn cảnh báo compass.
 - [ ] Radio: 4 cần đúng dải 1000/1500/2000; CH5 ra đủ `Stabilize`/`AltHold`/`Loiter`, CH6 ra `RTL`, CH7 (`WEB CONTROL ENABLE`) đổi giá trị `rcin` khi gạt, CH8 vẫn để trống; ở 50 m vẫn đổi được mode.
 - [ ] Motor Test: 4 nút A/B/C/D ra đúng 4 motor (đã đối chiếu với **sơ đồ khung hiển thị trong Mission Planner**, không dựa vào trí nhớ).
-- [ ] 4 chiều quay đúng: M1 CCW, M2 CCW, M3 CW, M4 CW.
+- [ ] 4 chiều quay đúng: trước-phải (M2) CCW, sau-trái (M3) CCW, trước-trái (M4) CW, sau-phải (M1) CW.
 - [ ] Test desync: đẩy ga 10→20→30→50 % trên cả 4 motor, **không** có tiếng khục / giật / tự dừng; tăng ga đột ngột cũng không; 4 motor khởi động mượt và gần như cùng lúc ở 5–10 %.
 - [ ] `esc1..4_rpm` có số trên tab `Status` khi chạy Motor Test (nếu không có: đã ghi lại, không chặn Phase 20, phải xử lý trước Phase 22).
 - [ ] Test RC failsafe: tắt tay FS-i6X → cảnh báo hiện trong ≤ 3 giây **và** giá trị kênh ga tụt xuống dưới `FS_THR_VALUE`; bật lại → cảnh báo tự hết.
@@ -855,7 +863,7 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] `FENCE_ENABLE,1` + `FENCE_TYPE,3` + `FENCE_ALT_MAX,30` + `FENCE_RADIUS,50` + `FENCE_ACTION,1` + `FENCE_MARGIN,2`; hàng rào hiện đúng trên bản đồ Mission Planner; giá trị 30/50 đã được đối chiếu với kích thước bãi bay thật.
 - [ ] **Không còn cảnh báo pre-arm nào**, và **không một pre-arm check nào bị disable** (`ARMING_CHECK` giữ nguyên giá trị mặc định đầy đủ).
 - [ ] Arm/disarm không cánh 3/3 lần thành công; cả 4 motor idle đều, không motor nào đứng im.
-- [ ] 4 cánh gắn đúng: CCW trên M1/M2, CW trên M3/M4; vặn vào **không cần lực**; xoay theo chiều quay thì **siết chặt thêm**; không rơ; không cánh nào nứt.
+- [ ] 4 cánh gắn đúng: CCW trên trước-phải/sau-trái (M2/M3), CW trên trước-trái/sau-phải (M4/M1); vặn vào **không cần lực**; xoay theo chiều quay thì **siết chặt thêm**; không rơ; không cánh nào nứt.
 - [ ] Đo lực đẩy thật trên cân ở 25/50/75/100 %; tỉ số `(lực đẩy 100% × 4) / AUW` ≥ **2 : 1**; đã ghi vào `docs/do-dac/19-do-luc-day.md`.
 - [ ] `docs/checklist-truoc-bay.md` đã viết và **đã in ra giấy**.
 - [ ] Pin 4S: 4 cell đều 4,20 V ±0,03 V, không phồng, không rách.

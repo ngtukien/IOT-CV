@@ -18,10 +18,10 @@
  * Nút KHÔNG tự đổi màu khi bấm (§10.3.4): mode sáng theo `telemetry.mode`, ARM
  * theo `telemetry.armed`. Trong lúc chờ FC xác nhận, nút chỉ hiện vòng xoay.
  */
-import { Loader2, OctagonPause, PlaneLanding, PlaneTakeoff, Power, ShieldAlert, Undo2 } from "lucide-react";
+import { Loader2, Power, ShieldAlert } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import { useState } from "react";
+import type { ComponentType, CSSProperties, ReactNode } from "react";
 
 import { AltField } from "@/components/MissionEditor/AltField";
 import { Panel } from "@/components/Panel";
@@ -38,7 +38,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { IconHold, IconLand, IconReturnHome, IconStick, IconTakeoff } from "@/components/icons";
 import { sendCommand } from "@/hooks/controlUplink";
+import { sendHold, sendLand, sendRtl } from "@/hooks/flightCommands";
 import { useLimits } from "@/hooks/useLimits";
 import { formatNumber } from "@/lib/format";
 import { WEB_MODES } from "@/lib/protocol";
@@ -56,8 +58,8 @@ export const ARM_CONFIRM_WORD = "ARM";
 /** Độ cao cất cánh gợi ý — cùng mốc 5 m của mission (Phase 09). Kẹp vào [min_alt, max_alt]. */
 export const DEFAULT_TAKEOFF_ALT_M = 5;
 
-/** Phím tắt của HOLD (§10.3.3). */
-export const HOLD_KEY = "KeyH";
+/** Phím tắt của HOLD (§10.3.3) — gắn toàn cục ở `useHoldShortcut`. */
+export { HOLD_KEY } from "@/hooks/useHoldShortcut";
 
 const MODE_LABEL: Record<WebMode, string> = {
   GUIDED: "GUIDED",
@@ -167,7 +169,7 @@ function ConfirmDialog({ open, onOpenChange, title, children, confirmLabel, tone
 // ---------------------------------------------------------------------------
 
 interface CmdButtonProps {
-  icon?: LucideIcon;
+  icon?: LucideIcon | ComponentType<{ className?: string }>;
   label: string;
   hint: string;
   active?: boolean;
@@ -180,7 +182,7 @@ interface CmdButtonProps {
 }
 
 const TONE: Record<NonNullable<CmdButtonProps["tone"]>, string> = {
-  default: "border-border bg-white/4 hover:bg-white/8",
+  default: "border-border bg-foreground/4 hover:bg-foreground/8",
   warn: "border-hud-amber/40 bg-hud-amber/10 text-hud-amber hover:bg-hud-amber/20",
   danger: "border-hud-red/50 bg-hud-red/12 text-hud-red hover:bg-hud-red/22",
   exit: "border-hud-cyan/40 bg-hud-cyan/10 text-hud-cyan hover:bg-hud-cyan/20",
@@ -200,7 +202,7 @@ function CmdButton({ icon: Icon, label, hint, active, pending, disabled, tone = 
             data-active={active ?? false}
             aria-pressed={active}
             className={cn(
-              "h-9 w-full font-mono text-xs tracking-wide",
+              "h-9 w-full rounded-lg font-mono text-xs tracking-wide",
               TONE[tone],
               active && "border-hud-green/70 bg-hud-green/18 text-hud-green shadow-[0_0_16px_-6px] shadow-hud-green",
             )}
@@ -225,9 +227,6 @@ function sendMode(mode: WebMode): void {
   sendCommand("cmd.mode", { mode }, { label: `Mode ${MODE_LABEL[mode]}`, target: mode });
 }
 
-function sendHold(): void {
-  sendCommand("cmd.hold", {}, { label: "HOLD (LOITER)", target: "hold" });
-}
 
 function ModeGrid({ onAsk }: { onAsk(d: Dialog): void }) {
   const mode = useTelemetryStore((s) => s.telemetry?.mode);
@@ -262,22 +261,7 @@ function ModeGrid({ onAsk }: { onAsk(d: Dialog): void }) {
   );
 }
 
-function useHoldShortcut(): void {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.code !== HOLD_KEY || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
-      const el = e.target as HTMLElement | null;
-      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
-      e.preventDefault();
-      sendHold();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-}
-
-export function ModePanel({ style }: { style?: CSSProperties }) {
-  useHoldShortcut();
+export function ModePanel({ style, className }: { style?: CSSProperties; className?: string }) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const limits = useLimits();
   // `null` = người dùng chưa gõ gì → dùng gợi ý 5 m kẹp vào [min_alt, max_alt]
@@ -311,16 +295,24 @@ export function ModePanel({ style }: { style?: CSSProperties }) {
   const close = () => setDialog(null);
 
   return (
-    <Panel title="Chế độ bay" icon={Power} style={style} testId="mode-panel" bodyClassName="flex flex-col gap-3 p-3">
+    <Panel
+      title="Chế độ bay"
+      subtitle="Mode, ARM, cất cánh và lệnh thoát hiểm"
+      icon={IconStick}
+      style={style}
+      className={className}
+      testId="mode-panel"
+      bodyClassName="flex flex-col gap-3 p-3"
+    >
       <CmdButton
-        icon={OctagonPause}
+        icon={IconHold}
         label="HOLD — đứng yên (phím H)"
         hint="Chuyển LOITER: dừng lại, giữ nguyên vị trí và độ cao. Luôn bấm được, không hỏi."
         pending={pending.has("hold")}
         tone="exit"
         testId="cmd-hold"
-        onClick={sendHold}
-        className="[&_button]:h-14 [&_button]:text-base"
+        onClick={() => sendHold()}
+        className="[&_button]:h-13 [&_button]:border-hud-cyan/45 [&_button]:bg-linear-to-b [&_button]:from-hud-cyan/20 [&_button]:to-hud-cyan/8 [&_button]:font-display [&_button]:text-[15px] [&_button]:font-semibold [&_button_svg]:size-5"
       />
 
       <ModeGrid onAsk={setDialog} />
@@ -350,7 +342,7 @@ export function ModePanel({ style }: { style?: CSSProperties }) {
           />
         )}
         <CmdButton
-          icon={PlaneTakeoff}
+          icon={IconTakeoff}
           label={`TAKEOFF ${formatNumber(takeoffAlt, 1, "m")}`}
           hint={takeoffBlocker ?? "Cất cánh thẳng đứng tới độ cao đã chọn. Có hỏi xác nhận."}
           pending={pending.has("takeoff")}
@@ -367,12 +359,12 @@ export function ModePanel({ style }: { style?: CSSProperties }) {
       </div>
 
       <div className="grid grid-cols-2 gap-1.5">
-        <CmdButton icon={Undo2} label="RTL — về nhà" hint={MODE_HINT.RTL} disabled={!ready} tone="exit" testId="cmd-rtl"
+        <CmdButton icon={IconReturnHome} label="RTL — về nhà" hint={MODE_HINT.RTL} disabled={!ready} tone="exit" testId="cmd-rtl"
           pending={pending.has("rtl")}
-          onClick={() => sendCommand("cmd.rtl", {}, { label: "RTL", target: "rtl" })} />
-        <CmdButton icon={PlaneLanding} label="LAND — hạ cánh" hint={MODE_HINT.LAND} disabled={!ready} tone="exit" testId="cmd-land"
+          onClick={sendRtl} />
+        <CmdButton icon={IconLand} label="LAND — hạ cánh" hint={MODE_HINT.LAND} disabled={!ready} tone="exit" testId="cmd-land"
           pending={pending.has("land")}
-          onClick={() => sendCommand("cmd.land", {}, { label: "LAND", target: "land" })} />
+          onClick={sendLand} />
       </div>
 
       <ConfirmDialog

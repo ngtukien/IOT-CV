@@ -2,20 +2,20 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 11 | ~6,5 giờ | Không — làm hết trên PC, board chưa về vẫn làm được |
+| đang làm — 12/10/2026: nạp DroneBridge v2.4.1, cấu hình STA qua USB, ESP32 vào hotspot 2,4 GHz và đẩy MAVLink về laptop; README 5 mục, camera, TFmini chưa làm. 12/10/2026: camera đã chốt ESP32-S3 N16R8 + OV3660, mục 12.3–12.5 đã viết lại cho bo này | Phase 11 | ~6,5 giờ | Không — làm hết trên PC, board chưa về vẫn làm được |
 
 ## Mục tiêu
 
 Xong phase này, ba thứ chạy trên ESP32 đã sẵn sàng nằm trên đĩa: firmware cầu telemetry
-(DroneBridge — tải về, không tự viết), project camera PlatformIO build được cho **cả hai** loại
-board đang cân nhắc mua, và script đọc cảm biến TFmini Plus trên bàn. Cộng thêm hotspot Wi-Fi
-của laptop đã cấu hình và mở cổng tường lửa.
+(DroneBridge — tải về, không tự viết), project camera PlatformIO build được cho **bo camera thật
+của dự án — ESP32-S3 N16R8 + OV3660**, và script đọc cảm biến TFmini Plus trên bàn. Cộng thêm
+hotspot Wi-Fi của laptop đã cấu hình và mở cổng tường lửa.
 
 Mục đích của phase: ngày board về, bạn chỉ cắm USB và bấm nút — không phải vừa tra tài liệu vừa
 cầm mỏ hàn. Người mới hỏng board chủ yếu vì làm hai việc đó cùng lúc.
 
-Quyết định "mua camera nào" (`plans/QUYET-DINH-CHUA-CHOT.md`) vẫn đang mở. Phase này **không
-chờ**: viết cho cả hai nhánh.
+Quyết định "mua camera nào" **đã chốt ngày 12/10/2026**: ESP32-S3 N16R8 + module OV3660 (thay cả
+ESP32-CAM lẫn XIAO ESP32S3 Sense từng cân nhắc). Danh sách phần cứng thật: `docs/phan-cung-thuc-te.md`.
 
 ## Đầu vào cần có
 
@@ -23,7 +23,9 @@ chờ**: viết cho cả hai nhánh.
 - `plans/reports/260921-brainstorm-thiet-ke-tong-the.md` §3 — bản đồ cổng serial, §6 rủi ro Wi-Fi.
 - `docs/hop-dong-mjpeg.md` (Phase 07) — hợp đồng header MJPEG bắt buộc: `X-Frame-Id`, `X-Timestamp-Ms`, `X-Jpeg-Quality`, `X-Framesize`.
 - `firmware/ardupilot/params/01-base.param` (Phase 11) — để khớp `SERIAL2_BAUD,115`.
-- `plans/QUYET-DINH-CHUA-CHOT.md` — Quyết định 1 (camera).
+- `docs/phan-cung-thuc-te.md` — phần cứng thật (camera ESP32-S3 N16R8 + OV3660; mục "Chưa biết" là
+  những thứ phase này phải xác minh). Báo cáo nghiên cứu §3 viết cho ESP32-CAM/XIAO — chỉ đọc để
+  hiểu lý do, không lấy làm cấu hình.
 - Đã cài ở Phase 00: VS Code + PlatformIO, Python 3.13, esptool.
 - Kết nối internet để tải firmware DroneBridge và toolchain PlatformIO (lần đầu ~1 GB).
 
@@ -76,14 +78,17 @@ Ghi kết luận này vào đầu `firmware/dronebridge/README.md` — để sá
 
 ```powershell
 New-Item -ItemType Directory -Force -Path firmware\dronebridge\bin
-Start-Process "https://github.com/DroneBridge/ESP32/releases"
-# Tai ban release moi nhat cho chip "esp32" (KHONG lay ban s2/s3/c3 tru khi
-# board ban mua dung chip do). Luu vao firmware\dronebridge\bin\
+gh release download v2.4.1 -R DroneBridge/ESP32 -D firmware\dronebridge\bin
+Expand-Archive firmware\dronebridge\bin\DroneBridge_ESP32_v2_4_1_stable.zip firmware\dronebridge\bin\v2.4.1
+# Release la MOT file zip chua thu muc cho tung chip. Dung thu muc "esp32\"
+# (KHONG lay esp32s2/s3/c3/c6 tru khi board ban mua dung chip do).
+# Thu muc esp32\ co 4 file: bootloader.bin, partition-table.bin, db_esp32.bin, www.bin.
 ```
 
 **AN TOÀN (mức dự án, không phải mức bay):** tải file `.bin` về **lưu trong repo ngay bây giờ**,
-đừng phụ thuộc vào trang tải còn sống. Bản release ổn định gần nhất của DroneBridge là
-**12/09/2024** — dự án có thể đã ngừng bảo trì. Có file trên đĩa thì dù trang có chết bạn vẫn nạp được.
+đừng phụ thuộc vào trang tải còn sống. Có file trên đĩa thì dù trang có chết bạn vẫn nạp được.
+(Kiểm tra 12/10/2026: dự án vẫn được bảo trì — v2.3.0 ngày 20/08, v2.4.0 ngày 26/08, v2.4.1 ngày
+12/09/2026. Bản ghi cũ "release cuối 12/09/2024" là sai năm.)
 
 Viết `firmware/dronebridge/README.md` gồm 5 mục:
 
@@ -99,25 +104,47 @@ Viết `firmware/dronebridge/README.md` gồm 5 mục:
 Sau khi nạp, board tự phát Wi-Fi riêng để bạn vào cấu hình lần đầu:
 
 ```text
-SSID     : DroneBridge ESP32
-Password : dronebridge
+SSID     : DroneBridge for ESP32      (da xac minh 12/10/2026 bang log boot + quet Wi-Fi)
+Password : dronebridge                (gia tri mac dinh trong db_params.csv cua release)
 Web UI   : http://dronebridge.local   hoac   http://192.168.2.1
+Kenh     : 6 (2,4 GHz)
 GCS      : UDP 14550  hoac  TCP 5760
 ```
 
-Cách thay thế (khi web flasher không chạy): nạp bằng `esptool`.
+Cách thay thế (khi web flasher không chạy): nạp bằng `esptool`. Đây là các lệnh **đã chạy thật**
+ngày 12/10/2026 trên board ESP32 DevKit CP2102 của dự án (lên COM4 trên máy dự án — máy khác thì
+xem số COM bằng lệnh ở mục (d)):
 
 ```powershell
-esptool -p COM3 flash-id
-esptool -p COM3 erase-flash
-esptool --chip esp32 -p COM3 -b 460800 write-flash 0x0 firmware\dronebridge\bin\<ten-file>.bin
+esptool -p COM4 -b 115200 flash-id
+# Sao luu flash goc truoc khi xoa (4 MB, ~6 phut o 115200):
+esptool -p COM4 -b 115200 read-flash 0 ALL D:\IOT_Tools\downloads\esp32-backup\esp32-<mac>-<ngay>.bin
+esptool --chip esp32 -p COM4 -b 115200 erase-flash
+cd firmware\dronebridge\bin\v2.4.1\DroneBridge_ESP32_v2_4_1_stable\esp32
+esptool --chip esp32 -p COM4 -b 115200 --before default-reset --after hard-reset write-flash `
+  --flash-mode dio --flash-size 2MB --flash-freq 40m `
+  0x1000 bootloader.bin 0x8000 partition-table.bin 0x10000 db_esp32.bin 0x190000 www.bin
 ```
+
+> **Chỉ dùng 115200 baud.** Trên board này, 921600 báo `No more data to read from the serial port`
+> và 460800 báo `Read more than expected` — dữ liệu serial hỏng ở tốc độ cao (nghi cáp hoặc CP2102).
+> Hướng dẫn kèm release của DroneBridge cũng dùng 115200 cho ESP32. Ghi 4 file mất ~1,5 phút.
+>
+> Board có mạch auto-reset (2 transistor cạnh CP2102), esptool tự vào chế độ nạp — **không cần bấm
+> BOOT**. Chỉ khi báo `Wrong boot mode` mới giữ BOOT, nhấn-thả EN, rồi thả BOOT.
 
 > `esptool` v5 đã đổi cú pháp: dùng `esptool` (không còn `esptool.py`), subcommand dùng gạch nối
 > (`flash-id`, `write-flash`). Tutorial cũ viết `esptool.py write_flash` là cú pháp v4, sẽ báo lỗi.
 
 **(b) Bảng giá trị điền vào web UI** — đây là phần đáng viết trước nhất, vì lúc board về bạn sẽ
 ngồi trước một trang web đầy ô trống:
+
+> **Đã làm 12/10/2026 — không qua web UI.** Các giá trị dưới đây được ghi thẳng vào phân vùng NVS
+> qua cáp USB bằng `scripts/esp32/dronebridge-nvs.ps1` (mẫu: `firmware/dronebridge/db_params.iotcv.csv`),
+> nên laptop không phải rời mạng có internet. Giá trị đã chốt: TX = **GPIO17** (in "TX2"),
+> RX = **GPIO16** (in "RX2"), baud `115200`, `proto 4` (MAVLink), `esp32_mode 2` (STA),
+> `udp_client_ip 192.168.137.1`, `udp_client_port 14550`. Phiên FC xác nhận SERIAL2 = USART2
+> (pad T2/R2), MAVLink2, 115200 trên build d450a747. Log boot đọc lại đủ các giá trị này.
 
 | Ô trong web UI | Điền | Vì sao |
 |---|---|---|
@@ -150,7 +177,7 @@ từ pin. Cả hai phía đều logic 3,3 V nên không cần mạch chuyển m�
 |---|---|---|
 | CP210x (Silicon Labs) | ESP32 DevKit phổ biến, CP2102 | `https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers` |
 | CH340/CH341 (WCH) | DevKit giá rẻ, USB-TTL rẻ | `https://www.wch.cn/downloads/CH341SER_EXE.html` *(chưa xác minh — trang cần JS)* |
-| USB CDC gốc | ESP32-S3 / C3 (XIAO) | không cần driver |
+| USB CDC gốc | ESP32-S3 (bo camera N16R8), C3 | không cần driver. Nếu bo camera có thêm cổng "COM" qua CH343/CP210x thì cổng đó cần driver tương ứng — *chưa xác minh* bo dự án có mấy cổng |
 
 ```powershell
 Get-CimInstance Win32_SerialPort | Format-Table Name, Description
@@ -166,10 +193,11 @@ có, phương án hai là tự viết sketch — nhưng **chỉ khi thật sự 
 - Trang release đổi cấu trúc → tải asset có tên chứa `esp32` và **không** có hậu tố `s2/s3/c3`.
 - `git status` hiện file `.bin` → dòng `.gitignore` ở Phase 11.1 chưa được thêm.
 
-### 12.3 Project camera PlatformIO — hai cấu hình build
+### 12.3 Project camera PlatformIO — bo ESP32-S3 N16R8 + OV3660
 
-Viết một project duy nhất có **hai `env`**: một cho ESP32-CAM AI-Thinker, một cho XIAO ESP32S3
-Sense. Board nào về thì chọn `env` đó, không phải viết lại.
+Một project, **một `env`** cho bo camera thật của dự án: ESP32-S3 N16R8 (flash 16 MB QIO + PSRAM
+8 MB octal) gắn module OV3660. Bản trước của plan viết hai `env` cho ESP32-CAM và XIAO ESP32S3
+Sense — cả hai đã bị loại ngày 12/10/2026 (`docs/phan-cung-thuc-te.md`).
 
 Cài công cụ (một lần, Phase 00 có thể đã làm):
 
@@ -183,36 +211,57 @@ winget install Microsoft.VisualStudioCode
 
 ```ini
 [platformio]
-default_envs = esp32cam
+default_envs = esp32s3_n16r8
 
-[env]
+[env:esp32s3_n16r8]
+platform = espressif32
 framework = arduino
 monitor_speed = 115200
-
-[env:esp32cam]
-platform = espressif32
-board = esp32cam
-board_build.partitions = huge_app.csv
+; ESP32-S3 N16R8: flash 16 MB che do QIO + PSRAM 8 MB che do OCTAL (OPI).
+; Ca khoi nay CHUA build thu tren may du an (12/10/2026) - cong pass 12.4 kiem.
+board = esp32-s3-devkitc-1
+board_build.arduino.memory_type = qio_opi
+board_build.flash_mode = qio
+board_upload.flash_size = 16MB
+board_upload.maximum_size = 16777216
+board_build.partitions = default_16MB.csv
 build_flags =
-    -DCAMERA_MODEL_AI_THINKER
+    -DCAMERA_MODEL_ESP32S3_EYE      ; bang chan GIA DINH - xem duoi
     -DBOARD_HAS_PSRAM
-    -mfix-esp32-psram-cache-issue
-
-[env:xiao_esp32s3]
-platform = espressif32
-; board id "seeed_xiao_esp32s3" - CHUA XAC MINH.
-; Doi chieu lai bang `pio boards | findstr -i xiao` TRUOC khi mua board.
-board = seeed_xiao_esp32s3
-build_flags =
-    -DCAMERA_MODEL_XIAO_ESP32S3
-    -DBOARD_HAS_PSRAM
-    -DARDUINO_USB_CDC_ON_BOOT=1
+; Neu bo CHI co mot cong USB noi thang chip (khong co chip CH343/CP210x tren bo)
+; thi them -DARDUINO_USB_CDC_ON_BOOT=1, neu khong Serial.print se khong hien.
 ```
 
-`firmware/camera/src/camera_pins.h` — bảng chân của hai board, chọn bằng macro
-`CAMERA_MODEL_AI_THINKER` / `CAMERA_MODEL_XIAO_ESP32S3`. **Lấy bảng chân từ file `camera_pins.h`
-gốc trong ví dụ `CameraWebServer` của core `espressif/arduino-esp32`**, không tự chế — gán nhầm
-một chân là camera không init được và thông báo lỗi không nói cho bạn biết chân nào sai.
+`firmware/camera/src/camera_pins.h` — **lấy nguyên bảng chân từ file `camera_pins.h` gốc trong ví
+dụ `CameraWebServer` của core `espressif/arduino-esp32`**, không tự chế — gán nhầm một chân là
+camera không init được và thông báo lỗi không nói cho bạn biết chân nào sai. Giả định hiện tại là
+khối `CAMERA_MODEL_ESP32S3_EYE`, trùng loại bo "ESP32-S3-WROOM N16R8 CAM" phổ biến nhất:
+
+```text
+XCLK 15   SIOD 4   SIOC 5   PWDN -1   RESET -1
+Y2 11  Y3 9  Y4 8  Y5 10  Y6 12  Y7 18  Y8 17  Y9 16
+VSYNC 6   HREF 7   PCLK 13
+```
+
+**CHƯA XÁC MINH bo của dự án đúng loại này.** Có nhiều biến thể bo S3 gắn camera với bảng chân
+khác nhau. Trước khi nạp: đối chiếu với ảnh bo hoặc sơ đồ của shop bán. Xác minh cuối cùng: log
+`esp_camera_init` thành công **và** đọc ra `PID 0x3660` (OV3660). Sai thì sửa macro, đừng sửa số
+chân lẻ tẻ.
+
+Ba điều riêng của OV3660, chép đúng từ `CameraWebServer.ino` gốc vào ngay sau `esp_camera_init`:
+
+```c
+sensor_t *s = esp_camera_sensor_get();
+if (s->id.PID == OV3660_PID) {
+  s->set_vflip(s, 1);        // anh mac dinh bi lat doc
+  s->set_brightness(s, 1);   // tang sang mot nac
+  s->set_saturation(s, -2);  // giam do gat mau
+}
+```
+
+Có PSRAM thì dùng `fb_location = CAMERA_FB_IN_PSRAM`, `fb_count = 2`,
+`grab_mode = CAMERA_GRAB_LATEST` (cũng theo ví dụ gốc) — luôn gửi khung mới nhất, không xếp hàng
+khung cũ.
 
 `firmware/camera/include/secrets.example.h` — **không hardcode mật khẩu vào mã nguồn**:
 
@@ -273,9 +322,9 @@ Ba điểm bắt buộc trong mã:
 1. MOI so tinh chinh deu la hang so trong secrets.h - khong rai so le trong ham.
    (JPEG_QUALITY_DEFAULT, FRAME_SIZE_DEFAULT, WIFI_RECONNECT_MS, HTTP_PORT)
 
-2. Bat dau o VGA 640x480, KHONG bat dau o 1600x1200.
-   O do phan giai cao ESP32-CAM chi dat ~1,3 fps  (chua xac minh - benchmark
-   cong dong, README esp32-camera khong cong bo fps).
+2. Bat dau o VGA 640x480, KHONG bat dau o do phan giai cao (OV3660 toi 2048x1536).
+   Con so cu "~1,3 fps o do phan giai cao" la benchmark cong dong cua ESP32-CAM/OV2640,
+   CHUA DO tren ESP32-S3 + OV3660 - do that roi ghi vao docs/test-log.md.
 
 3. X-Jpeg-Quality phai la gia tri DANG DUNG luc chup khung do, khong phai gia tri
    trong bien cau hinh. Neu /set?quality= doi giua chung ma header van bao so cu,
@@ -287,51 +336,43 @@ Build thử — **không cần board**:
 ```powershell
 cd firmware\camera
 Copy-Item include\secrets.example.h include\secrets.h
-pio run -e esp32cam
-pio run -e xiao_esp32s3
+pio run -e esp32s3_n16r8
 ```
 
-**Kết quả mong đợi:** cả hai lệnh kết thúc bằng `SUCCESS`; `git status` **không** hiện
-`include/secrets.h` và **không** hiện thư mục `.pio/`.
+**Kết quả mong đợi:** lệnh kết thúc bằng `SUCCESS`; `git status` **không** hiện
+`include/secrets.h` và **không** hiện thư mục `.pio/`. Build được rồi thì sửa ghi chú "CHUA build
+thu" trong `platformio.ini` thành đã build, kèm ngày.
 
 **Nếu lỗi:**
-- `Unknown board ID 'seeed_xiao_esp32s3'` → đúng như đã cảnh báo. Chạy `pio boards | findstr -i xiao`
-  lấy tên thật, sửa `platformio.ini`, và **sửa luôn ghi chú "chưa xác minh" thành đã xác minh**
-  kèm ngày. Đừng để ghi chú sai tồn tại.
-- `region 'app' overflowed` ở env `esp32cam` → thiếu `board_build.partitions = huge_app.csv`.
-- `camera init failed` (chỉ gặp khi có board) → sai bảng chân trong `camera_pins.h`, hoặc thiếu
-  `-DBOARD_HAS_PSRAM`.
+- `Unknown board ID 'esp32-s3-devkitc-1'` → chạy `pio boards | findstr -i esp32-s3` lấy tên thật,
+  sửa `platformio.ini`, ghi lại ngày đã xác minh. Đừng để ghi chú sai tồn tại.
+- Build được nhưng khi chạy bo báo `PSRAM ID read error` hoặc khởi động lại liên tục → sai chế độ bộ
+  nhớ; N16R8 phải là `qio_opi` (PSRAM octal), không phải `qio_qspi`.
+- `region 'app' overflowed` → thiếu `board_build.partitions = default_16MB.csv`.
+- `camera init failed` (chỉ gặp khi có board) → sai bảng chân trong `camera_pins.h` (xem lời cảnh
+  báo ở 12.3), hoặc thiếu `-DBOARD_HAS_PSRAM`.
 
-### 12.5 Nghi thức nạp riêng của ESP32-CAM (nếu chọn nhánh A)
+### 12.5 Nạp bo camera ESP32-S3 N16R8
 
-Viết vào `firmware/camera/README.md`. ESP32-CAM AI-Thinker **không có cổng USB** — phải dùng mạch
-USB-TTL và mỗi lần nạp phải nối tắt một chân.
+Viết vào `firmware/camera/README.md`. Bo ESP32-S3 có cổng USB-C nên **cắm cáp là nạp được**, không
+cần mạch USB-TTL và không có nghi thức nối `IO0 → GND` như ESP32-CAM cũ.
 
 ```text
-ESP32-CAM        USB-TTL (logic 3.3V, cap nguon 5V)
-  5V     <-----   VCC (5V)
-  GND    <---->   GND
-  U0R    <-----   TX
-  U0T    ----->   RX
-  IO0    <---->   GND      <-- CHI trong luc nap, thao ra sau khi nap xong
-
-Quy trinh:
-  1. Noi IO0 -> GND
-  2. Bam Upload trong PlatformIO
-  3. Khi thay "Connecting..." thi bam nut RST tren ESP32-CAM
-  4. Nap xong: THAO day IO0, bam RST lan nua
+1. Cam cap USB-C co day du lieu vao bo camera
+2. Get-CimInstance Win32_SerialPort | Format-Table Name, Description   -> xem so COM
+   (bo co hai cong USB-C thi thu tung cong; cong "COM" qua CH343/CP210x
+    can driver, cong USB goc cua chip thi khong)
+3. pio run -e esp32s3_n16r8 -t upload --upload-port COMx
+4. pio device monitor -p COMx -b 115200   -> phai thay dong "camera init OK" + IP
 ```
 
-Thiếu bước `IO0 → GND` sẽ báo đúng dòng này:
-`Failed to connect to ESP32: Timed out waiting for packet header`.
+Nạp báo `Failed to connect to ESP32-S3` → đưa chip vào chế độ nạp bằng tay: **giữ nút BOOT, nhấn
+rồi nhả RST, nhả BOOT**, rồi chạy lại lệnh upload.
 
-**AN TOÀN:** không cấp nguồn ESP32-CAM từ chân 3,3 V của mạch USB-TTL. Lúc khởi động nó kéo
-**250–500 mA**; chân 3,3 V của USB-TTL không gánh nổi → board reset liên tục và bạn sẽ đi tìm lỗi
-trong phần mềm trong khi lỗi nằm ở nguồn. Dùng chân **5 V**. Khi lắp lên drone thì dùng UBEC 5V 3A
-riêng, và **hàn tụ 470–1000 µF low-ESR sát chân nguồn** để chống brownout lúc Wi-Fi bật.
-
-Ghi thêm vào README hai điểm về nhánh B (XIAO ESP32S3 Sense): có USB-C nên cắm là nạp, không có
-nghi thức `IO0`; đã kèm sẵn anten ngoài nên không phải hàn lại điện trở SMD 0-ohm.
+**AN TOÀN:** cấp nguồn bằng chân **5V** của bo (qua USB khi ngồi bàn, qua UBEC 5V 3A riêng khi lắp
+lên drone), không cấp thẳng vào chân 3V3. Camera cộng Wi-Fi tạo xung dòng lúc truyền; nếu bo khởi
+động lại khi bật Wi-Fi, hàn thêm tụ 470–1000 µF low-ESR sát chân 5V–GND của bo (tụ trong danh sách
+Phase 13). Không bao giờ lấy nguồn camera từ pad 5V của stack bay.
 
 ### 12.6 Hotspot Wi-Fi trên laptop và mở cổng tường lửa
 
@@ -390,6 +431,24 @@ Ba cái bẫy bắt buộc ghi vào sổ tay:
 3. Tuong lua Windows nuot goi UDP IM LANG - khong bao loi gi ca. Ban se ngoi debug
    nham cho hang gio. Kiem tra rule tuong lua TRUOC khi nghi board hong.
 ```
+
+**Đã chạy thật 12/10/2026 (bridge DroneBridge, chưa có camera):**
+
+```text
+Card Wi-Fi  : MediaTek RZ616 (Wi-Fi 6E). Van noi "Nghaiz" o 5 GHz kenh 120 (con internet)
+              TRONG KHI phat hotspot 2,4 GHz -> khong phai roi mang internet.
+Hotspot     : bang doi tu Auto sang 2.4 GHz (Auto bam theo bang cua mang dang noi = 5 GHz,
+              ESP32 se khong thay). SSID van la ten mac dinh cua Windows, CHUA doi
+              sang IOTCV-HOTSPOT.
+IP laptop   : 192.168.137.1      IP ESP32 (DHCP): 192.168.137.9  (~10 s sau khi boot)
+Kiem tra    : ping OK; http://192.168.137.9/ tra "DB for ESP32 Settings";
+              nghe UDP 14550 tren laptop nhan HEARTBEAT + RADIO_STATUS 1 Hz tu sys 1 comp 68
+              (goi cua chinh DroneBridge; goi cua FC chi co khi da noi day o Phase 17).
+```
+
+Bẫy 2 ở trên chỉ đúng khi bỏ trống `udp_client_ip`. Đã đặt `udp_client_ip 192.168.137.1` thì
+ESP32 **tự đẩy** gói về laptop, GCS không phải gửi trước. Python nghe được gói khi chưa tạo rule
+`IOTCV*`; Mission Planner vẫn có thể bị tường lửa chặn, nên vẫn tạo rule như trên.
 
 **Kết quả mong đợi:** hotspot bật được ở băng 2,4 GHz; SSID/mật khẩu đã chép vào
 `firmware/camera/include/secrets.h`; `Get-NetIPAddress` trả về một IP dạng `192.168.137.x`;
@@ -512,8 +571,9 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
 
 - **ESP32 là gì** — một con vi điều khiển có sẵn Wi-Fi, giá vài trăm nghìn, chạy chương trình bạn
   nạp vào. Không phải máy tính, không có hệ điều hành theo nghĩa thông thường.
-- **Ba vai trò của ESP32 trong dự án này** — một con làm cầu telemetry (chạy DroneBridge, bạn
-  không viết mã), một con làm camera (bạn viết mã). Đừng lẫn hai con.
+- **Ba vai trò của ESP32 trong dự án này** — một con làm cầu telemetry (ESP32 DevKit CP2102 chạy
+  DroneBridge, bạn không viết mã), một con làm camera (ESP32-S3 N16R8 + OV3660, bạn viết mã). Đừng
+  lẫn hai con.
 - **AP và STA** — AP là "phát Wi-Fi", STA là "nối vào Wi-Fi của người khác". Dự án này cả hai
   ESP32 đều là STA, laptop là AP.
 - **UDP không có kết nối** và hệ quả: GCS phải gửi gói trước.
@@ -530,10 +590,10 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
 
 - [ ] `firmware/dronebridge/bin/` có file `.bin`; `git status` **không** liệt kê nó.
 - [ ] `firmware/dronebridge/README.md` có đủ 5 mục; bảng cấu hình điền hết trừ 3 ô *chưa xác minh*.
-- [ ] `pio run -e esp32cam` → `SUCCESS`.
-- [ ] `pio run -e xiao_esp32s3` → `SUCCESS`, **hoặc** board id đã được sửa theo `pio boards` và ghi chú "chưa xác minh" đã được cập nhật kèm ngày.
+- [ ] `pio run -e esp32s3_n16r8` → `SUCCESS`; ghi chú "CHUA build thu" trong `platformio.ini` đã đổi thành đã build, kèm ngày.
+- [ ] Bảng chân camera đã đối chiếu với ảnh/sơ đồ bo thật **trước khi nạp**; có bo thì log `esp_camera_init` OK và `PID 0x3660`.
 - [ ] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`.
-- [ ] `firmware/camera/README.md` có nghi thức nạp ESP32-CAM (`IO0 → GND`) và cảnh báo nguồn.
+- [ ] `firmware/camera/README.md` có cách nạp bo ESP32-S3 (kể cả giữ BOOT + nhấn RST khi không vào được chế độ nạp) và cảnh báo nguồn.
 - [ ] `py -3.13 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp.
 - [ ] Hotspot laptop bật được ở 2,4 GHz; SSID/mật khẩu đã vào `secrets.h`; IP laptop đã ghi vào `docs/so-tay/12-hotspot-laptop.md`.
 - [ ] `Get-NetFirewallRule -DisplayName "IOTCV*"` trả về rule UDP 14550.
@@ -543,12 +603,13 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
 
 | Rủi ro | Khả năng (1-5) | Ảnh hưởng (1-5) | Điểm | Xử lý |
 |---|---|---|---|---|
-| Board id `seeed_xiao_esp32s3` sai → không build được đúng lúc board về | 3 | 3 | 9 | 12.3 build thử **ngay bây giờ**, không chờ board. `pio boards \| findstr -i xiao` cho tên thật. |
-| DroneBridge ngừng bảo trì (release cuối 12/09/2024), trang tải chết | 2 | 4 | 8 | 12.2 tải `.bin` về **lưu ngay** trong repo. Phương án hai (tự viết sketch) chỉ mở khi thật sự bế tắc. |
+| Bảng chân `CAMERA_MODEL_ESP32S3_EYE` không khớp bo S3 thật (nhiều biến thể bo N16R8 gắn camera) → camera không init | 3 | 3 | 9 | 12.3 đối chiếu ảnh/sơ đồ bo **trước khi nạp**; xác minh cuối bằng `PID 0x3660` trong log. |
+| Sai chế độ bộ nhớ của N16R8 (PSRAM octal) → bo khởi động lại liên tục | 2 | 3 | 6 | `board_build.arduino.memory_type = qio_opi`; 12.4 ghi sẵn dấu hiệu `PSRAM ID read error`. |
+| DroneBridge ngừng bảo trì, trang tải chết (12/10/2026: vẫn hoạt động, release cuối v2.4.1 ngày 12/09/2026) | 1 | 4 | 4 | 12.2 tải `.bin` về **lưu ngay** trong repo. Phương án hai (tự viết sketch) chỉ mở khi thật sự bế tắc. |
 | Commit nhầm mật khẩu Wi-Fi vào git | 2 | 3 | 6 | `secrets.example.h` + `.gitignore` riêng của `firmware/camera/`; kiểm tra ở cổng pass. |
 | Tường lửa Windows nuốt gói UDP im lặng → Phase 17 debug nhầm chỗ hàng giờ | 4 | 3 | **12** | 12.6 tạo rule **ngay trong phase này** và ghi 3 cái bẫy vào sổ tay; Phase 17 kiểm tra rule trước khi nghi board. |
 | Hotspot Windows tự tắt khi không có thiết bị nối vào | 4 | 2 | 8 | Ghi vào sổ tay: bật hotspot **trước**, cấp điện drone **sau**. |
-| ESP32-CAM brownout khi bật Wi-Fi (nếu chọn nhánh A) | 4 | 3 | **12** | Mua sẵn tụ 470–1000 µF (danh sách ở Phase 13); ghi vào README camera là bắt buộc hàn, không phải tuỳ chọn. |
+| Bo camera S3 sụt áp / khởi động lại khi bật Wi-Fi | 2 | 3 | 6 | UBEC 5V 3A riêng (đã mua); hàn thêm tụ 470–1000 µF nếu thấy reset (12.5). |
 | Chép sai bảng chân `camera_pins.h` → camera không init, thông báo lỗi không chỉ ra chân nào | 3 | 3 | 9 | 12.3 bắt buộc lấy từ file gốc của `espressif/arduino-esp32`, cấm tự chế. |
 
 Không có rủi ro nào ≥ 15. Hai rủi ro điểm 12 đều được xử lý **trong phase này** chứ không để trôi
@@ -560,9 +621,9 @@ sang Phase 17.
 |---|---|---|
 | 12.1 Ghi lại quyết định không tự viết cầu | 0,2 | |
 | 12.2 Tải DroneBridge + bảng cấu hình | 1,3 | |
-| 12.3 Project PlatformIO 2 env | 1,5 | Lần đầu PlatformIO tải toolchain rất lâu — chạy nền song song với 12.6/12.7 |
+| 12.3 Project PlatformIO 1 env (ESP32-S3 N16R8) + đối chiếu bảng chân | 1,5 | Lần đầu PlatformIO tải toolchain rất lâu (vào `D:\DevCache\tools\platformio`) — chạy nền song song với 12.6/12.7 |
 | 12.4 Máy chủ MJPEG + header từng khung | 1,5 | Phần viết mã nhiều nhất của phase |
-| 12.5 README nghi thức nạp ESP32-CAM | 0,3 | |
+| 12.5 README nạp bo ESP32-S3 | 0,3 | |
 | 12.6 Hotspot + tường lửa | 0,7 | |
 | 12.7 Script bench TFmini | 0,5 | |
 | 12.8 Sổ tay ESP32 | 0,5 | |
@@ -573,5 +634,6 @@ sang Phase 17.
 Chi tiết ở 12.8. Tóm tắt các khái niệm cần giải thích: ESP32 là gì và ba vai trò của nó trong dự
 án · AP vs STA và vì sao laptop phải là bên phát · UDP không có kết nối · MJPEG là chuỗi ảnh JPEG
 chứ không phải video nén · `jpeg_quality` 0..63 ngược trực giác · PSRAM và vì sao bắt buộc ·
-camera chỉ phục vụ được một client nên backend phải đứng giữa · nghi thức `IO0 → GND` của
-ESP32-CAM · brownout là gì và vì sao tụ 470 µF giải quyết được.
+camera chỉ phục vụ được một client nên backend phải đứng giữa · cách đưa ESP32-S3 vào chế độ nạp
+(giữ BOOT, nhấn RST) · PSRAM octal của N16R8 và vì sao cấu hình bộ nhớ sai làm bo khởi động lại ·
+brownout là gì và vì sao tụ 470 µF giải quyết được.

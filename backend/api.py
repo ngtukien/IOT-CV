@@ -14,6 +14,10 @@ hợp đồng. Không có frontend hay script nào đọc hình dạng cũ.)
 from __future__ import annotations
 
 import asyncio
+import os
+import platform
+import sys
+import time
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -29,6 +33,8 @@ from backend.schemas import (
     MissionUploadResult,
     MissionWaypoint,
     StatusPayload,
+    SystemPayload,
+    TelemetryHistoryPayload,
     VersionsPayload,
 )
 from backend.vision.stream import MJPEG_MEDIA_TYPE, mjpeg_multipart
@@ -44,6 +50,12 @@ _HTTP_STATUS = {
 }
 
 _EVENTS_MAX = 200
+# Trần số điểm một lần hỏi lịch sử: 2400 gói ≈ 1,5 MB JSON — đủ cho biểu đồ
+# 1600 px, không làm trình duyệt đứng khi parse.
+_HISTORY_MAX_POINTS = 4000
+
+# Mốc backend khởi động (import module = lúc uvicorn nạp app).
+STARTED_AT = time.time()
 
 
 def build_router(hub) -> APIRouter:
@@ -101,6 +113,41 @@ def build_router(hub) -> APIRouter:
     @router.get("/events", response_model=EventsPayload)
     async def events(limit: int = Query(100, ge=1, le=_EVENTS_MAX)) -> EventsPayload:
         return EventsPayload(events=hub.bus.recent(limit=limit))
+
+    @router.get("/telemetry/history", response_model=TelemetryHistoryPayload)
+    async def telemetry_history(
+        seconds: float = Query(600.0, gt=0, le=86_400),
+        max_points: int = Query(2400, ge=10, le=_HISTORY_MAX_POINTS),
+    ) -> TelemetryHistoryPayload:
+        history = hub.history
+        return TelemetryHistoryPayload(
+            samples=history.samples(seconds=seconds, max_points=max_points),
+            hz=history.hz,
+            capacity_s=history.seconds,
+        )
+
+    @router.get("/system", response_model=SystemPayload)
+    async def system() -> SystemPayload:
+        now = time.time()
+        return SystemPayload(
+            backend_version=__version__,
+            contract_version=CONTRACT_VERSION,
+            python=platform.python_version(),
+            platform=f"{platform.system()} {platform.release()} ({sys.platform})",
+            pid=os.getpid(),
+            started_at=STARTED_AT,
+            uptime_s=now - STARTED_AT,
+            endpoint=config.MAVLINK_ENDPOINT,
+            telemetry_hz=config.TELEMETRY_HZ,
+            ws_clients=hub.client_count,
+            link_alive=hub.build_status().connected,
+            vision_enabled=config.VISION_ENABLED,
+            camera_fake=config.CAMERA_FAKE,
+            camera_source=config.camera_source_url(),
+            history_samples=len(hub.history),
+            history_capacity_s=hub.history.seconds,
+            events_buffered=len(hub.bus.recent(limit=_EVENTS_MAX)),
+        )
 
     @router.get("/video/stream")
     async def video_stream() -> StreamingResponse:

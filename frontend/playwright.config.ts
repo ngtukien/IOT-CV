@@ -29,5 +29,17 @@ export default defineConfig({
     trace: "on-first-retry",
     viewport: { width: 1600, height: 1000 },
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1600, height: 1000 } } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1600, height: 1000 },
+        // Dùng GPU THẬT như trình duyệt của người vận hành. Mặc định Playwright
+        // vẽ WebGL bằng CPU (SwiftShader): trang 3D chạy chậm hàng chục lần và mọi
+        // số đo thời gian quanh nó sai lệch (đo 25/09/2026: 9,9 s so với 0,2 s).
+        launchOptions: { args: ["--use-angle=default", "--enable-gpu", "--ignore-gpu-blocklist"] },
+      },
+    },
+  ],
 });

@@ -227,6 +227,30 @@ export interface StatusPayload {
   camera?: CameraStatus;
 }
 /**
+ * `GET /api/system` — thông tin vận hành cho trang Hệ thống của web.
+ *
+ * Chỉ ĐỌC. Không có ngưỡng an toàn nào ở đây (ngưỡng ở `limits`).
+ */
+export interface SystemPayload {
+  backend_version: string;
+  contract_version: number;
+  python: string;
+  platform: string;
+  pid: number;
+  started_at: number;
+  uptime_s: number;
+  endpoint: string;
+  telemetry_hz: number;
+  ws_clients: number;
+  link_alive: boolean;
+  vision_enabled: boolean;
+  camera_fake: boolean;
+  camera_source: string;
+  history_samples: number;
+  history_capacity_s: number;
+  events_buffered: number;
+}
+/**
  * Bản GỬI ĐI — `telemetry.data` trong hợp đồng.
  */
 export interface Telemetry {
@@ -259,6 +283,24 @@ export interface Telemetry {
   ekf_ok?: boolean | null;
   connected?: boolean;
   link_age_ms?: number | null;
+}
+/**
+ * `GET /api/telemetry/history` — vòng đệm của backend (`backend/history.py`).
+ *
+ * Chỉ có mẫu lúc link CÒN SỐNG; khoảng mất link là khoảng trống, không phải
+ * chuỗi `None`. `hz` là nhịp ghi danh nghĩa, `capacity_s` là độ dài vòng đệm.
+ */
+export interface TelemetryHistoryPayload {
+  samples: TelemetrySample[];
+  hz: number;
+  capacity_s: number;
+}
+/**
+ * Một gói telemetry đã gửi, kèm thời điểm gửi (Unix epoch GIÂY).
+ */
+export interface TelemetrySample {
+  ts: number;
+  data: Telemetry;
 }
 
 // ---- Bảng tra (gốc của schema) ----
@@ -294,6 +336,8 @@ export interface RestResponses {
   "GET /api/mission": MissionPayload;
   "POST /api/mission": MissionUploadResult;
   "GET /api/events": EventsPayload;
+  "GET /api/telemetry/history": TelemetryHistoryPayload;
+  "GET /api/system": SystemPayload;
 }
 
 export const DOWNLINK_TYPES = [

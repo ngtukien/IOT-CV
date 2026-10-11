@@ -76,6 +76,12 @@
     },
     "GET /api/events": {
       "$ref": "#/$defs/EventsPayload"
+    },
+    "GET /api/telemetry/history": {
+      "$ref": "#/$defs/TelemetryHistoryPayload"
+    },
+    "GET /api/system": {
+      "$ref": "#/$defs/SystemPayload"
     }
   },
   "uplink_rate_limits": {
@@ -905,6 +911,100 @@
       "title": "StatusPayload",
       "type": "object"
     },
+    "SystemPayload": {
+      "description": "`GET /api/system` — thông tin vận hành cho trang Hệ thống của web.\n\nChỉ ĐỌC. Không có ngưỡng an toàn nào ở đây (ngưỡng ở `limits`).",
+      "properties": {
+        "backend_version": {
+          "title": "Backend Version",
+          "type": "string"
+        },
+        "contract_version": {
+          "title": "Contract Version",
+          "type": "integer"
+        },
+        "python": {
+          "title": "Python",
+          "type": "string"
+        },
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "pid": {
+          "title": "Pid",
+          "type": "integer"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "number"
+        },
+        "uptime_s": {
+          "title": "Uptime S",
+          "type": "number"
+        },
+        "endpoint": {
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "telemetry_hz": {
+          "title": "Telemetry Hz",
+          "type": "number"
+        },
+        "ws_clients": {
+          "title": "Ws Clients",
+          "type": "integer"
+        },
+        "link_alive": {
+          "title": "Link Alive",
+          "type": "boolean"
+        },
+        "vision_enabled": {
+          "title": "Vision Enabled",
+          "type": "boolean"
+        },
+        "camera_fake": {
+          "title": "Camera Fake",
+          "type": "boolean"
+        },
+        "camera_source": {
+          "title": "Camera Source",
+          "type": "string"
+        },
+        "history_samples": {
+          "title": "History Samples",
+          "type": "integer"
+        },
+        "history_capacity_s": {
+          "title": "History Capacity S",
+          "type": "number"
+        },
+        "events_buffered": {
+          "title": "Events Buffered",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "backend_version",
+        "contract_version",
+        "python",
+        "platform",
+        "pid",
+        "started_at",
+        "uptime_s",
+        "endpoint",
+        "telemetry_hz",
+        "ws_clients",
+        "link_alive",
+        "vision_enabled",
+        "camera_fake",
+        "camera_source",
+        "history_samples",
+        "history_capacity_s",
+        "events_buffered"
+      ],
+      "title": "SystemPayload",
+      "type": "object"
+    },
     "Telemetry": {
       "description": "Bản GỬI ĐI — `telemetry.data` trong hợp đồng.",
       "properties": {
@@ -1196,6 +1296,51 @@
         }
       },
       "title": "Telemetry",
+      "type": "object"
+    },
+    "TelemetryHistoryPayload": {
+      "description": "`GET /api/telemetry/history` — vòng đệm của backend (`backend/history.py`).\n\nChỉ có mẫu lúc link CÒN SỐNG; khoảng mất link là khoảng trống, không phải\nchuỗi `None`. `hz` là nhịp ghi danh nghĩa, `capacity_s` là độ dài vòng đệm.",
+      "properties": {
+        "samples": {
+          "items": {
+            "$ref": "#/$defs/TelemetrySample"
+          },
+          "title": "Samples",
+          "type": "array"
+        },
+        "hz": {
+          "title": "Hz",
+          "type": "number"
+        },
+        "capacity_s": {
+          "title": "Capacity S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "samples",
+        "hz",
+        "capacity_s"
+      ],
+      "title": "TelemetryHistoryPayload",
+      "type": "object"
+    },
+    "TelemetrySample": {
+      "description": "Một gói telemetry đã gửi, kèm thời điểm gửi (Unix epoch GIÂY).",
+      "properties": {
+        "ts": {
+          "title": "Ts",
+          "type": "number"
+        },
+        "data": {
+          "$ref": "#/$defs/Telemetry"
+        }
+      },
+      "required": [
+        "ts",
+        "data"
+      ],
+      "title": "TelemetrySample",
       "type": "object"
     },
     "VersionsPayload": {

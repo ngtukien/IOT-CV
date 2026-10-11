@@ -43,6 +43,16 @@ export interface DraftWaypoint {
 
 export type UploadState = "idle" | "validating" | "uploading" | "reading-back" | "done" | "error";
 
+/** Ảnh chụp phần SOẠN của bản nháp — đơn vị của hoàn tác / làm lại. */
+export interface DraftSnapshot {
+  takeoffAlt: number;
+  waypoints: DraftWaypoint[];
+  finalCommand: FinalCommand;
+}
+
+/** Giữ tối đa chừng này bước hoàn tác. */
+export const UNDO_LIMIT = 50;
+
 export interface ReadbackMission {
   waypoints: MissionWaypoint[];
   uploadedAt: number | null;
@@ -64,7 +74,25 @@ interface MissionStore {
 
   readback: ReadbackMission | null;
 
+  /** Các bước hoàn tác (cũ → mới) và làm lại. Chỉ ghi thay đổi phần SOẠN. */
+  past: DraftSnapshot[];
+  future: DraftSnapshot[];
+
   addWaypoint(lat: number, lon: number, alt: number): void;
+  /** Kéo một điểm tới chỗ mới (kéo marker trên bản đồ). */
+  moveTo(id: string, lat: number, lon: number): void;
+  /** Chèn điểm vào vị trí `index` của mảng waypoint (0 = ngay sau CẤT CÁNH). */
+  insertAt(index: number, lat: number, lon: number, alt: number): void;
+  /** Đặt cùng một độ cao cho mọi waypoint. */
+  setAllAlt(alt: number): void;
+  /** Đảo thứ tự các waypoint (bay ngược lộ trình). */
+  reverse(): void;
+  /** Thay cả lộ trình (mẫu tự sinh, nạp từ file). Hoàn tác được. */
+  replaceWaypoints(points: readonly { lat: number; lon: number; alt: number }[]): void;
+  /** Nạp nguyên một bản nháp (kể cả độ cao cất cánh, lệnh cuối). */
+  loadDraft(draft: { takeoffAlt: number; finalCommand: FinalCommand; waypoints: readonly { lat: number; lon: number; alt: number }[] }): void;
+  undo(): void;
+  redo(): void;
   /** Nối cả một lộ trình (vẽ bằng terra-draw) vào cuối bản nháp, cùng một độ cao. */
   addWaypoints(points: readonly { lat: number; lon: number }[], alt: number): void;
   updateAlt(id: string, alt: number): void;
@@ -142,6 +170,25 @@ export function isUploading(state: UploadState): boolean {
   return IN_FLIGHT.includes(state);
 }
 
+function snap(s: Pick<MissionStore, "takeoffAlt" | "waypoints" | "finalCommand">): DraftSnapshot {
+  return { takeoffAlt: s.takeoffAlt, waypoints: s.waypoints, finalCommand: s.finalCommand };
+}
+
+/**
+ * Bọc một thay đổi của phần SOẠN: đẩy trạng thái cũ vào `past`, xoá `future`.
+ * Thay đổi không đổi gì (trả về chính state) thì không ghi bước hoàn tác.
+ */
+function edit(
+  set: (fn: (s: MissionStore) => Partial<MissionStore> | MissionStore) => void,
+  change: (s: MissionStore) => Partial<DraftSnapshot> | null,
+): void {
+  set((s) => {
+    const patch = change(s);
+    if (!patch) return s;
+    return { ...patch, past: [...s.past, snap(s)].slice(-UNDO_LIMIT), future: [] };
+  });
+}
+
 export const useMissionStore = create<MissionStore>((set, get) => ({
   takeoffAlt: DEFAULT_WAYPOINT_ALT_M,
   waypoints: [],
@@ -155,25 +202,57 @@ export const useMissionStore = create<MissionStore>((set, get) => ({
   lastErrorCode: null,
 
   readback: null,
+  past: [],
+  future: [],
 
-  addWaypoint: (lat, lon, alt) => set((s) => ({ waypoints: [...s.waypoints, { id: newId(), lat, lon, alt }] })),
+  addWaypoint: (lat, lon, alt) => edit(set, (s) => ({ waypoints: [...s.waypoints, { id: newId(), lat, lon, alt }] })),
   addWaypoints: (points, alt) =>
-    set((s) => ({ waypoints: [...s.waypoints, ...points.map((p) => ({ id: newId(), lat: p.lat, lon: p.lon, alt }))] })),
-  updateAlt: (id, alt) => set((s) => ({ waypoints: s.waypoints.map((w) => (w.id === id ? { ...w, alt } : w)) })),
-  setTakeoffAlt: (takeoffAlt) => set({ takeoffAlt }),
-  setFinalCommand: (finalCommand) => set({ finalCommand }),
+    edit(set, (s) =>
+      points.length === 0 ? null : { waypoints: [...s.waypoints, ...points.map((p) => ({ id: newId(), lat: p.lat, lon: p.lon, alt }))] },
+    ),
+  updateAlt: (id, alt) => edit(set, (s) => ({ waypoints: s.waypoints.map((w) => (w.id === id ? { ...w, alt } : w)) })),
+  setTakeoffAlt: (takeoffAlt) => edit(set, () => ({ takeoffAlt })),
+  setFinalCommand: (finalCommand) => edit(set, (s) => (s.finalCommand === finalCommand ? null : { finalCommand })),
   setDefaultAlt: (defaultAlt) => set({ defaultAlt }),
   move: (id, dir) =>
-    set((s) => {
+    edit(set, (s) => {
       const i = s.waypoints.findIndex((w) => w.id === id);
       const j = dir === "up" ? i - 1 : i + 1;
-      if (i < 0 || j < 0 || j >= s.waypoints.length) return s;
+      if (i < 0 || j < 0 || j >= s.waypoints.length) return null;
       const next = [...s.waypoints];
       [next[i], next[j]] = [next[j], next[i]];
       return { waypoints: next };
     }),
-  remove: (id) => set((s) => ({ waypoints: s.waypoints.filter((w) => w.id !== id) })),
-  clear: () => set({ waypoints: [] }),
+  moveTo: (id, lat, lon) =>
+    edit(set, (s) => (s.waypoints.some((w) => w.id === id) ? { waypoints: s.waypoints.map((w) => (w.id === id ? { ...w, lat, lon } : w)) } : null)),
+  insertAt: (index, lat, lon, alt) =>
+    edit(set, (s) => {
+      const i = Math.max(0, Math.min(index, s.waypoints.length));
+      return { waypoints: [...s.waypoints.slice(0, i), { id: newId(), lat, lon, alt }, ...s.waypoints.slice(i)] };
+    }),
+  setAllAlt: (alt) => edit(set, (s) => (s.waypoints.length === 0 ? null : { waypoints: s.waypoints.map((w) => ({ ...w, alt })) })),
+  reverse: (): void => edit(set, (s) => (s.waypoints.length < 2 ? null : { waypoints: [...s.waypoints].reverse() })),
+  replaceWaypoints: (points) => edit(set, () => ({ waypoints: points.map((p) => ({ id: newId(), lat: p.lat, lon: p.lon, alt: p.alt })) })),
+  loadDraft: (draft) =>
+    edit(set, () => ({
+      takeoffAlt: draft.takeoffAlt,
+      finalCommand: draft.finalCommand,
+      waypoints: draft.waypoints.map((p) => ({ id: newId(), lat: p.lat, lon: p.lon, alt: p.alt })),
+    })),
+  remove: (id) => edit(set, (s) => ({ waypoints: s.waypoints.filter((w) => w.id !== id) })),
+  clear: () => edit(set, (s) => (s.waypoints.length === 0 ? null : { waypoints: [] })),
+  undo: () =>
+    set((s) => {
+      const prev = s.past.at(-1);
+      if (!prev) return s;
+      return { ...prev, past: s.past.slice(0, -1), future: [snap(s), ...s.future].slice(0, UNDO_LIMIT) };
+    }),
+  redo: () =>
+    set((s) => {
+      const next = s.future[0];
+      if (!next) return s;
+      return { ...next, past: [...s.past, snap(s)].slice(-UNDO_LIMIT), future: s.future.slice(1) };
+    }),
 
   beginUpload: (ref) =>
     set({ uploadState: "validating", pendingRef: ref, uploadProgress: null, lastErrors: [], lastErrorCode: null }),

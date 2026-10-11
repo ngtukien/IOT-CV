@@ -1,8 +1,12 @@
 /*
- * ESP32-CAM streamer — GIAI ĐOẠN 19, 66, 69, 70.
+ * Camera streamer — GIAI ĐOẠN 19, 66, 69, 70.
  *
- * Version 1 bắt đầu ở JPEG 640x480 (VGA), KHÔNG bắt đầu ở 1600x1200 livestream:
- * OV2640 độ phân giải cao tốn RAM/băng thông và thường cần PSRAM.
+ * Phần cứng: bo ESP32-S3 N16R8 + module OV3660 (chốt 12/10/2026,
+ * docs/phan-cung-thuc-te.md). File khung này viết từ thời ESP32-CAM/OV2640;
+ * Phase 12 thay bằng project PlatformIO trong firmware/camera/ (plans/phase-12 §12.3–12.5).
+ *
+ * Version 1 bắt đầu ở JPEG 640x480 (VGA), KHÔNG bắt đầu ở độ phân giải cao
+ * (OV3660 tới 2048x1536): tốn RAM/băng thông; bo N16R8 có 8 MB PSRAM octal.
  *
  * Yêu cầu:
  * - Cấp nguồn từ UBEC 5V RIÊNG, không dùng chung rail với FC. Camera kéo dòng

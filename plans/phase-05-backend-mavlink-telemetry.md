@@ -584,6 +584,20 @@ Toạ độ là **pixel trong hệ của khung gốc** (`width`×`height`) — k
 
 **Giới hạn nhịp:** vượt thì message bị **bỏ**, server gửi `error` `rate_limited` **tối đa 1 lần mỗi giây** (không spam ngược lại client).
 
+### REST (hỏi–đáp, cùng nguồn sự thật)
+
+Model nằm ở `backend/schemas.py` (`REST_MODELS`) và xuất vào khoá `rest` của `ws-contract.schema.json`. REST **chỉ đọc** — trừ `POST /api/mission` dùng chung đường với `cmd.mission.upload`. Không lệnh bay nào đi qua REST: socket đóng = mất quyền lái là cơ chế an toàn, REST không có tính chất đó.
+
+| Route | Model | Ghi chú |
+|---|---|---|
+| `GET /api/status` | `StatusPayload` | Y hệt `status.data` |
+| `GET /api/config` | `ConfigPayload` | Ngưỡng, endpoint, phiên bản |
+| `GET /api/mission` | `MissionPayload` | `waypoints` chỉ đáng tin khi `source == "readback"` |
+| `POST /api/mission` | `MissionUploadResult` | Chung đường với `cmd.mission.upload` |
+| `GET /api/events?limit=` | `EventsPayload` | Vòng đệm 200, cũ trước mới sau |
+| `GET /api/telemetry/history?seconds=&max_points=` | `TelemetryHistoryPayload` | *(thêm 25/09/2026, web GCS v2)* Vòng đệm backend giữ `TELEMETRY_HISTORY_S` giây gói telemetry ĐÃ GỬI (chỉ lúc link sống). `samples[i] = {ts, data: Telemetry}`, cũ trước mới sau; `max_points` lấy mẫu thưa đều. Để biểu đồ của web có ngay lịch sử khi mở trang |
+| `GET /api/system` | `SystemPayload` | *(thêm 25/09/2026)* Thông tin vận hành: phiên bản, Python, nền tảng, uptime, số socket đang mở, link sống, cấu hình camera, số mẫu lịch sử — cho trang Hệ thống |
+
 ### Ví dụ một phiên
 
 ```text

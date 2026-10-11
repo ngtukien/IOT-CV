@@ -19,3 +19,6 @@
 
 # Parameter file của ArduPilot là text nhưng không nên bị "smart" merge
 *.param text eol=lf -merge
+
+# File batch cua Windows phai giu CRLF
+*.bat text eol=crlf

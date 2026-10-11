@@ -290,7 +290,7 @@ REST dùng cho **request/response** (mở trang, đọc cấu hình). Telemetry 
 
 **7.8.2 — `backend/vision/stream.py`: parser MJPEG thủ công + proxy fan-out (không phụ thuộc nguồn cụ thể).**
 
-`stream.py` không tự sinh video. Nó chỉ **đọc** một luồng `multipart/x-mixed-replace` từ một URL nguồn (`config.CAMERA_STREAM_URL`) — nguồn có thể là `fake_stream.py` (7.8.3, dùng ở phase này) hoặc ESP32-CAM thật (Phase 17), miễn nguồn tuân đúng hợp đồng header ở 7.8.4. `stream.py` **không được** import hay biết gì về `fake_stream.py` — đó là nghĩa của "không phụ thuộc nguồn cụ thể". Giữ nguyên tên lớp `CameraStream` và thuộc tính `available` đã có sẵn trong file — chỉ điền thân, không đổi tên.
+`stream.py` không tự sinh video. Nó chỉ **đọc** một luồng `multipart/x-mixed-replace` từ một URL nguồn (`config.CAMERA_STREAM_URL`) — nguồn có thể là `fake_stream.py` (7.8.3, dùng ở phase này) hoặc camera ESP32-S3 (OV3660) thật (Phase 17), miễn nguồn tuân đúng hợp đồng header ở 7.8.4. `stream.py` **không được** import hay biết gì về `fake_stream.py` — đó là nghĩa của "không phụ thuộc nguồn cụ thể". Giữ nguyên tên lớp `CameraStream` và thuộc tính `available` đã có sẵn trong file — chỉ điền thân, không đổi tên.
 
 Hai phần:
 

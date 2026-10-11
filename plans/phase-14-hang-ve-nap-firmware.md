@@ -25,6 +25,12 @@ hàng lỗi lúc này thì còn đổi trả được, phát hiện sau khi đã
 - Mission Planner + STM32CubeProgrammer đã cài (Phase 00).
 - **Một cáp USB-C có dây dữ liệu.** Rất nhiều cáp chỉ có 2 dây sạc — đây là nguyên nhân số một khiến máy không nhận board.
 - Sạc SkyRC iMAX B6AC V2 (để đo điện áp từng cell của pin).
+- Ảnh chính hãng trong `assignment/_build/img/official/speedybee/`: `v5_29.jpg` (phụ kiện bản
+  Deluxe), `v5_30.jpg` (bản Standard), `SpeedyBee_F405_V5_Board.png` (sơ đồ pad hai mặt).
+
+> **Cập nhật 12/10/2026, sau khi đối chiếu bo thật với tài liệu chính hãng:** `01-base.param`
+> đã đổi `FRAME_TYPE` 1 → 12 và `BATT_AMP_PERVLT` 25 → 370,4 (thêm `BATT_AMP_OFFSET` 0,0071) — lý
+> do ghi ngay trong file. Phase này vẫn chỉ **nạp** file, không sửa.
 
 ## File và thư mục sở hữu
 
@@ -75,13 +81,35 @@ Kiểm từng nhóm:
 
 **Stack (SpeedyBee F405 V5 OX32 Deluxe):**
 
+Đối chiếu với danh sách chính hãng `v5_29.jpg` (Deluxe) hoặc `v5_30.jpg` (Standard):
+
 ```text
 [ ] Khong chay, khong phong tu, khong bien dang
-[ ] Du 2 soi cap 10 chan (25mm va 75mm) trong hop Deluxe
-[ ] Du 2 tu 1000uF 35V
-[ ] Du bo oc nylon + dem silicone + 10 vo boc silicone
-[ ] Du day GPS SH1.0 6pin va day receiver SH1.0 4pin
+[ ] Du 2 soi cap 10 chan (25mm va 75mm)
+[ ] Du 1 tu 1000uF 35V + 2 ong gen co   (hang ghi x1 - KHONG phai 2 tu)
+[ ] Du 5 oc nylon M3 + 5 dem silicone den M3 + 10 vo boc silicone (5 cho FC, 5 cho ESC)
+[ ] Du 4 oc M3 dai 30mm + day XT60 120mm
+[ ] Du day GPS SH1.0 6pin, day GPS 6pin->4pin, day receiver SH1.0 4pin
+    (day DJI 6pin cung co trong hop - du an KHONG dung)
+[ ] Ban Deluxe co them: Short-Circuit Protection Tool (chinh la smoke stopper,
+    dung o lan cam pin dau tien - SAFETY.md muc 7), 4 bang chia nguon,
+    bang tap han, module noi dai USB-C, coi buzzer
 ```
+
+Trên bo bay, ba thứ phải đúng như sau — **không đụng vào**:
+
+```text
+[ ] Jumper SBUS (2 pad nho ngay duoi nut BOOT, mat tren) dang HO.
+    Dung cho iBUS. Han noi vao la iBUS tren R6 hong.
+[ ] Jumper "BARO ->" (mat duoi, canh cong HD Unit Plug) DA NOI THIEC san tu nha may,
+    anh render cua hang de ho. Khong tai lieu nao giai thich - de nguyen.
+[ ] Tem QR tren chip STM32 - khong boc.
+```
+
+**Phiếu trong hộp ghi "New products require activation before use".** Kích hoạt (nhập email) chỉ
+bị đòi khi kết nối **app SpeedyBee** qua Bluetooth; dùng máy tính thì không cần (Oscar Liang,
+30/08/2025; trang sản phẩm SpeedyBee không nhắc gì tới kích hoạt). Dự án nạp ArduPilot qua DFU, ghi
+đè toàn bộ Betaflight, nên **không cài app, không kích hoạt**.
 
 **GPS Holybro M10:** không vỡ anten gốm; cột nâng đủ ống + 2 đế + ốc.
 
@@ -144,8 +172,9 @@ LAN SAU   bo da co ArduPilot   ->  Mission Planner ->  nap arducopter.apj
 Quy trình vào DFU:
 
 ```text
-1. Tim nut BOOT tren bo bay - nut bam nho mau den, thuong canh cong USB-C.
-   (Mot so bo khong co nut ma co 2 pad ghi "BOOT" - noi tat 2 pad do bang nhip)
+1. Tim nut BOOT: nut kim loai co num den, MAT TREN, mep TRAI, ngay duoi chu "BOOT"
+   (cong USB-C o mep PHAI cung mat). Trang thong so SpeedyBee: "Hold BOOT while
+   powering on to force DFU mode".
 2. GIU nut BOOT
 3. Vua giu, vua cam cap USB-C vao may tinh
 4. Dem 2 giay roi THA nut
@@ -160,7 +189,11 @@ Tim muc "Universal Serial Bus devices" hoac "STMicroelectronics"
 PHAI thay:  "STM32 BOOTLOADER"  hoac  "STM Device in DFU Mode"
 ```
 
-**Kết quả mong đợi:** Device Manager hiện `STM32 BOOTLOADER` không kèm dấu chấm than vàng.
+**Kết quả mong đợi:** Device Manager hiện `STM32 BOOTLOADER` không kèm dấu chấm than vàng. Driver
+DFU đã có sẵn từ Phase 00 (`stm32bootloader.inf` trong driver store).
+
+Nút BOOT còn một chức năng thứ hai: bấm khi bo **đang chạy** chỉ đổi chế độ đèn LED (trang thông số
+SpeedyBee). Vô hại — DFU chỉ xảy ra khi giữ nút **trong lúc cắm điện**.
 
 **Nếu lỗi:**
 - Không thấy gì → xem lại 14.2 (cáp, cổng).
@@ -174,6 +207,24 @@ PHAI thay:  "STM32 BOOTLOADER"  hoac  "STM Device in DFU Mode"
 > **STM32CubeProgrammer có thể không còn nhận bo nữa**. Đừng chạy Zadig "cho chắc" — chỉ chạy khi
 > đã thực sự bế tắc, và nhớ đường quay lui: Device Manager → Uninstall device → tick
 > `Delete the driver software` → rút cắm lại.
+
+### 14.3b Sao lưu firmware gốc (Betaflight 4.5.2) — một phút, làm một lần
+
+Bước nạp ở 14.4 ghi đè toàn bộ flash. Đọc ra trước để sau này muốn trả bo về **đúng như lúc mua**
+(kể cả cấu hình nhà máy) thì có sẵn. Bo vẫn đang ở DFU từ 14.3:
+
+```powershell
+$cli = "D:\IOT_Tools\apps\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe"
+& $cli -c port=USB1 -ob displ          # tim dong RDP: 0xAA = chip KHONG bi khoa doc
+New-Item -ItemType Directory -Force "D:\IOT_Tools\downloads\speedybee-f405v5" | Out-Null
+& $cli -c port=USB1 -u 0x08000000 0x100000 "D:\IOT_Tools\downloads\speedybee-f405v5\factory-betaflight-4.5.2.bin"
+```
+
+**Kết quả mong đợi:** file đúng 1.048.576 byte.
+
+**Nếu lỗi:** `RDP` khác `0xAA` (chip bị khoá đọc) → bỏ qua bước này và **dừng hỏi lại trước khi bấm
+"Read Unprotect"** — lệnh đó xoá sạch chip. Không sao lưu được thì muốn về Betaflight vẫn nạp lại
+được target `SPEEDYBEEF405V5` bằng Betaflight Configurator, chỉ mất cấu hình gốc của nhà máy.
 
 ### 14.4 Nạp `arducopter_with_bl.hex` bằng STM32CubeProgrammer
 
@@ -189,6 +240,16 @@ PHAI thay:  "STM32 BOOTLOADER"  hoac  "STM Device in DFU Mode"
 6. Cho thanh tien trinh chay het
 7. Rut cap, cam lai - lan nay KHONG giu nut BOOT
 ```
+
+Cách tương đương bằng dòng lệnh (có `-v` để đọc lại và so sau khi ghi):
+
+```powershell
+& "D:\IOT_Tools\apps\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe" -c port=USB1 `
+  -w "D:\Coding\IOT-CV\firmware\ardupilot\build-d450a747\arducopter_with_bl.hex" -v
+```
+
+Không cần xoá toàn chip trước: phần dư của Betaflight nằm ở vùng lưu tham số thì ArduPilot tự xoá
+và khởi tạo lại ở lần khởi động đầu (`AP_FlashStorage::init()` gọi `erase_all()` khi header sai).
 
 **AN TOÀN:** **không rút cáp giữa chừng khi đang Download.** Ngắt giữa lúc ghi bootloader có thể
 để bo ở trạng thái không khởi động được và cũng không vào lại DFU được. Nếu máy tính có chế độ
@@ -211,6 +272,20 @@ Windows**.
 
 ### 14.5 Mission Planner nhận board — và xác nhận **đúng bản custom build**
 
+**Cách tự động (một lệnh làm luôn 14.5, 14.5b và 14.6):** `scripts/fc/kiem_fc.py` đọc qua USB,
+không gửi lệnh ARM hay motor nào. Bo cắm USB, không giữ BOOT, đóng Mission Planner (một cổng COM
+chỉ một chương trình mở được):
+
+```powershell
+uv run --with pyserial python scripts/fc/kiem_fc.py COMx --nghieng 20 `
+  --luu-param firmware/ardupilot/params/00-after-flash.param
+```
+
+Kiểm banner `ArduCopter V4.7.1 (dbe79216)` + `speedybeef4v5`, năm tham số của bản custom, gyro +
+accel + baro (`press_abs`), hướng nghiêng (trong 20 giây bạn chúc mũi tên xuống rồi hạ cạnh phải),
+và lưu bản chụp tham số. `KET QUA: PASS` là đạt; mục nào FAIL thì xem cách tay bên dưới. Đã chạy thử
+trên SITL ngày 12/10/2026. Các bước bằng Mission Planner dưới đây vẫn đúng, dùng để xem bằng mắt.
+
 Đây là bước kiểm chứng quan trọng nhất của phase. Có hai thứ phải thấy: đúng phiên bản, và **có
 nhóm tham số `PRX_*`**.
 
@@ -226,9 +301,12 @@ Kiểm tra 1 — **phiên bản và tên bo**:
 
 ```text
 Tab Messages (hoac goc duoi man hinh) phai ghi:
-    ArduCopter V4.7.1
-    SpeedyBeeF405V5
+    ArduCopter V4.7.1 (dbe79216)
+    speedybeef4v5 <chuoi so hieu chip>
 ```
+
+Tên bo là tên thư mục hwdef, viết thường — chuỗi `speedybeef4v5` đã được đọc thẳng trong
+`build-d450a747/arducopter.bin`. Bản cũ của plan ghi "SpeedyBeeF405V5" là sai; đừng tưởng nạp nhầm.
 
 Kiểm tra 2 — **có phải bản custom build không**:
 
@@ -248,16 +326,44 @@ Kiểm tra thêm cho chắc (cả ba đều phải có):
 PRX1_TYPE        nhom proximity
 RNGFND1_TYPE     nhom rangefinder
 AVOID_ENABLE     nhom avoidance
+AVOID_ANG_MAX    chi co khi build bat AC_AVOID_ALTHOLD (build-d450a747/NOTES.md)
+SERVO_BLH_POLES  chi co tren board ChibiOS that, SITL khong co
 ```
 
-**Kết quả mong đợi:** HUD hiện ra, banner ghi `ArduCopter V4.7.1` + `SpeedyBeeF405V5`, cả ba tham
-số trên đều tìm thấy.
+**Kết quả mong đợi:** HUD hiện ra, banner ghi `ArduCopter V4.7.1 (dbe79216)` + `speedybeef4v5`, cả
+năm tham số trên đều tìm thấy.
 
 **Nếu lỗi:**
 - Mission Planner nối được nhưng HUD đứng im → bình thường khi bo nằm trên bàn không có GPS; xem
   giá trị Roll/Pitch có đổi khi nghiêng bo không.
 - `No Heartbeat Packets Received` → sai tốc độ (phải là 115200), hoặc chọn nhầm COM port.
 - Thiếu `PRX1_TYPE` → xem khối trên. Đây **không** phải lỗi nhỏ, đừng đi tiếp.
+
+### 14.5b Kiểm baro và hướng gyro — trước khi tin bo
+
+Vì sao phải kiểm ngay: bản build chỉ có **một** driver baro (`AP_BARO_SPL06_ENABLED 1`, đọc được cả
+chip SPA06 qua chip ID 0x11; mọi driver khác, kể cả DPS310, đều tắt), trong khi cấu hình Betaflight
+của chính bo này khai báo DPS310, và jumper "BARO →" trên bo thật đã nối sẵn khác ảnh render. Hướng
+gyro do hwdef quy định (`ROTATION_PITCH_180_YAW_90`) — kiểm một lần trước khi tin.
+
+```text
+BARO : Flight Data -> tab Status -> press_abs khoang 1000 hPa
+       Tab Messages KHONG co dong nao nhac toi "Baro"
+       (vd "Baro: unable to initialise driver")
+GYRO : dat bo cho mui ten tren mat bo chi RA XA nguoi
+       chuc mui ten xuong       -> pitch ra so AM
+       ha canh ben PHAI xuong   -> roll ra so DUONG
+```
+
+Báo đỏ về RC, GPS, la bàn, accel chưa hiệu chỉnh là **bình thường** ở phase này — chưa nối gì cả.
+
+**Kết quả mong đợi:** `press_abs` hợp lý, không lỗi baro; pitch và roll đổi đúng dấu.
+
+**Nếu lỗi:**
+- Không có baro → dừng, đừng đi tiếp. Thiếu baro thì ArduPilot báo lỗi cấu hình và không cho arm.
+  Nghi theo thứ tự: chip baro khác SPA06/SPL06, rồi jumper "BARO →". Không tự cạo jumper.
+- Pitch/roll ngược dấu → dừng, ghi lại. Không chữa bằng `AHRS_ORIENTATION` ở đây — đây là bo nằm
+  trên bàn, chưa gắn khung.
 
 ### 14.6 Lưu `00-after-flash.param` — **đừng bỏ qua**
 
@@ -298,7 +404,7 @@ thì chắc đúng":
 
 ```text
 FRAME_CLASS      = 1
-FRAME_TYPE       = 1        (con phai KIEM CHUNG bang Motor Test o Phase 16)
+FRAME_TYPE       = 12       (X Betaflight - van KIEM CHUNG bang Motor Test o Phase 16)
 SERIAL2_PROTOCOL = 2
 SERIAL2_BAUD     = 115
 SERIAL4_PROTOCOL = 5
@@ -351,9 +457,11 @@ Tick các dòng Phase 14 trong `plans/PROGRESS.md`.
 - [ ] Motor: đủ **2 ren thuận + 2 ren nghịch** (đã tự vặn tay kiểm, không tin nhãn hộp).
 - [ ] Pin: 4 cell đều trong khoảng 3,80–3,85 V, lệch < 0,05 V.
 - [ ] Device Manager hiện `STM32 BOOTLOADER` khi vào DFU (không có dấu chấm than).
+- [ ] Firmware gốc đã sao lưu, file đúng 1.048.576 byte trong `D:\IOT_Tools\downloads\speedybee-f405v5\` (hoặc đã ghi lý do bỏ qua ở 14.3b).
 - [ ] STM32CubeProgrammer báo Download thành công với `arducopter_with_bl.hex`.
-- [ ] Mission Planner CONNECT được; banner ghi `ArduCopter V4.7.1` + `SpeedyBeeF405V5`.
+- [ ] Mission Planner CONNECT được; banner ghi `ArduCopter V4.7.1 (dbe79216)` + `speedybeef4v5`.
 - [ ] **Tìm thấy `PRX1_TYPE`, `RNGFND1_TYPE`, `AVOID_ENABLE` trong Full Parameter List.**
+- [ ] Baro được nhận (`press_abs` ≈ 1000 hPa, không có lỗi Baro); nghiêng bo thì pitch/roll đổi đúng dấu (14.5b).
 - [ ] `firmware/ardupilot/params/00-after-flash.param` đã lưu **và đã commit**.
 - [ ] `01-base.param` đã Write + reboot; 8 tham số then chốt đọc lại đúng giá trị.
 - [ ] Danh sách tham số bị từ chối đã ghi vào `docs/so-tay/14-nap-firmware.md` và ngắn hơn danh sách của SITL (Phase 11.7).
@@ -370,6 +478,7 @@ Tick các dòng Phase 14 trong `plans/PROGRESS.md`.
 | Motor giao 4 cái cùng chiều ren → ốc chóp tự nới, cánh văng khi bay | 2 | 5 | 10 | 14.1 bắt buộc tự vặn tay kiểm chiều ren; phát hiện lúc này còn đổi trả được. |
 | Pin lỗi (phồng / lệch cell) không phát hiện sớm | 2 | 5 | 10 | 14.1 đo từng cell bằng B6AC V2; `SAFETY.md` mục 6 là luật cứng, không phải khuyến nghị. |
 | Quên lưu `00-after-flash.param` → mất trạng thái gốc để quay về | 3 | 2 | 6 | 14.6 tách thành bước riêng, có commit ngay; cổng pass kiểm. |
+| Baro không được nhận (chip khác SPA06/SPL06, hoặc jumper "BARO →") → Copter báo lỗi cấu hình, không arm | 1 | 4 | 4 | 14.5b kiểm ngay sau khi nạp; nghi theo thứ tự chip → jumper; không tự cạo jumper. |
 
 Không có rủi ro nào ≥ 15.
 
@@ -380,12 +489,14 @@ Không có rủi ro nào ≥ 15.
 | 14.1 Mở thùng, chụp ảnh, kiểm đếm | 1,0 | Đừng vội. Đây là cửa sổ duy nhất để đổi trả |
 | 14.2 Kiểm đường USB | 0,2 | |
 | 14.3 Vào DFU | 0,3 | Có thể mất thêm 0,5 h nếu phải xử lý driver |
+| 14.3b Sao lưu firmware gốc | 0,1 | |
 | 14.4 Nạp `.hex` | 0,3 | |
 | 14.5 Mission Planner + kiểm `PRX1_TYPE` | 0,5 | Bước kiểm chứng quan trọng nhất |
+| 14.5b Kiểm baro + hướng gyro | 0,2 | |
 | 14.6 Lưu + commit `00-after-flash.param` | 0,2 | |
 | 14.7 Nạp `01-base.param` + kiểm lại | 0,5 | |
 | 14.8 Sổ tay + PROGRESS | 0,5 | |
-| **Tổng** | **3,5** | Dự phòng thêm 1 h cho sự cố driver DFU. Làm trong một buổi, đừng chia đôi. |
+| **Tổng** | **3,8** | Dự phòng thêm 1 h cho sự cố driver DFU. Làm trong một buổi, đừng chia đôi. |
 
 ## Ghi chú cho sổ tay
 
@@ -396,5 +507,8 @@ Không có rủi ro nào ≥ 15.
 - **Cách đọc banner phiên bản** trong Mission Planner, và vì sao `PRX1_TYPE` là dấu hiệu nhận biết
   bản custom build.
 - **Chiều ren ốc chóp motor** — vì sao quad cần 2 thuận 2 nghịch, và chuyện gì xảy ra nếu sai.
+- **"Activation required" trên bản Model Aircraft** — kích hoạt dành cho app SpeedyBee; vì sao nạp
+  qua DFU thì không cần.
+- **Ba jumper trên bo** (SBUS hở, "BARO →" nối sẵn, 9V hở) — nối/hở nghĩa là gì và vì sao để nguyên.
 - **Điện áp storage của pin LiPo** (3,80–3,85 V/cell) khác điện áp đầy (4,20 V/cell) và vì sao pin
   mới về không được sạc đầy ngay.

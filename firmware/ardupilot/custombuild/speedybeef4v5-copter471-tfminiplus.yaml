@@ -15,7 +15,7 @@
 #   + PROXIMITY_RANGEFINDER  Use RangeFinders as proximity sensors
 #
 # TAT (doi chieu docs/linh-kien-s500.html):
-#   OSD / MSP / VTX / Camera : khong co kinh FPV, khong VTX; ESP32-CAM di Wi-Fi rieng
+#   OSD / MSP / VTX / Camera : khong co kinh FPV, khong VTX; camera ESP32-S3 di Wi-Fi rieng
 #   CRSF GHST SBUS SRXL PPM  : dung FlySky FS-i6X + iA6B qua iBUS (chi giu RC_IBUS)
 #   FrSky/CRSF/Spektrum telem: telemetry qua MAVLink (ESP32 dot 3), khong ve tay phat
 #   NMEA GPS                 : Holybro M10 la u-blox (chi giu UBLOX)
@@ -30,7 +30,7 @@
 #                     SERIAL5 chi co chan RX ma iBUS telem can ca TX)
 #   GyroFFT         : F405 yeu; da co RPM notch tu ESC telemetry nen khong can
 #   SCRIPTING (Lua) : ban stock da tat, 1MB khong kham noi
-#   Camera          : bat lai neu sau nay muon FC trigger ESP32-CAM (+ Camera_Relay)
+#   Camera          : bat lai neu sau nay muon FC trigger camera ESP32-S3 (+ Camera_Relay)
 
 config_version: "0.0.1"
 vehicle:
