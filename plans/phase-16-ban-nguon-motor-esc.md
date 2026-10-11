@@ -188,6 +188,7 @@ Hai nguồn tài liệu chính thức nói khác nhau về hệ số đo pin c�
 |---|---|---|
 | README của board | 11.2 | 1 |
 | `hwdef.dat` (thứ thực sự được biên dịch vào firmware) | **11.0** | **25.0** |
+| Trang thông số SpeedyBee cho ESC OX32 55A (đọc 12/10/2026) | — | `Scale=27, Offset=-2644` (đơn vị Betaflight) → **370,4** + `BATT_AMP_OFFSET` **0,0071** |
 
 **Quyết định đã chốt: không tin con nào cả.** `01-base.param` đặt 11.0 làm điểm xuất phát (vì
 `hwdef.dat` là thứ thực sự nằm trong firmware), rồi **đo bằng đồng hồ vạn năng và ghi đè**. Con số
@@ -235,9 +236,12 @@ git add firmware/ardupilot/params/01-base.param
 git commit -m "param: hieu chinh BATT_VOLT_MULT bang dong ho van nang (giai quyet mau thuan 11.0 vs 11.2)"
 ```
 
-**Về cảm biến dòng (`BATT_AMP_PERVLT,25.0`):** **chưa xác minh** và **chưa hiệu chỉnh được ở phase
-này**, vì muốn hiệu chỉnh phải có một tải đã biết hoặc phải so lượng điện đã dùng với lượng sạc
-lại vào pin. Việc đó để Phase 20 trở đi: sau một chuyến bay, so `BATT_CAPACITY` đã tiêu thụ trên
+**Về cảm biến dòng:** từ 12/10/2026 `01-base.param` đặt `BATT_AMP_PERVLT,370.4` +
+`BATT_AMP_OFFSET,0.0071`, quy từ con số SpeedyBee công bố cho chính ESC OX32 55A (công thức ghi
+trong file param). Con số cũ 25.0 của hwdef làm dòng đọc thấp khoảng 15 lần, kéo theo failsafe theo
+mAh (`BATT_LOW_MAH`) gần như không bao giờ bật. Đây là điểm xuất phát có nguồn, **chưa phải số đã
+hiệu chỉnh**, và **chưa hiệu chỉnh được ở phase này**, vì muốn hiệu chỉnh phải có một tải đã biết
+hoặc phải so lượng điện đã dùng với lượng sạc lại vào pin. Việc đó để Phase 20 trở đi: sau một chuyến bay, so `BATT_CAPACITY` đã tiêu thụ trên
 Mission Planner với số mAh mà sạc B6AC V2 nạp trả lại. Ghi chú này phải nằm trong sổ tay để không
 bị quên.
 
@@ -272,7 +276,8 @@ NOI TAM - KHONG HAN
   BOC RIENG TUNG MOI bang bang keo dien hoac gen co nhiet.
   Ba moi cua cung mot motor KHONG duoc cham nhau.
   Co dinh moi motor xuong ban bang bang dinh hoac day rut.
-  Danh nhan M1 M2 M3 M4 bang bang dinh - ban se KHONG nho duoc.
+  Danh nhan bang bang dinh: SO IN TREN PAD ESC + vi tri, vd "M2 truoc-phai"
+  - ban se KHONG nho duoc.
 ```
 
 **AN TOÀN:** nối tạm chỉ được dùng ở mức ga **≤ 10%** (motor không cánh, dòng dưới 1 A). Tuyệt đối
@@ -289,16 +294,22 @@ Cố định từng cái, và để tay xa trục.
 nhau** cho cùng hình chữ X:
 
 ```text
-QUAD X  (chuan ArduPilot)       QUAD X (BETAFLIGHT)
+QUAD X  (chuan ArduPilot)       QUAD X (BETAFLIGHT)  <- 01-base.param dat kieu NAY
+  FRAME_TYPE 1                    FRAME_TYPE 12
   motor 1 = truoc-PHAI            motor 1 = sau-PHAI
   motor 2 = sau-TRAI              motor 2 = truoc-PHAI
   motor 3 = truoc-TRAI            motor 3 = sau-TRAI
   motor 4 = sau-PHAI              motor 4 = truoc-TRAI
 ```
 
-Pad M1–M4 in trên ESC 4-in-1 là thứ tự của thế giới **Betaflight**. Nếu thứ tự thực tế không khớp
-`FRAME_TYPE` đang đặt thì **drone lật úp ngay giây đầu tiên nhấc lên** — đây là nguyên nhân số một
-làm gãy cánh ở chuyến bay đầu, không phải hạ cánh mạnh.
+Pad M1–M4 in trên ESC 4-in-1 là thứ tự của thế giới **Betaflight**. Sơ đồ chính hãng
+(`assignment/_build/img/official/speedybee/v5_25.jpg`, `v5_26.jpg`): lắp stack kiểu chuẩn — ESC nằm
+dưới FC, mép có 8 pad tín hiệu `V G C T 1 2 3 4` cùng phía với cổng 10 chân của FC, tức phía **mũi**
+(phía mũi tên FC chỉ tới) — thì **MOTOR 2 và MOTOR 4 ở phía mũi, MOTOR 1 và MOTOR 3 ở phía đuôi**.
+Vì vậy từ 12/10/2026 `01-base.param` đặt `FRAME_TYPE 12` (X Betaflight), cũng là giá trị hwdef
+ArduPilot đặt mặc định cho bo này. Motor Test dưới đây vẫn là phép kiểm quyết định. Nếu thứ tự thực
+tế không khớp `FRAME_TYPE` đang đặt thì **drone lật úp ngay giây đầu tiên nhấc lên** — đây là
+nguyên nhân số một làm gãy cánh ở chuyến bay đầu, không phải hạ cánh mạnh.
 
 ```text
 Mission Planner -> SETUP -> Optional Hardware -> Motor Test
@@ -309,8 +320,13 @@ Test B phai quay motor SAU-PHAI        <- thu tu di THEO CHIEU KIM DONG HO,
 Test C phai quay motor SAU-TRAI           bat dau tu motor dau tien ben phai
 Test D phai quay motor TRUOC-TRAI         cua huong mui
 
-Dung ca 4   -> giu FRAME_TYPE = 1 (X)
-Sai thu tu  -> doi FRAME_TYPE sang "X (Betaflight)" roi test LAI ca 4
+Dung ca 4   -> giu FRAME_TYPE = 12 (X Betaflight)
+Sai thu tu  -> CHUA doi FRAME_TYPE. Kiem lai truoc:
+                 (1) moi motor co noi vao pad ESC GAN NO NHAT khong
+                 (2) ESC co lap kieu chuan, khong lat nguoc
+                 (3) mui ten FC co chi ve phia mui khong
+               Ca ba deu dung ma van sai -> thu FRAME_TYPE = 1 (X chuan)
+               roi test LAI ca 4
 ```
 
 Vì motor chưa gắn lên khung, hãy **bày 4 motor trên bàn theo đúng vị trí chúng sẽ nằm trên khung**
@@ -323,7 +339,8 @@ buồn cười nhưng nó là thứ ngăn tai nạn ở Phase 19 khi cánh đã 
 vào sổ tay.
 
 **Nếu lỗi:**
-- Sai thứ tự → đổi `FRAME_TYPE` sang X (Betaflight) và test lại **cả 4**, không chỉ cái sai.
+- Sai thứ tự → làm theo khối trên (kiểm dây, hướng ESC, hướng FC trước; đổi `FRAME_TYPE` sau cùng)
+  và test lại **cả 4**, không chỉ cái sai.
 - Một motor không quay → kiểm mối nối tạm của motor đó; nếu mối nối tốt thì đổi thử sang pad khác
   để phân biệt lỗi ESC và lỗi motor.
 - Cả 4 không quay → kiểm `MOT_PWM_TYPE` và xem cáp 10 chân đã cắm hẳn chưa.
@@ -331,11 +348,14 @@ vào sổ tay.
 ### 16.7 Chiều quay motor
 
 ```text
-QUAD X - chieu quay chuan ArduPilot (nhin tu TREN xuong):
-    motor 1 (truoc-phai)  quay NGUOC chieu kim dong ho  (CCW)
-    motor 2 (sau-trai)    quay NGUOC chieu kim dong ho  (CCW)
-    motor 3 (truoc-trai)  quay CUNG chieu kim dong ho   (CW)
-    motor 4 (sau-phai)    quay CUNG chieu kim dong ho   (CW)
+QUAD X - chieu quay (nhin tu TREN xuong), so motor theo FRAME_TYPE 12 = nhan ESC:
+    truoc-phai (motor 2)  quay NGUOC chieu kim dong ho  (CCW)
+    sau-trai   (motor 3)  quay NGUOC chieu kim dong ho  (CCW)
+    truoc-trai (motor 4)  quay CUNG chieu kim dong ho   (CW)
+    sau-phai   (motor 1)  quay CUNG chieu kim dong ho   (CW)
+
+Chieu quay theo VI TRI giong het nhau o ca X chuan lan X Betaflight
+(AP_MotorsMatrix.cpp: MOTOR_FRAME_TYPE_X va MOTOR_FRAME_TYPE_BF_X) - chi so motor khac.
 
 Hai motor cheo nhau quay cung chieu. Neu thay 3 cai cung chieu va 1 cai khac
 -> chac chan sai.

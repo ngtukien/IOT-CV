@@ -226,13 +226,13 @@ Radio đã hiệu chỉnh ở Phase 15, nhưng phải kiểm tra lại **trên k
 2. Đặt `Throttle %` = **5**, `Duration` = **2** giây.
 3. Bấm `Test motor A` → quan sát **motor nào quay**.
 
-> **Điểm rất dễ nhầm:** chữ cái A/B/C/D trong Motor Test **đi theo chiều kim đồng hồ quanh khung, bắt đầu từ trước-phải**, **không** đi theo số thứ tự motor. Với Quad X:
+> **Điểm rất dễ nhầm:** chữ cái A/B/C/D trong Motor Test **đi theo chiều kim đồng hồ quanh khung, bắt đầu từ trước-phải**, **không** đi theo số thứ tự motor. Với Quad X Betaflight (`FRAME_TYPE 12`, số = nhãn in trên ESC):
 >
 > ```text
-> Test A -> motor TRƯỚC-PHẢI  = M1
-> Test B -> motor SAU-PHẢI    = M4
-> Test C -> motor SAU-TRÁI    = M2
-> Test D -> motor TRƯỚC-TRÁI  = M3
+> Test A -> motor TRƯỚC-PHẢI  = M2
+> Test B -> motor SAU-PHẢI    = M1
+> Test C -> motor SAU-TRÁI    = M3
+> Test D -> motor TRƯỚC-TRÁI  = M4
 > ```
 >
 > (chưa xác minh trên bản 4.7 — **đối chiếu ngay với sơ đồ khung mà Mission Planner hiển thị** trong `SETUP` → `Mandatory Hardware` → `Frame Type`. Sơ đồ đó là nguồn đúng, không phải trí nhớ.)
@@ -242,13 +242,13 @@ Radio đã hiệu chỉnh ở Phase 15, nhưng phải kiểm tra lại **trên k
 **Kiểm tra chiều quay:**
 
 5. Dán một mẩu băng dính nhỏ lên trục từng motor để nhìn rõ chiều quay, hoặc quay phim chậm bằng điện thoại.
-6. Chạy lại từng motor và đối chiếu với quy ước ArduPilot Quad X:
+6. Chạy lại từng motor và đối chiếu với quy ước Quad X (chiều quay theo **vị trí** giống nhau ở X chuẩn và X Betaflight; số theo `FRAME_TYPE 12`):
 
 ```text
-M1 trước-phải : CCW (ngược kim đồng hồ, nhìn từ trên xuống)
-M2 sau-trái   : CCW
-M3 trước-trái : CW
-M4 sau-phải   : CW
+M2 trước-phải : CCW (ngược kim đồng hồ, nhìn từ trên xuống)
+M3 sau-trái   : CCW
+M4 trước-trái : CW
+M1 sau-phải   : CW
 ```
 
 7. Motor nào quay sai chiều: **rút pin**, đổi **bất kỳ 2 trong 3 dây** của motor đó, cắm lại, test lại. (Nháp cũ GIAI ĐOẠN 43; đây cũng là cách ArduPilot hướng dẫn.)
@@ -290,7 +290,7 @@ Không phải bước hiệu chỉnh, chỉ là xác nhận những gì `01-base
 
 ```text
 FRAME_CLASS      1     Quad
-FRAME_TYPE       1     X
+FRAME_TYPE       12    X Betaflight (hoac gia tri Motor Test Phase 16 da chot)
 MOT_PWM_TYPE     5     DShot300  (chưa nâng lên 6 — nâng sau khi bay ổn)
 SERIAL2_PROTOCOL 2     MAVLink2  -> ESP32 bridge
 SERIAL3_PROTOCOL 9     Rangefinder -> TFmini Plus
@@ -517,25 +517,25 @@ Bảng cảnh báo hay gặp và cách sửa **đúng**:
 
 ```text
         MŨI drone
-   M3 (trước-trái)      M1 (trước-phải)
+   M4 (trước-trái)      M2 (trước-phải)
    cánh CW              cánh CCW
              \     /
               \   /
                / \
               /   \
-   M2 (sau-trái)        M4 (sau-phải)
+   M3 (sau-trái)        M1 (sau-phải)
    cánh CCW             cánh CW
         ĐUÔI
 ```
 
-Cánh phải quay **cùng chiều với motor mang nó**. Vì motor M1 và M2 quay CCW nên chúng mang **cánh CCW**; M3 và M4 quay CW nên mang **cánh CW**.
+Cánh phải quay **cùng chiều với motor mang nó**. Vì motor trước-phải (M2) và sau-trái (M3) quay CCW nên chúng mang **cánh CCW**; trước-trái (M4) và sau-phải (M1) quay CW nên mang **cánh CW**. Số M theo `FRAME_TYPE 12` = nhãn in trên ESC; **vị trí** mới là thứ quyết định cánh nào.
 
 **Cách nhận dạng cánh CW và CCW (T1045):**
 
 1. **Ký hiệu in trên cánh.** T-Motor thường in `1045` cho một loại và `1045R` (R = reverse) cho loại kia. Một số lô in `CW`/`CCW` hoặc có vạch màu. **Đọc kỹ trước khi tin** — một số hãng dùng `R` theo nghĩa ngược lại.
 2. **Cách không phụ thuộc ký hiệu (dùng cái này để kiểm chứng):** đặt cánh nằm ngang, **mặt có chữ / mặt cong lồi hướng LÊN TRÊN** (đó luôn là mặt hướng lên trời khi lắp). Nhìn từ trên xuống, tìm **cạnh dày và tròn** của lá cánh — đó là **cạnh trước (leading edge)**, cạnh mỏng và sắc là cạnh sau. Cánh sẽ quay theo hướng mà **cạnh dày đi trước**.
-   - Cạnh dày đi theo chiều kim đồng hồ → **cánh CW** → lắp lên M3, M4.
-   - Cạnh dày đi ngược chiều kim đồng hồ → **cánh CCW** → lắp lên M1, M2.
+   - Cạnh dày đi theo chiều kim đồng hồ → **cánh CW** → lắp lên trước-trái (M4) và sau-phải (M1).
+   - Cạnh dày đi ngược chiều kim đồng hồ → **cánh CCW** → lắp lên trước-phải (M2) và sau-trái (M3).
 3. **Kiểm tra cuối bằng ren (đặc thù AIR GEAR, tự siết):** vặn cánh vào trục M6 bằng tay. **Vào ngọt, không cần lực** thì đúng cặp. **Phải dùng lực** thì sai cặp — dừng lại, đổi cánh, đừng ép (ép là tước ren M6 của motor, hỏng vĩnh viễn).
 4. **Kiểm tra chiều tự siết:** sau khi vặn vào, dùng tay xoay cánh **theo đúng chiều motor sẽ quay** — phải cảm thấy nó **siết chặt thêm**, không được nới ra. Nếu nới ra thì motor đang đứng sai vị trí (quay lại Phase 18 mục 18.3) — **phải đổi chỗ motor, không phải đổi cánh**.
 
@@ -613,7 +613,7 @@ Viết ra `docs/checklist-truoc-bay.md`, **in ra giấy**, mang theo mỗi buổ
 [ ] Biết trước sẽ chạy đi đâu nếu drone lao về phía mình
 
 === WALK-AROUND (làm ngay trước mỗi chuyến, mất 2 phút) ===
-[ ] 4 cánh: đúng chiều (CCW ở M1/M2, CW ở M3/M4), không nứt, không rơ
+[ ] 4 cánh: đúng chiều (CCW ở trước-phải/sau-trái = M2/M3, CW ở trước-trái/sau-phải = M4/M1), không nứt, không rơ
 [ ] 4 motor: xoay bằng tay thấy trơn, không cà
 [ ] Mọi ốc: không có con nào lỏng (sờ, không cần cờ lê)
 [ ] Dây: không sợi nào lủng lẳng, không sợi nào trong tầm cánh
@@ -684,7 +684,7 @@ param: 04-pre-first-flight — hieu chinh tren khung + failsafe
 - [ ] `Onboard Mag Calibration` chạy **ngoài trời**, thanh tiến trình tới 100% không tụt lùi; offset tổng nhỏ; chĩa mũi drone về Bắc thật thì biểu tượng trên bản đồ Mission Planner cũng chỉ Bắc (lệch ≤ 15°); không còn cảnh báo compass.
 - [ ] Radio: 4 cần đúng dải 1000/1500/2000; CH5 ra đủ `Stabilize`/`AltHold`/`Loiter`, CH6 ra `RTL`, CH7 (`WEB CONTROL ENABLE`) đổi giá trị `rcin` khi gạt, CH8 vẫn để trống; ở 50 m vẫn đổi được mode.
 - [ ] Motor Test: 4 nút A/B/C/D ra đúng 4 motor (đã đối chiếu với **sơ đồ khung hiển thị trong Mission Planner**, không dựa vào trí nhớ).
-- [ ] 4 chiều quay đúng: M1 CCW, M2 CCW, M3 CW, M4 CW.
+- [ ] 4 chiều quay đúng: trước-phải (M2) CCW, sau-trái (M3) CCW, trước-trái (M4) CW, sau-phải (M1) CW.
 - [ ] Test desync: đẩy ga 10→20→30→50 % trên cả 4 motor, **không** có tiếng khục / giật / tự dừng; tăng ga đột ngột cũng không; 4 motor khởi động mượt và gần như cùng lúc ở 5–10 %.
 - [ ] `esc1..4_rpm` có số trên tab `Status` khi chạy Motor Test (nếu không có: đã ghi lại, không chặn Phase 20, phải xử lý trước Phase 22).
 - [ ] Test RC failsafe: tắt tay FS-i6X → cảnh báo hiện trong ≤ 3 giây **và** giá trị kênh ga tụt xuống dưới `FS_THR_VALUE`; bật lại → cảnh báo tự hết.
@@ -693,7 +693,7 @@ param: 04-pre-first-flight — hieu chinh tren khung + failsafe
 - [ ] `FENCE_ENABLE,1` + `FENCE_TYPE,3` + `FENCE_ALT_MAX,30` + `FENCE_RADIUS,50` + `FENCE_ACTION,1` + `FENCE_MARGIN,2`; hàng rào hiện đúng trên bản đồ Mission Planner; giá trị 30/50 đã được đối chiếu với kích thước bãi bay thật.
 - [ ] **Không còn cảnh báo pre-arm nào**, và **không một pre-arm check nào bị disable** (`ARMING_CHECK` giữ nguyên giá trị mặc định đầy đủ).
 - [ ] Arm/disarm không cánh 3/3 lần thành công; cả 4 motor idle đều, không motor nào đứng im.
-- [ ] 4 cánh gắn đúng: CCW trên M1/M2, CW trên M3/M4; vặn vào **không cần lực**; xoay theo chiều quay thì **siết chặt thêm**; không rơ; không cánh nào nứt.
+- [ ] 4 cánh gắn đúng: CCW trên trước-phải/sau-trái (M2/M3), CW trên trước-trái/sau-phải (M4/M1); vặn vào **không cần lực**; xoay theo chiều quay thì **siết chặt thêm**; không rơ; không cánh nào nứt.
 - [ ] Đo lực đẩy thật trên cân ở 25/50/75/100 %; tỉ số `(lực đẩy 100% × 4) / AUW` ≥ **2 : 1**; đã ghi vào `docs/do-dac/19-do-luc-day.md`.
 - [ ] `docs/checklist-truoc-bay.md` đã viết và **đã in ra giấy**.
 - [ ] Pin 4S: 4 cell đều 4,20 V ±0,03 V, không phồng, không rách.

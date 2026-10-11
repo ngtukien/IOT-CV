@@ -91,11 +91,11 @@ Thứ tự bắt buộc là **cần trước, chân đáp sau, tấm trên cuố
 
 Đây là bước **dễ làm sai nhất trong cả phase** và hậu quả là drone lật ngay khi cất cánh. Làm chậm.
 
-Quy ước motor của ArduPilot cho khung **Quad X** (`FRAME_CLASS,1` + `FRAME_TYPE,1` trong `01-base.param`), nhìn **từ trên xuống, mũi drone hướng ra xa người nhìn**:
+Quy ước motor cho khung **Quad X kiểu Betaflight** (`FRAME_CLASS,1` + `FRAME_TYPE,12` trong `01-base.param`) — **trùng đúng số MOTOR 1–4 in trên ESC OX32** (sơ đồ chính hãng `assignment/_build/img/official/speedybee/v5_25.jpg`). Nhìn **từ trên xuống, mũi drone hướng ra xa người nhìn**:
 
 ```text
-        MŨI (hướng mũi tên FC)
-   M3 (trước-trái)      M1 (trước-phải)
+        MŨI (hướng mũi tên FC = phía có cổng GPS 6 chân và cổng 10 chân)
+   M4 (trước-trái)      M2 (trước-phải)
         CW                   CCW
              \     /
               \   /
@@ -104,16 +104,21 @@ Quy ước motor của ArduPilot cho khung **Quad X** (`FRAME_CLASS,1` + `FRAME_
               /   \
              /     \
         CCW                  CW
-   M2 (sau-trái)        M4 (sau-phải)
+   M3 (sau-trái)        M1 (sau-phải)
         ĐUÔI
 ```
 
-- M1 = trước-phải, quay **CCW** (ngược kim đồng hồ)
-- M2 = sau-trái, quay **CCW**
-- M3 = trước-trái, quay **CW** (thuận kim đồng hồ)
-- M4 = sau-phải, quay **CW**
+- M1 = sau-phải, quay **CW** (thuận kim đồng hồ)
+- M2 = trước-phải, quay **CCW** (ngược kim đồng hồ)
+- M3 = sau-trái, quay **CCW**
+- M4 = trước-trái, quay **CW**
 
-Dán băng dính giấy lên từng cần và **viết `M1` `M2` `M3` `M4` bằng bút dạ ngay bây giờ**. Đừng nghĩ "sau nhớ được" — bạn sẽ không nhớ (nháp cũ GIAI ĐOẠN 27).
+> **Đừng dùng sơ đồ "Quad X chuẩn ArduPilot" trên mạng (M1 trước-phải) cho stack này.** Hai kiểu
+> chỉ khác **số**; chiều quay theo **vị trí** thì giống hệt nhau: trước-phải và sau-trái quay CCW,
+> trước-trái và sau-phải quay CW. Phase 16 đã chốt kiểu nào bằng Motor Test — nếu Motor Test kết
+> luận khác bảng trên thì làm theo Motor Test và sửa lại bảng này.
+
+Dán băng dính giấy lên từng cần và **viết số kèm vị trí bằng bút dạ ngay bây giờ** (`M2 trước-phải`, `M1 sau-phải`, `M3 sau-trái`, `M4 trước-trái`). Mỗi motor nối vào pad ESC **gần nó nhất** mang cùng số. Đừng nghĩ "sau nhớ được" — bạn sẽ không nhớ (nháp cũ GIAI ĐOẠN 27).
 
 **Chiều ren của motor AIR GEAR 450 II — phải phân loại trước khi bắt vít.** Bộ AIR GEAR 450 II gồm **2 motor ren phải + 2 motor ren trái**: trục M6 có ren, cánh T1045 vặn thẳng lên trục và **tự siết theo chiều quay**. Hệ quả: một motor chỉ đứng được ở vị trí mà chiều quay của nó làm cánh siết chặt vào, không phải nới ra.
 
@@ -122,9 +127,9 @@ Cách phân loại bằng tay, không cần điện:
 1. Lấy 4 motor ra, để trước mặt.
 2. Lấy một cánh T1045 **bất kỳ**, thử vặn bằng tay lên trục từng motor. Vặn nhẹ nhàng — **nếu phải dùng lực thì đó là sai cặp, dừng lại ngay**.
 3. Cánh vào ngọt ở 2 motor và không vào ở 2 motor còn lại. Đó là hai nhóm ren.
-4. Ghi nhãn: nhóm nào nhận cánh vặn theo chiều kim đồng hồ (ren phải, ren thường) là nhóm **CCW** — tức là M1 và M2. Nhóm nhận cánh vặn ngược chiều kim đồng hồ (ren trái) là nhóm **CW** — tức là M3 và M4.
+4. Ghi nhãn: nhóm nào nhận cánh vặn theo chiều kim đồng hồ (ren phải, ren thường) là nhóm **CCW** — tức là M2 (trước-phải) và M3 (sau-trái). Nhóm nhận cánh vặn ngược chiều kim đồng hồ (ren trái) là nhóm **CW** — tức là M1 (sau-phải) và M4 (trước-trái).
 
-> **Lý do (chưa xác minh trên phần cứng thực tế, đây là suy luận cơ học — phải kiểm chứng lại bằng tay ở mục 19.13):** cánh bị lực cản không khí kéo lại phía sau so với trục, nên so với trục thì cánh có xu hướng quay **ngược** chiều quay của motor. Với ren phải (siết khi vặn theo chiều kim đồng hồ), xu hướng đó làm siết chặt khi trục quay **CCW**. Vì vậy motor ren phải đi với vị trí CCW (M1, M2), motor ren trái đi với vị trí CW (M3, M4). Hãng thường khắc vạch hoặc chữ trên đai ốc/trục của loại ren trái — tìm ký hiệu đó và đối chiếu với kết luận trên trước khi tin.
+> **Lý do (chưa xác minh trên phần cứng thực tế, đây là suy luận cơ học — phải kiểm chứng lại bằng tay ở mục 19.13):** cánh bị lực cản không khí kéo lại phía sau so với trục, nên so với trục thì cánh có xu hướng quay **ngược** chiều quay của motor. Với ren phải (siết khi vặn theo chiều kim đồng hồ), xu hướng đó làm siết chặt khi trục quay **CCW**. Vì vậy motor ren phải đi với vị trí CCW (M2 trước-phải, M3 sau-trái), motor ren trái đi với vị trí CW (M1 sau-phải, M4 trước-trái). Hãng thường khắc vạch hoặc chữ trên đai ốc/trục của loại ren trái — tìm ký hiệu đó và đối chiếu với kết luận trên trước khi tin.
 
 **Kết quả mong đợi:** 4 cần đã dán nhãn M1–M4; 4 motor đã chia thành 2 nhóm ren và mỗi motor đã được gán một vị trí.
 
@@ -290,7 +295,7 @@ Triệu chứng khi vượt ngưỡng: bật AltHold thì drone **tự trôi lê
 
 **Hướng bo bay:**
 
-1. Đặt stack lên bát, **mũi tên trên mặt FC hướng đúng về phía mũi drone** (phía giữa M1 và M3).
+1. Đặt stack lên bát, **mũi tên trên mặt FC hướng đúng về phía mũi drone** — phía giữa M2 (trước-phải) và M4 (trước-trái). Trên stack, đó là phía có cổng GPS 6 chân và cổng 10 chân. **Đừng** căn theo hai góc có nhãn MOTOR 1 và MOTOR 3 trên ESC: hai góc đó nằm ở **đuôi**.
 2. Nếu vì đầu cắm mà buộc phải xoay bo, **phải khai báo `AHRS_ORIENTATION`** ở Phase 19 — không được "tự nhớ offset trong đầu".
 3. Chồng tầng bằng **ốc nylon + đệm silicone** của hộp Deluxe. Bọc **vỏ silicone** (hộp có 10 cái) vào các mép bo.
 4. Kiểm tra: **không để đuôi chân linh kiện tầng dưới chạm mặt đồng tầng trên.** Hai tầng chạm nhau là chập nguồn 4S — cháy cả stack.
@@ -389,9 +394,9 @@ LiPo 4S ──┬── ESC OX32 ──→ motor + FC + GPS + iA6B + TFmini
 
 1. **UBEC:** dán vào tấm trên bằng băng keo xốp, đầu vào hàn/cắm song song với đường nguồn pin (sau XT60). Bọc gen co đầu vào.
 2. **ESP32 DevKit (bridge, SERIAL2):** dán ở **đuôi**, anten PCB chĩa ra ngoài khung, không bị tấm sợi thuỷ tinh hay pin che. Dây UART đi tách khỏi dây nguồn motor.
-3. **Board camera:** quyết định chọn ESP32-S3 hay ESP32-CAM **vẫn đang để mở** (`plans/QUYET-DINH-CHUA-CHOT.md`). Làm bát gắn **dùng được cho cả hai**: một tấm đế phẳng có 4 lỗ khe dài (slot) thay vì lỗ tròn, để trượt được theo cả hai khoảng cách lỗ; cộng 4 quả cao su chống rung nhỏ.
+3. **Board camera:** đã chốt ngày 12/10/2026 — bo **ESP32-S3 N16R8 + OV3660** (`docs/phan-cung-thuc-te.md`). Kích thước và lỗ bắt của bo chưa đo: đo bo thật rồi mới làm bát gắn. Vẫn nên dùng tấm đế phẳng có 4 lỗ khe dài (slot) thay vì lỗ tròn để còn chỉnh được; cộng 4 quả cao su chống rung nhỏ.
 4. **Vị trí camera:** gắn ở **mép trước, gần đường tâm dọc của drone, chĩa xuống chếch về trước**. Không đưa ra xa mũi — mỗi cm ra trước là một lần phải dịch pin về sau để bù CG (mục 18.14).
-5. **Chống brownout cho camera:** hàn tụ **470–1000 µF** sát chân nguồn của board camera. ESP32-CAM bật Wi-Fi gây burst dòng làm chính nó reset.
+5. **Chống brownout cho camera:** nếu ở Phase 17 bo camera khởi động lại khi bật Wi-Fi, hàn tụ **470–1000 µF** sát chân 5V–GND của bo. Camera cộng Wi-Fi gây xung dòng làm chính nó reset.
 6. Tất cả dây tín hiệu ESP32 đi **trên tấm trên**, tách khỏi dây nguồn motor.
 
 > **AN TOÀN:** Nếu vì lý do nào đó bạn chỉ có một nguồn 5V, **ưu tiên tuyệt đối cho stack/GPS/receiver/TFmini** và **không gắn camera lên drone chuyến đó**. Camera chết giữa chuyến là mất dữ liệu; FC reset giữa chuyến là rơi. `SAFETY.md` mục 9 nói rõ: mất camera thì telemetry và control vẫn phải chạy, UAV không đổi mode.
@@ -480,8 +485,8 @@ Chụp bằng điện thoại, đủ sáng, lưu vào `docs/so-tay/anh/18/`. B�
 
 - [ ] Khung lắp xong; đặt trên mặt bàn phẳng, 4 đầu cần cùng mặt phẳng, khung không bập bênh, không cần nào cong hay rơ.
 - [ ] **Không có lỗ khoan mới nào trên tấm đế S500.**
-- [ ] 4 motor bắt chắc, quay trơn bằng tay, cần đã dán nhãn `M1` `M2` `M3` `M4` đúng quy ước Quad X của ArduPilot (M1 trước-phải CCW, M2 sau-trái CCW, M3 trước-trái CW, M4 sau-phải CW).
-- [ ] 4 motor đã phân loại theo chiều ren và đặt đúng vị trí (2 ren cho vị trí CCW ở M1/M2, 2 ren cho vị trí CW ở M3/M4); cánh vặn vào bằng tay được, không phải dùng lực.
+- [ ] 4 motor bắt chắc, quay trơn bằng tay, cần đã dán nhãn số + vị trí đúng quy ước Quad X Betaflight = nhãn in trên ESC (M1 sau-phải CW, M2 trước-phải CCW, M3 sau-trái CCW, M4 trước-trái CW); mỗi motor nối vào pad ESC cùng số.
+- [ ] 4 motor đã phân loại theo chiều ren và đặt đúng vị trí (2 ren phải cho vị trí CCW ở M2/M3, 2 ren trái cho vị trí CW ở M1/M4); cánh vặn vào bằng tay được, không phải dùng lực.
 - [ ] 12 mối hàn nối dài dây motor đã bọc gen; với **cả 4 motor**: thông mạch từng pha OK, 3 điện trở giữa các pha bằng nhau, **không pha nào chạm vỏ motor hay chạm ốc khung**.
 - [ ] Đo continuity `BAT+` ↔ `BAT−`: **không kêu bíp liên tục**. Đo `BAT+` ↔ ốc khung: **không kêu**.
 - [ ] Tụ 1000 µF đã hàn sát pad `BAT+`/`BAT−` của ESC, **đúng cực** (đã đối chiếu vạch dấu trên thân tụ, có ảnh `04-tu-dien.jpg`).
@@ -490,7 +495,7 @@ Chụp bằng điện thoại, đủ sáng, lưu vào `docs/so-tay/anh/18/`. B�
 - [ ] Hai anten iA6B vuông góc 90°, phần đầu nhạy duỗi thẳng, cách dây nguồn motor ≥ 5 cm.
 - [ ] GPS M10 trên cột ở phía đuôi, mũi tên GPS cùng hướng mũi tên FC (hoặc đã ghi lại độ lệch cho `COMPASS_ORIENT`).
 - [ ] TFmini Plus chĩa thẳng trước; nhìn dọc theo hướng ống kính **không thấy bất kỳ phần nào của drone**; nguồn lấy từ BEC của stack (không dùng chung UBEC với ESP32).
-- [ ] ESP32 bridge + board camera + UBEC 5V 3A cố định chắc; tụ 470–1000 µF đã hàn sát chân nguồn board camera; bát camera lắp được cho cả ESP32-S3 lẫn ESP32-CAM.
+- [ ] ESP32 bridge + board camera + UBEC 5V 3A cố định chắc; tụ 470–1000 µF đã hàn sát chân nguồn board camera nếu Phase 17 thấy reset; bát camera vừa bo ESP32-S3 thật.
 - [ ] Pin gắn bằng velcro **và** dây đai; xách drone lên bằng pin thì pin không xê dịch; vị trí pin đã đánh dấu bút dạ.
 - [ ] Treo drone (đã có pin, chưa có cánh) trên hai đầu ngón tay tại hai điểm đối xứng qua tâm → nằm ngang trong ±5°.
 - [ ] `docs/do-dac/18-can-khoi-luong.md` đã điền đủ số cân thật; tỉ số `4800 g / AUW` ≥ 2 : 1.

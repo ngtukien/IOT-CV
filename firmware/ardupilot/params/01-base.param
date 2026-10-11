@@ -15,11 +15,15 @@
 # Da nap thu vao SITL o Phase 11.7 - ket qua: firmware/ardupilot/build-d450a747/NOTES.md
 
 # ---------- khung ----------
-# FRAME_CLASS 1 = Quad, FRAME_TYPE 1 = X  (khung S500)
-# FRAME_TYPE con phai KIEM CHUNG bang Motor Test o Phase 16 - bo nay danh so
-# motor kieu Betaflight, co the khac chuan ArduPilot.
+# FRAME_CLASS 1 = Quad, FRAME_TYPE 12 = X kieu Betaflight  (khung S500)
+# Sua 12/10/2026, truoc la 1 (X chuan ArduPilot). ESC OX32 danh so motor kieu
+# Betaflight: M1 sau-phai, M2 truoc-phai, M3 sau-trai, M4 truoc-trai (so do chinh
+# hang assignment/_build/img/official/speedybee/v5_25.jpg va v5_26.jpg), va hwdef
+# speedybeef4v5 cua ArduPilot dat mac dinh 12 vi dung ly do do.
+# Chieu quay theo VI TRI giong het X chuan: truoc-phai + sau-trai CCW,
+# truoc-trai + sau-phai CW. VAN PHAI kiem chung bang Motor Test o Phase 16.
 FRAME_CLASS,1
-FRAME_TYPE,1
+FRAME_TYPE,12
 
 # ---------- cong serial ----------
 # SERIAL1 = module Bluetooth noi bo, ArduPilot KHONG dung duoc -> de None
@@ -84,14 +88,21 @@ SERVO_BLH_TRATE,10
 # ---------- pin 4S ----------
 # 4 = Analog Voltage and Current (mac dinh cua board)
 BATT_MONITOR,4
-# CANH BAO: README board ghi VOLT_MULT 11.2 / AMP_PERVLT 1,
-#           nhung hwdef.dat ghi 11.0 / 25.0. Hai nguon MAU THUAN.
-#           Dat theo hwdef (thu duoc bien dich vao firmware) roi PHAI hieu chinh
-#           bang dong ho van nang o Phase 16:
+# CANH BAO dien ap: README board ghi VOLT_MULT 11.2, hwdef.dat ghi 11.0.
+#           Hai nguon MAU THUAN. Dat theo hwdef (thu duoc bien dich vao firmware)
+#           roi PHAI hieu chinh bang dong ho van nang o Phase 16:
 #           Mission Planner -> Setup -> Optional Hardware -> Battery Monitor
 #           -> go dien ap do duoc vao o "Measured battery voltage".
 BATT_VOLT_MULT,11.0
-BATT_AMP_PERVLT,25.0
+# Dong dien: sua 12/10/2026, truoc la 25.0 (hwdef) - con so do khong khop ESC nay.
+#   Trang thong so SpeedyBee F405 V5 OX32 55A ghi "Scale=27, Offset=-2644"
+#   (don vi Betaflight: mV moi 10A va mA). Quy sang ArduPilot:
+#   AMP_PERVLT = 10000/27 = 370.4 A/V ; AMP_OFFSET = 2.644/370.4 = 0.0071 V.
+#   De 25 thi dong doc thap ~15 lan -> mAh da dung sai -> failsafe theo mAh
+#   (BATT_LOW_MAH) gan nhu khong bao gio kich hoat.
+#   Van PHAI hieu chinh lai theo mAh sac tra (Phase 19.9 / Phase 20.4).
+BATT_AMP_PERVLT,370.4
+BATT_AMP_OFFSET,0.0071
 # Dien dung THUC TE cua pin: Ovonic 4S 5300mAh (ban nhap ghi 5000, "doi theo pin ban mua")
 BATT_CAPACITY,5300
 # Nguong 4S: 3.5V/cell = 14.0V (canh bao), 3.3V/cell = 13.2V (nguy hiem).
