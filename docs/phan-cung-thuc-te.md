@@ -66,7 +66,10 @@ ArduPilot 4.7.1; cấu hình Betaflight `SPEEDYBEEF405V5`.
   `set_brightness(s, 1)`, `set_saturation(s, -2)` — ảnh ra mặc định bị lật dọc và hơi gắt màu.
 - Có PSRAM: `fb_location = CAMERA_FB_IN_PSRAM`, `fb_count = 2`, `grab_mode = CAMERA_GRAB_LATEST`.
 - N16R8 = flash 16 MB chế độ QIO + PSRAM 8 MB chế độ **octal (OPI)**. Cấu hình PlatformIO dự kiến
-  ở `plans/phase-12-firmware-esp32-camera.md` §12.3 (env `esp32s3_n16r8`, *chưa build thử*).
+  ở `plans/phase-12-firmware-esp32-camera.md` §12.3 (env `esp32s3_n16r8`). **Đã build thử
+  12/10/2026** bằng một project tạm có đoạn mã dò camera: SUCCESS với espressif32 7.1.3 + Arduino
+  core 2.0.17, và `firmware.map` dùng đúng bộ SDK `esp32s3/qio_opi`. Mới kiểm trên máy tính, chưa
+  chạy trên bo thật.
 
 **Chưa biết — phải xác minh ở Phase 12 trước khi tin:**
 

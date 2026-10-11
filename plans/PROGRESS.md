@@ -691,7 +691,7 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 
 - [ ] `firmware/dronebridge/bin/` có file `.bin`; `git status` **không** liệt kê nó.
 - [ ] `firmware/dronebridge/README.md` có đủ 5 mục; bảng cấu hình điền hết trừ 3 ô *chưa xác minh*.
-- [ ] `pio run -e esp32s3_n16r8` → `SUCCESS`; ghi chú "CHUA build thu" trong `platformio.ini` đã đổi thành đã build, kèm ngày.
+- [ ] `pio run -e esp32s3_n16r8` → `SUCCESS` trên project thật `firmware/camera/` (cấu hình bo đã build thử 12/10/2026).
 - [ ] Bảng chân camera đã đối chiếu với ảnh/sơ đồ bo thật **trước khi nạp**; có bo thì log `esp_camera_init` OK và `PID 0x3660`.
 - [ ] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`.
 - [ ] `firmware/camera/README.md` có cách nạp bo ESP32-S3 (kể cả giữ BOOT + nhấn RST khi không vào được chế độ nạp) và cảnh báo nguồn.
