@@ -218,7 +218,9 @@ platform = espressif32
 framework = arduino
 monitor_speed = 115200
 ; ESP32-S3 N16R8: flash 16 MB che do QIO + PSRAM 8 MB che do OCTAL (OPI).
-; Ca khoi nay CHUA build thu tren may du an (12/10/2026) - cong pass 12.4 kiem.
+; Da build thu 12/10/2026 bang mot project tam (espressif32 7.1.3, Arduino core 2.0.17,
+; doan ma do camera dung esp_camera.h): SUCCESS, firmware.map dung sdk esp32s3/qio_opi.
+; Project that trong firmware/camera/ van phai build lai - cong pass 12.4.
 board = esp32-s3-devkitc-1
 board_build.arduino.memory_type = qio_opi
 board_build.flash_mode = qio
@@ -340,8 +342,10 @@ pio run -e esp32s3_n16r8
 ```
 
 **Kết quả mong đợi:** lệnh kết thúc bằng `SUCCESS`; `git status` **không** hiện
-`include/secrets.h` và **không** hiện thư mục `.pio/`. Build được rồi thì sửa ghi chú "CHUA build
-thu" trong `platformio.ini` thành đã build, kèm ngày.
+`include/secrets.h` và **không** hiện thư mục `.pio/`. Cấu hình env này đã build thử được ngày
+12/10/2026 bằng một project tạm, nên lỗi build ở đây gần như chắc nằm ở mã của project, không ở cấu
+hình bo. Toolchain đã tải sẵn vào `D:\DevCache\tools\platformio`; lệnh `pio` nằm ở
+`D:\DevCache\tools\platformio\penv\Scripts\pio.exe` (chưa có trong PATH).
 
 **Nếu lỗi:**
 - `Unknown board ID 'esp32-s3-devkitc-1'` → chạy `pio boards | findstr -i esp32-s3` lấy tên thật,
@@ -590,7 +594,7 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
 
 - [ ] `firmware/dronebridge/bin/` có file `.bin`; `git status` **không** liệt kê nó.
 - [ ] `firmware/dronebridge/README.md` có đủ 5 mục; bảng cấu hình điền hết trừ 3 ô *chưa xác minh*.
-- [ ] `pio run -e esp32s3_n16r8` → `SUCCESS`; ghi chú "CHUA build thu" trong `platformio.ini` đã đổi thành đã build, kèm ngày.
+- [ ] `pio run -e esp32s3_n16r8` → `SUCCESS` trên project thật `firmware/camera/` (cấu hình bo đã build thử 12/10/2026).
 - [ ] Bảng chân camera đã đối chiếu với ảnh/sơ đồ bo thật **trước khi nạp**; có bo thì log `esp_camera_init` OK và `PID 0x3660`.
 - [ ] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`.
 - [ ] `firmware/camera/README.md` có cách nạp bo ESP32-S3 (kể cả giữ BOOT + nhấn RST khi không vào được chế độ nạp) và cảnh báo nguồn.
