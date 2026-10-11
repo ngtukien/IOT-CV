@@ -4,7 +4,7 @@
  * Hợp đồng Phase 05: box là PIXEL trong hệ của khung gốc (`width` × `height`
  * của chính message `detection`), còn `<img>` hiển thị ở cỡ khác — co giãn theo
  * bố cục. Hệ số luôn lấy từ message, KHÔNG gõ cứng 320×240 hay 640×480: nguồn
- * giả mặc định là VGA, ESP32-CAM thật là QVGA, và panel không được phải sửa khi
+ * giả mặc định là VGA, camera ESP32-S3 thật dự kiến QVGA, và panel không được phải sửa khi
  * đổi nguồn. Quên quy đổi thì box VẪN vẽ ra — chỉ là lệch chỗ, không gì báo lỗi.
  */
 import type { DetectionBox, DetectionPayload } from "./protocol";

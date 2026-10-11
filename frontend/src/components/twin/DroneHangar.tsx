@@ -1,7 +1,7 @@
 /**
  * XƯỞNG 3D — drone S500 trong studio: sàn phản chiếu, đèn studio, xoay quanh,
  * và hoạt ảnh THÁO RỜI / LẮP LẠI từng linh kiện có nhãn (FC, GPS, TFmini,
- * ESP32-CAM, pin, tay + ESC + motor, càng đáp).
+ * camera ESP32-S3, pin, tay + ESC + motor, càng đáp).
  *
  * Linh kiện và thông số lấy theo cấu hình đã chốt của dự án
  * (`docs/archive/plan-nhap-92-giai-doan.md`, `firmware/ardupilot/params/`).

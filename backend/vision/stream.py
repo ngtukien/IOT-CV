@@ -1,7 +1,7 @@
 """Đọc luồng MJPEG từ camera và phát lại cho nhiều trình duyệt — Phase 07 §7.8.2.
 
 File này KHÔNG biết nguồn là gì. Nó đọc `multipart/x-mixed-replace` từ một URL
-— nguồn video giả của Phase 07 hay ESP32-CAM thật (Phase 17) đều như nhau, miễn
+— nguồn video giả của Phase 07 hay camera ESP32-S3 thật (Phase 17) đều như nhau, miễn
 đúng hợp đồng `docs/hop-dong-mjpeg.md`. Nó không import gì từ module nguồn giả,
 và tên module đó không xuất hiện trong file này — test canh bằng chính phép
 `grep` của plan (rủi ro cuối bảng Phase 07).

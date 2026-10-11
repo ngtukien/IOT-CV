@@ -168,7 +168,7 @@ VISION_ENABLED = _env_bool("VISION_ENABLED", True)  # tắt hẳn vision khi tes
 # Nguồn video GIẢ (Phase 07 §7.8.3) — camera thật chỉ có từ Phase 17. Bật thì
 # backend tự phục vụ một luồng MJPEG lặp video mẫu ở `/api/video/fake-source`
 # và `stream.py` đọc từ ĐÓ, như đọc từ bất kỳ URL nào khác. Tắt (0) thì đọc
-# `CAMERA_STREAM_URL` (ESP32-CAM thật).
+# `CAMERA_STREAM_URL` (camera ESP32-S3 + OV3660 thật).
 CAMERA_FAKE = _env_bool("CAMERA_FAKE", True)
 CAMERA_FAKE_CLIP = str(
     (PROJECT_ROOT / _env_str("CAMERA_FAKE_CLIP", "backend/vision/assets/sample-clip.mp4")).resolve()

@@ -5,11 +5,11 @@
  *
  *   - khung S500: đường chéo motor 500 mm, hai tay TRƯỚC màu đỏ (nhận hướng
  *     bằng mắt, như khung thật), hai tay sau trắng;
- *   - motor chuông + cánh quạt 10" (Ø 254 mm), chiều quay đúng thứ tự motor
- *     Quad-X của ArduPilot: 1 trước-phải CCW · 2 sau-trái CCW · 3 trước-trái CW
- *     · 4 sau-phải CW;
+ *   - motor chuông + cánh quạt 10" (Ø 254 mm), chiều quay Quad-X theo VỊ TRÍ:
+ *     trước-phải CCW · sau-trái CCW · trước-trái CW · sau-phải CW. Số motor theo
+ *     FRAME_TYPE 12 (X Betaflight, = nhãn in trên ESC OX32): 2 · 3 · 4 · 1;
  *   - cột GPS (Holybro M10), pin LiPo 4S dưới bụng, TFmini Plus ở mũi,
- *     ESP32-CAM dưới mũi, đèn điều hướng (xanh trước, đỏ sau, nháy trắng khi ARM).
+ *     camera ESP32-S3 + OV3660 dưới mũi, đèn điều hướng (xanh trước, đỏ sau, nháy trắng khi ARM).
  *
  * Hệ trục của model: mũi hướng −Z, phải là +X, lên là +Y, đơn vị MÉT, gốc ở
  * mặt dưới càng đáp (đặt model ở y = 0 là đứng trên đất).
@@ -46,10 +46,10 @@ interface MotorDef {
 
 const D = ARM_REACH * Math.SQRT1_2;
 export const MOTORS: readonly MotorDef[] = [
-  { x: D, z: -D, dir: 1, front: true }, // motor 1 trước-phải CCW
-  { x: -D, z: D, dir: 1, front: false }, // motor 2 sau-trái CCW
-  { x: -D, z: -D, dir: -1, front: true }, // motor 3 trước-trái CW
-  { x: D, z: D, dir: -1, front: false }, // motor 4 sau-phải CW
+  { x: D, z: -D, dir: 1, front: true }, // trước-phải CCW (motor 2 theo FRAME_TYPE 12)
+  { x: -D, z: D, dir: 1, front: false }, // sau-trái CCW (motor 3)
+  { x: -D, z: -D, dir: -1, front: true }, // trước-trái CW (motor 4)
+  { x: D, z: D, dir: -1, front: false }, // sau-phải CW (motor 1)
 ];
 
 function useMaterials() {
@@ -353,8 +353,8 @@ function Body({ m, strobe, explode, labels }: { m: Mats; strobe: RefObject<THREE
         ))}
       </group>
       </Part>
-      <Part offset={[0, -0.08, -0.14]} explode={explode} label="ESP32-CAM · camera + AI" showLabel={labels} labelAt={[0, BODY_Y - 0.04, -0.095]}>
-      {/* ESP32-CAM dưới mũi, nghiêng nhìn xuống 15° */}
+      <Part offset={[0, -0.08, -0.14]} explode={explode} label="ESP32-S3 + OV3660 · camera + AI" showLabel={labels} labelAt={[0, BODY_Y - 0.04, -0.095]}>
+      {/* Camera ESP32-S3 + OV3660 dưới mũi, nghiêng nhìn xuống 15° */}
       <group position={[0, BODY_Y - 0.012, -0.095]} rotation={[-0.26, 0, 0]}>
         <mesh material={m.pcb} castShadow>
           <boxGeometry args={[0.027, 0.04, 0.005]} />

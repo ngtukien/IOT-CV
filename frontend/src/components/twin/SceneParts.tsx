@@ -425,10 +425,10 @@ export function ShadowCatcher({ follow }: { follow: THREE.Vector3 }) {
 }
 
 // ---------------------------------------------------------------------------
-// Nón nhìn của camera ESP32-CAM
+// Nón nhìn của camera ESP32-S3 (OV3660)
 // ---------------------------------------------------------------------------
 
-/** OV2640 ống kính thường: ~54° ngang × ~42° dọc. Chỉ để minh hoạ vùng thấy được. */
+/** ~54° ngang × ~42° dọc lấy theo ống kính OV2640 thường; module OV3660 thật chưa đo. Chỉ để minh hoạ vùng thấy được. */
 const CAM_HFOV = 54;
 const CAM_VFOV = 42;
 const CAM_RANGE_M = 4;

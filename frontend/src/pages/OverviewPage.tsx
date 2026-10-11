@@ -61,7 +61,7 @@ function Hero() {
           <p className="eyebrow">Phương tiện</p>
           <h2 className="mt-1 font-display text-3xl font-semibold tracking-[0.02em]">S500 · ArduCopter 4.7</h2>
           <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-            SpeedyBee F405 V5 · GPS M10 · TFmini Plus · ESP32-CAM. Model 3D nghiêng theo tư thế thật, cánh quay khi ARMED.
+            SpeedyBee F405 V5 · GPS M10 · TFmini Plus · ESP32-S3 + OV3660. Model 3D nghiêng theo tư thế thật, cánh quay khi ARMED.
           </p>
           <div className="mt-3 flex flex-wrap gap-2 font-mono text-xs">
             <span className="rounded-md border border-border bg-foreground/5 px-2 py-1">{t?.mode ?? NO_VALUE}</span>
@@ -101,7 +101,7 @@ function useHealth(): Health[] {
     { name: "EKF", tone: t?.ekf_ok == null ? "neutral" : t.ekf_ok ? "ok" : "danger", value: t?.ekf_ok == null ? NO_VALUE : t.ekf_ok ? "OK" : "Lỗi", note: "ước lượng vị trí" },
     { name: "Pin", tone: t?.battery_remaining == null ? "neutral" : t.battery_remaining < 25 ? "danger" : "ok", value: formatNumber(t?.battery_remaining, 0, "%"), note: formatNumber(t?.battery_voltage, 1, "V") },
     { name: "Vật cản", tone: !t?.avoid_state ? "neutral" : t.avoid_state === "OFF" ? "ok" : t.avoid_state === "UNKNOWN" ? "neutral" : t.avoid_state === "NEAR" ? "warn" : "danger", value: t?.avoid_state ? AVOID_STATE_LABEL[t.avoid_state] : NO_VALUE, note: formatNumber(t?.obstacle_distance, 1, "m") },
-    { name: "Camera", tone: status?.camera?.available ? "ok" : status ? "warn" : "neutral", value: status?.camera?.available ? "Có hình" : status ? "Không hình" : NO_VALUE, note: status?.camera?.fake ? "nguồn giả" : "ESP32-CAM" },
+    { name: "Camera", tone: status?.camera?.available ? "ok" : status ? "warn" : "neutral", value: status?.camera?.available ? "Có hình" : status ? "Không hình" : NO_VALUE, note: status?.camera?.fake ? "nguồn giả" : "ESP32-S3" },
     { name: "Mission", tone: status?.mission?.source === "readback" ? "ok" : status?.mission?.source === "local" ? "warn" : "neutral", value: status?.mission?.source === "readback" ? `${status.mission.count} item` : status?.mission?.source === "local" ? "Chưa xác nhận" : "Trống", note: "trên FC" },
     { name: "WEB CONTROL", tone: status?.safety.web_control_enabled ? "warn" : status ? "ok" : "neutral", value: status ? (status.safety.web_control_enabled ? "ĐANG BẬT" : "Tắt") : NO_VALUE, note: "quyền lái của web" },
   ];

@@ -98,7 +98,7 @@ function ConfidenceBars({ bins }: { bins: number[] }) {
 /** Sơ đồ đường đi của hình ảnh: hai luồng tách nhau (video ≠ box). */
 function Pipeline() {
   const nodes = [
-    { x: 20, y: 40, t: "ESP32-CAM", s: "MJPEG · QVGA/VGA" },
+    { x: 20, y: 40, t: "ESP32-S3 OV3660", s: "MJPEG · QVGA/VGA" },
     { x: 230, y: 40, t: "Backend", s: "fan-out, không mã hoá lại" },
     { x: 440, y: 40, t: "Trình duyệt", s: "<img> + canvas" },
     { x: 230, y: 150, t: "Bộ nhận diện", s: "3–5 khung/giây" },
@@ -184,7 +184,7 @@ export default function VisionPage() {
           <Pipeline />
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>
-              <span className="font-medium text-foreground">Một kết nối tới camera.</span> ESP32-CAM chỉ phục vụ tốt một client, và backend đã
+              <span className="font-medium text-foreground">Một kết nối tới camera.</span> Camera ESP32-S3 chỉ phục vụ tốt một client, và backend đã
               chiếm chỗ đó để chạy AI — nên backend làm trạm chia (fan-out) cho mọi tab, chép byte, không giải mã lại.
             </p>
             <p>

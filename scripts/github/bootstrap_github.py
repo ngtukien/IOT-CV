@@ -52,7 +52,7 @@ LABELS: list[tuple[str, str, str]] = [
     ("area/backend", "c5def5", "FastAPI + MAVLink backend"),
     ("area/frontend", "c5def5", "Web GCS (telemetry, map, control)"),
     ("area/ml", "c5def5", "Dataset, training, YOLO"),
-    ("area/esp32", "c5def5", "ESP32-CAM và MAVLink bridge"),
+    ("area/esp32", "c5def5", "Camera ESP32-S3 và MAVLink bridge"),
     ("area/flight", "c5def5", "Bay thật, flight log, calibration"),
     ("area/hardware", "c5def5", "Frame, motor, ESC, hệ thống nguồn"),
     ("area/infra", "c5def5", "CI, Makefile, cấu hình repo"),

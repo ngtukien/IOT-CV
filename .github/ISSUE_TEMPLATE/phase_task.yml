@@ -48,7 +48,7 @@ body:
       label: Cần hardware thật?
       options:
         - "Không — làm được với SITL"
-        - "Cần ESP32-CAM"
+        - "Cần camera ESP32-S3"
         - "Cần flight controller / drone (props THÁO)"
         - "Cần bay thật"
     validations:

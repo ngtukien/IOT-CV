@@ -86,8 +86,8 @@ const PARTS: [string, string][] = [
   ["FC SpeedyBee F405 V5", "Chạy ArduCopter 4.7 bản custom — thứ DUY NHẤT giữ thăng bằng"],
   ["GPS Holybro M10", "La bàn IST8310, đặt trên cột xa nhiễu từ"],
   ["TFmini Plus", "Tia đo 3.6° nhìn thẳng trước, SERIAL3 — AVOID phanh ở Loiter"],
-  ["ESP32-CAM", "MJPEG lên backend; AI chỉ sinh sự kiện, không lái"],
-  ["Motor + ESC + cánh 10\"", "Quad-X: 1 trước-phải CCW · 2 sau-trái CCW · 3 trước-trái CW · 4 sau-phải CW"],
+  ["Camera ESP32-S3 + OV3660", "MJPEG lên backend; AI chỉ sinh sự kiện, không lái"],
+  ["Motor + ESC + cánh 10\"", "Quad-X Betaflight (FRAME_TYPE 12, khớp nhãn ESC): 1 sau-phải CW · 2 trước-phải CCW · 3 sau-trái CCW · 4 trước-trái CW"],
   ["Pin LiPo 4S", "14.8 V danh định — kiểm từng cell trước khi bay"],
   ["RC FS-i6X + iA6B", "Luôn có quyền cao hơn web (SAFETY.md mục 4)"],
 ];

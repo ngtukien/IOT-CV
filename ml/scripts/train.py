@@ -4,9 +4,9 @@ Các model của đồ án:
 
     Model A = YOLO pretrained COCO (baseline, không train)
     Model B = A + VisDrone Person
-    Model C = B + own ESP32-CAM ground dataset
+    Model C = B + own ESP32-S3/OV3660 ground dataset
     Model D = C + degradation augmentation
-    Model E = C/D + airborne ESP32-CAM dataset  <- FINAL DEPLOYMENT MODEL
+    Model E = C/D + airborne ESP32-S3/OV3660 dataset  <- FINAL DEPLOYMENT MODEL
 
 Giữ NGUYÊN image size, test set và cách đánh giá confidence giữa các model để so
 sánh công bằng.

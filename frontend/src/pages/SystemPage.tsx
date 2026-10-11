@@ -83,7 +83,7 @@ function Architecture() {
       {box(20, 40, "Trình duyệt", "Web GCS v2 · React 19")}
       {box(300, 40, "Backend", "FastAPI · pymavlink")}
       {box(580, 40, "Flight controller", "ArduCopter 4.7 · SITL/thật")}
-      {box(300, 180, "Camera", "ESP32-CAM / nguồn giả")}
+      {box(300, 180, "Camera", "ESP32-S3 / nguồn giả")}
       {box(580, 180, "Broker IoT", "mosquitto — chưa làm", true)}
       <text x="20" y="285" className="fill-muted-foreground text-[11px]">
         Xanh chạy = đang sống · đỏ đứt = mất · xám = chưa biết hoặc chưa triển khai
