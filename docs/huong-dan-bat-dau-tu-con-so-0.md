@@ -178,7 +178,7 @@ KHONG -- ESC 30A roi            : stack da co ESC 4-in-1 55A khoe hon
 KHONG -- Power board (PDB)      : stack da kiem luon viec nay
 KHONG -- Pin 3S                 : khung S500 bat buoc 4S, ban da co dung roi
 KHONG -- Dong ho do cell pin    : sac B6AC V2 da co san chuc nang nay
-KHONG -- ESP32-CAM ngay bay gio : de sau, khi drone bay on dinh da
+KHONG -- ESP32-CAM, XIAO S3     : da loai; camera that la ESP32-S3 N16R8 + OV3660 (12/10/2026)
 ```
 
 ---

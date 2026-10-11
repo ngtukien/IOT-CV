@@ -1,5 +1,10 @@
 # Research Report: ESP32 MAVLink bridge + ESP32-CAM cho drone ArduPilot
 
+> **Ghi chú 12/10/2026:** bản ghi nghiên cứu ngày 21/09/2026, giữ nguyên để biết lý do. Phần cứng
+> thật đã đổi: camera là **ESP32-S3 N16R8 + OV3660** (không phải ESP32-CAM / XIAO ESP32S3 Sense);
+> số liệu fps, góc nhìn, dòng điện, anten của ESP32-CAM/OV2640 ở đây chưa đúng cho bo mới. Danh
+> sách linh kiện đúng nhất: `docs/phan-cung-thuc-te.md`.
+
 **Ngày:** 2026-09-21 · **Dự án:** IOT-CV (SpeedyBee F405 V5, ArduPilot Copter 4.7.1, Windows 11, người mới)
 
 ## Summary

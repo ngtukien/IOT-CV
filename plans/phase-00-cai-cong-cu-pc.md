@@ -272,7 +272,7 @@ Nếu lỗi:
 
 ### 00.5 VS Code + PlatformIO và Arduino IDE
 
-Dùng cho firmware ESP32 ở Phase 12 (project camera). PlatformIO được chọn làm chính vì nó ghim được phiên bản thư viện trong `platformio.ini` và đưa được vào CI; Arduino IDE là hạng hai, cài để đọc được các tutorial ESP32-CAM trên mạng.
+Dùng cho firmware ESP32 ở Phase 12 (project camera). PlatformIO được chọn làm chính vì nó ghim được phiên bản thư viện trong `platformio.ini` và đưa được vào CI; Arduino IDE là hạng hai, cài để đọc được các tutorial camera ESP32 trên mạng (camera thật của dự án là ESP32-S3 N16R8 + OV3660).
 
 VS Code và PlatformIO IDE **đã được cài sẵn trên máy này** trước khi viết phase này. Không cần cài lại — bước này chỉ còn là **xác minh** cộng **dời `PLATFORMIO_CORE_DIR`** (biến này đã được bước 00.0 đặt sang `D:\DevCache\tools\platformio`, nhưng PlatformIO chỉ đọc nó khi dựng lại core dir).
 

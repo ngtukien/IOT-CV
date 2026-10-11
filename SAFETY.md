@@ -83,7 +83,7 @@ việc frontend có gửi lệnh dừng hay không.
 
 ## 9. Camera và AI không được ảnh hưởng bay
 
-Khi ESP32-CAM ngắt hoặc process YOLO crash:
+Khi camera (ESP32-S3) ngắt hoặc process YOLO crash:
 
 ```text
 telemetry vẫn chạy

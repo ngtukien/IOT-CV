@@ -1,4 +1,7 @@
-# Hai quyết định chưa chốt (mang sang phiên khác để trao đổi)
+# Quyết định chưa chốt (mang sang phiên khác để trao đổi)
+
+> **Cập nhật 12/10/2026:** Quyết định 1 (camera) **đã chốt** — ESP32-S3 N16R8 + module OV3660, xem
+> mục dưới và `docs/phan-cung-thuc-te.md`. Chỉ còn **Quyết định 2** (đề tài Xử lý ảnh) đang mở.
 
 > Cách dùng: mở phiên Claude mới, dán câu này: *"Đọc file `plans/QUYET-DINH-CHUA-CHOT.md` rồi giải thích cho tôi từng lựa chọn như nói với người chưa biết gì, sau đó hỏi tôi từng câu một để chốt."*
 > Bốn báo cáo nghiên cứu gốc nằm ở `plans/reports/260921-research-*.md`. Không cần đọc chúng trước, file này đã tóm tắt đủ để quyết.
@@ -7,7 +10,15 @@ Ngày ghi: 21/09/2026. Bối cảnh: đã duyệt kiến trúc, luồng chính 2
 
 ---
 
-## Quyết định 1: Mua camera nào cho drone
+## Quyết định 1: Mua camera nào cho drone — ĐÃ CHỐT 12/10/2026
+
+**Kết quả:** bo **ESP32-S3 N16R8** (flash 16 MB, PSRAM 8 MB) gắn module **OV3660** làm camera trên
+drone. Không phải phương án nào trong ba phương án dưới: không mua ESP32-CAM, không mua XIAO
+ESP32S3 Sense. Cảm biến OV3660 là cùng loại với XIAO S3 Sense trong bảng dưới, nên cột "XIAO" là
+cột gần với đồ thật nhất (có cổng USB-C, nạp không cần USB-TTL). Tên bo cụ thể và bảng chân camera
+còn phải xác minh ở Phase 12.
+
+Phân tích ngày 21/09/2026 dưới đây giữ nguyên để biết lý do từng cân nhắc.
 
 ### Bối cảnh bằng lời thường
 
@@ -61,7 +72,7 @@ Cả 4 hướng dưới đây **vẫn dùng YOLO nhận diện người**, nhưn
 **Hướng A: "Đo xem camera rẻ làm hỏng ảnh như thế nào, rồi bắt chước cái hỏng đó"**
 
 - Ví dụ đời thường: giống như đo xem cái kính cận của bạn mờ bao nhiêu độ, rồi làm một cái bộ lọc trên máy tính để "làm mờ y hệt" bất kỳ ảnh nào.
-- Bạn sẽ làm gì: in vài tấm bảng mẫu (bảng đo độ nét, bảng thang xám, lưới ô vuông), chụp bằng ESP32-CAM, đo bằng phần mềm xem ảnh mờ bao nhiêu, nhiễu bao nhiêu, méo bao nhiêu. Rồi viết chương trình áp cái "hỏng" đo được lên hàng nghìn ảnh drone có sẵn trên mạng (bộ VisDrone), để huấn luyện AI quen với ảnh xấu.
+- Bạn sẽ làm gì: in vài tấm bảng mẫu (bảng đo độ nét, bảng thang xám, lưới ô vuông), chụp bằng camera của drone (ESP32-S3 + OV3660), đo bằng phần mềm xem ảnh mờ bao nhiêu, nhiễu bao nhiêu, méo bao nhiêu. Rồi viết chương trình áp cái "hỏng" đo được lên hàng nghìn ảnh drone có sẵn trên mạng (bộ VisDrone), để huấn luyện AI quen với ảnh xấu.
 - Câu hỏi nghiên cứu: "Bắt chước theo số đo thật có giúp AI nhận diện tốt hơn so với bắt chước bừa (cách các bài báo hiện nay đang làm) không?"
 - Điểm mạnh: chưa ai công bố số đo này cho loại camera này. Gần như 0 đồng. Chạy trên CPU là đủ.
 - Điểm yếu: cần cẩn thận, tỉ mỉ khi đo.
@@ -70,7 +81,7 @@ Cả 4 hướng dưới đây **vẫn dùng YOLO nhận diện người**, nhưn
 
 - Ví dụ đời thường: bạn có ảnh mờ. Có nhiều app "làm nét ảnh" bằng AI. Câu hỏi: cho ảnh qua app làm nét trước, rồi đưa cho YOLO, thì YOLO nhận ra người tốt hơn, hay chỉ trông đẹp mắt người mà máy vẫn không nhận ra tốt hơn?
 - Tại sao hay: hai bài báo khoa học đang **cãi nhau**. Một bài nói làm nét giúp tăng 13 đến 36%. Bài khác nói gần như không tăng gì. Bạn đo lại trên camera của mình là một đóng góp thật.
-- Bạn sẽ làm gì: đặt ESP32-CAM và điện thoại cạnh nhau (trên cây sào hoặc trên drone), chụp cùng một cảnh, được 300 đến 500 cặp ảnh "xấu và đẹp" của cùng một khung hình. Rồi thử 3 đến 4 phần mềm làm nét có sẵn (không cần tự huấn luyện), đo xem cái nào giúp YOLO, cái nào không, và mỗi cái tốn bao nhiêu mili giây.
+- Bạn sẽ làm gì: đặt camera của drone (ESP32-S3 + OV3660) và điện thoại cạnh nhau (trên cây sào hoặc trên drone), chụp cùng một cảnh, được 300 đến 500 cặp ảnh "xấu và đẹp" của cùng một khung hình. Rồi thử 3 đến 4 phần mềm làm nét có sẵn (không cần tự huấn luyện), đo xem cái nào giúp YOLO, cái nào không, và mỗi cái tốn bao nhiêu mili giây.
 - Điểm mạnh: **không cần huấn luyện AI**, rẻ nhất, ít rủi ro nhất, **làm được ngay cả khi drone chưa bay** (thu ảnh bằng sào). Có bộ ảnh cặp thật là thứ rất ít đồ án có.
 - Điểm yếu: phải căn chỉnh hai ảnh cho khớp nhau (có thuật toán sẵn, không khó).
 
@@ -110,8 +121,8 @@ Chọn **B làm trục chính, A làm phần bổ trợ**. B hoàn thành đư�
 ## Những gì KHÔNG bị chặn bởi hai quyết định này
 
 - Phase 00 đến 10: cài môi trường, drone ảo, backend, website. Làm ngay.
-- Phase 11, 12: firmware ArduPilot, DroneBridge, project camera (viết cho cả hai loại board). Không cần biết mua loại nào.
+- Phase 11, 12: firmware ArduPilot, DroneBridge, project camera (viết cho bo ESP32-S3 N16R8 + OV3660 đã chốt).
 - Phase 14 đến 22: nạp firmware, test trên bàn, lắp ráp, bay thử. Camera chỉ xuất hiện ở Phase 17 (stream thử) và Phase 18 (gắn lên khung).
 - AI Phase 1 (chuẩn bị AI): tải bộ VisDrone, cài công cụ gán nhãn, viết pipeline suy giảm ảnh. Dùng chung cho mọi hướng.
 
-Chỉ cần chốt trước khi **lên danh sách mua camera** (Phase 13) và **bắt đầu thí nghiệm** (AI Phase 2).
+Camera đã chốt và đã mua (12/10/2026). Quyết định 2 chỉ cần chốt trước khi **bắt đầu thí nghiệm** (AI Phase 2).

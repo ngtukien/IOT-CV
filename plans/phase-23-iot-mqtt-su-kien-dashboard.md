@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 21 (bay tự động + web đã điều khiển được drone thật) | ~25 giờ | Có (drone bay được, camera ESP32-CAM đã stream từ Phase 17, thước dây 30 m, 1–2 người tình nguyện đứng làm mục tiêu — **luôn cách drone ≥ 10 m theo phương ngang, không ai đứng dưới drone**) |
+| chưa bắt đầu | Phase 21 (bay tự động + web đã điều khiển được drone thật) | ~25 giờ | Có (drone bay được, camera ESP32-S3 + OV3660 đã stream từ Phase 17, thước dây 30 m, 1–2 người tình nguyện đứng làm mục tiêu — **luôn cách drone ≥ 10 m theo phương ngang, không ai đứng dưới drone**) |
 
 ## Mục tiêu
 
@@ -26,10 +26,10 @@ Kết thúc phase: bật drone, bay lên, cho một người đi vào khung hìn
 **Phải có sẵn:**
 
 - Drone đã pass F5–F8 ở Phase 21 (Auto từ Mission Planner, Guided/Auto từ web, web manual, RC override).
-- Camera ESP32-CAM stream được lên web (Phase 17), backend đã có parser MJPEG và fan-out.
+- Camera ESP32-S3 + OV3660 stream được lên web (Phase 17), backend đã có parser MJPEG và fan-out.
 - `docker-compose.yml` đã có khung service `mosquitto` từ Phase 01 (phase này điền cấu hình thật).
 - `.env.example` đã có khối MQTT từ trước (`MQTT_BROKER`, `MQTT_PORT`, `MQTT_CLIENT_ID`) và khối Vision (`DETECTION_CONFIDENCE=0.6`, `DETECTION_MIN_FRAMES=3`, `DETECTION_COOLDOWN_S=4`).
-- Ma trận nội tham số **K** và hệ số méo `(k1, k2, p1, p2, k3)` của ESP32-CAM. Nếu luồng AI chưa hiệu chuẩn xong, việc 23.6 có đường đi riêng (xem bước 0 của việc đó) — **không chờ**.
+- Ma trận nội tham số **K** và hệ số méo `(k1, k2, p1, p2, k3)` của camera OV3660. Nếu luồng AI chưa hiệu chuẩn xong, việc 23.6 có đường đi riêng (xem bước 0 của việc đó) — **không chờ**.
 - Một bộ trọng số bất kỳ cho detector: `ml/weights/yolo11n.pt` tải sẵn là đủ.
 
 ## File và thư mục sở hữu
@@ -424,7 +424,7 @@ Câu hỏi: biết một người ở vị trí nào **trên ảnh**, biết dro
 
 Làm theo đúng 5 bước ở `docs/bao-cao-tong-quan-du-an.md` §5.6.
 
-**Bước 0 — nguồn ma trận K.** Lý tưởng là K từ hiệu chuẩn bàn cờ của luồng AI. Nếu chưa có, **không chờ**: dùng K xấp xỉ từ thông số ống kính OV2640 (tiêu cự ~2.8 mm, kích thước điểm ảnh ~2.2 µm ở VGA ⇒ `fx ≈ fy ≈ 1273 px`, `cx = 320`, `cy = 240`), đặt hệ số méo về 0, và **đánh dấu rõ trong log và báo cáo là `K_source: "approx_datasheet"`**. Khi có K hiệu chuẩn thật thì đổi sang `K_source: "calibrated"` và chạy lại phân tích sai số. Con số tiêu cự này là **chưa xác minh** — suy ra từ datasheet, không phải đo.
+**Bước 0 — nguồn ma trận K.** Lý tưởng là K từ hiệu chuẩn bàn cờ của luồng AI. Nếu chưa có, **không chờ**: dùng K xấp xỉ từ datasheet module camera. **Camera thật là OV3660** (đổi 12/10/2026); con số mẫu cũ (tiêu cự ~2.8 mm, kích thước điểm ảnh ~2.2 µm ở VGA ⇒ `fx ≈ fy ≈ 1273 px`) là của OV2640 — tra tiêu cự ống kính và kích thước điểm ảnh của module OV3660 thật rồi tính lại `fx`, `fy` (`cx = 320`, `cy = 240` ở VGA vẫn đúng), đặt hệ số méo về 0, và **đánh dấu rõ trong log và báo cáo là `K_source: "approx_datasheet"`**. Khi có K hiệu chuẩn thật thì đổi sang `K_source: "calibrated"` và chạy lại phân tích sai số. Con số tiêu cự này là **chưa xác minh** — suy ra từ datasheet, không phải đo.
 
 **Bước 1–5 (nội dung `backend/vision/geo.py`):**
 

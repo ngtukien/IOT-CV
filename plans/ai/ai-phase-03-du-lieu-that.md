@@ -153,7 +153,7 @@ Tên file khung: `<session_id>_<frame_index:06d>.jpg`. `split_dataset.py` (A1.4)
 
 **Làm gì.** Thu ảnh ở **5 m / 8 m / 12–15 m**, mỗi dải **≥ 100–150 khung có người**, giữ mọi điều kiện khác tương đương: cùng nhóm người, cùng tư thế, cùng khoảng giờ trong ngày, cùng nền. Đây là dữ liệu duy nhất trả lời được TN D, và TN D là giả thuyết nguyên bản nhất của đề tài.
 
-Bối cảnh số pixel (từ §3.7, tính cho OV2640 VGA nhìn thẳng xuống — **là giá trị danh nghĩa, thay bằng số đo sau khi hiệu chuẩn camera**):
+Bối cảnh số pixel (từ §3.7, tính cho OV2640 VGA nhìn thẳng xuống — **là giá trị danh nghĩa; camera thật là OV3660 (đổi 12/10/2026), thay bằng số đo sau khi hiệu chuẩn camera**):
 
 | Độ cao | Điểm ảnh / mét | Người đứng (~0.5 m rộng) | Người nằm (~1.7 m) |
 |---|---|---|---|

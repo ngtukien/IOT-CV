@@ -1,5 +1,11 @@
 # Research Report: SITL, nạp firmware và toolchain PC cho SpeedyBee F405 V5 (Copter 4.7.1)
 
+> **Ghi chú 12/10/2026:** bản ghi ngày 21/09/2026, giữ nguyên. Sau khi đối chiếu bo thật với tài liệu
+> chính hãng: `FRAME_TYPE` đổi 1 → 12 (ESC OX32 đánh số motor kiểu Betaflight), `BATT_AMP_PERVLT`
+> 25 → 370,4 và thêm `BATT_AMP_OFFSET` 0,0071 (số SpeedyBee công bố), banner bo hiện `speedybeef4v5`
+> chứ không phải "SpeedyBeeF405V5". Xem `firmware/ardupilot/params/01-base.param` và
+> `docs/phan-cung-thuc-te.md`.
+
 **Ngày:** 2026-09-21 · **Máy:** Windows 11 (build 10.0.26200), WSL2 Ubuntu 24.04 (đang `Stopped`, chưa cài gì), Docker Desktop 29.6.2, Python 3.13/3.11/3.8 trên Windows
 **Phạm vi:** những việc làm được trên PC **trước khi** phần cứng về (~1 tuần)
 

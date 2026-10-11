@@ -1,5 +1,10 @@
 # Brainstorm: thiết kế tổng thể dự án UAV IoT + Xử lý ảnh (đã duyệt 21/09/2026)
 
+> **Ghi chú 12/10/2026:** bản ghi nghiên cứu ngày 21/09/2026, giữ nguyên để biết lý do. Phần cứng
+> thật đã đổi: camera là **ESP32-S3 N16R8 + OV3660** (không phải ESP32-CAM / XIAO ESP32S3 Sense);
+> số liệu fps, góc nhìn, dòng điện, anten của ESP32-CAM/OV2640 ở đây chưa đúng cho bo mới. Danh
+> sách linh kiện đúng nhất: `docs/phan-cung-thuc-te.md`.
+
 Trạng thái: **đã duyệt** (kiến trúc + frontend Vite/React; cấu trúc phase sửa lần 3 thành 25 phase chính + 4 phase AI theo yêu cầu người dùng). Hai điểm để mở, ghi ở `plans/QUYET-DINH-CHUA-CHOT.md`: chọn camera, chọn đề tài Xử lý ảnh.
 
 Nguồn: 4 báo cáo nghiên cứu cùng ngày trong `plans/reports/260921-research-*.md`. README 3800 dòng cũ là bản nháp tham khảo, không phải kế hoạch bám theo.

@@ -1,7 +1,7 @@
 # Hợp đồng luồng MJPEG — nguồn sự thật duy nhất
 
 Mọi nguồn video của dự án (nguồn giả `backend/vision/fake_stream.py` ở Phase 07,
-ESP32-CAM thật ở Phase 17) phát theo đúng hợp đồng này, và `backend/vision/stream.py`
+camera ESP32-S3 + OV3660 thật ở Phase 17) phát theo đúng hợp đồng này, và `backend/vision/stream.py`
 đọc theo đúng hợp đồng này. `plans/phase-12-firmware-esp32-camera.md` và
 `plans/ai/ai-phase-01-chuan-bi.md` chỉ **trích dẫn** file này; không nơi nào khác
 được định nghĩa lại tên header.
@@ -57,7 +57,7 @@ Không thêm, không bớt header riêng nào ngoài bốn cái trên. `Content-
 ## 5. Cỡ khung: QVGA là mốc thiết kế, nguồn giả mặc định VGA
 
 `plans/reports/260921-research-web-gcs-stack.md` §4.1: ESP32-CAM đạt khoảng 44 fps ở
-QVGA so với 14 fps ở VGA. QVGA 320×240 vì thế là **mốc thiết kế** cho camera thật.
+QVGA so với 14 fps ở VGA. QVGA 320×240 vì thế là **mốc thiết kế** cho camera thật. *(Hai con số đó là của ESP32-CAM/OV2640; camera thật từ 12/10/2026 là ESP32-S3 + OV3660, chưa đo — giữ QVGA làm mốc tới khi đo ở Phase 17.)*
 
 Nguồn giả mặc định **VGA 640×480** (`CAMERA_FAKE_FRAMESIZE`). Lý do đo thật ngày
 25/09/2026: mở `/api/video/stream` thẳng trong trình duyệt trên màn 2560 px, khung

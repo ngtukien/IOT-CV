@@ -54,36 +54,27 @@ Nam tháng 09/2026, dùng để ước ngân sách chứ không dùng để mặ
 T-Motor AIR GEAR 450 II (4× AIR2216 KV920 + 8 cánh T1045), Holybro M10 GPS 10 chân + cột nâng,
 FlySky FS-i6X + iA6B, pin Ovonic 4S 5300 mAh, sạc SkyRC iMAX B6AC V2, TFmini Plus.
 
+**Cập nhật 12/10/2026 — đã có thêm:** ESP32 DevKit CP2102 (đang chạy DroneBridge), bo camera
+**ESP32-S3 N16R8 + OV3660**, mạch USB-TTL CP2102, UBEC 5V 3A. Danh sách đầy đủ và đúng nhất:
+`docs/phan-cung-thuc-te.md`. Bảng dưới giữ nguyên cột giá để tham khảo, cột cuối ghi món nào đã có.
+
 | Món | SL | Giá ước tính *(chưa xác minh)* | Vì sao cần — **chặn việc nào** |
 |---|---|---|---|
 | Bát chống rung 30,5×30,5 mm | 1 | 50.000 – 150.000 ₫ | Khung S500 **không có** lỗ 30,5×30,5, stack thì bắt đúng chuẩn đó. Bắt cứng = truyền rung 4 motor thẳng vào cảm biến gia tốc → AltHold tự trôi lên/tụt xuống, Loiter trôi ngang. **Chặn Phase 18.** |
 | Dây silicone **16AWG**, 3 màu | 4,5 m | ~150.000 ₫ | Dây motor T-Motor chỉ dài 150 mm, mỗi cần khung ~240 mm. Cần 30 cm × 3 dây × 4 motor = 3,6 m, mua dư. **Chặn Phase 18.** |
 | Gen co nhiệt bộ nhiều cỡ 2–10 mm | 1 bộ | ~50.000 ₫ | Bọc 12 mối hàn dây motor. Hở một mối chạm cần khung = chập, cháy ESC. **Chặn Phase 18.** |
 | Dây rút nhựa 2,5×100 mm | 1 bịch | ~30.000 ₫ | Dây lủng lẳng bị cánh quạt chém đứt giữa lúc bay. **Chặn Phase 18.** |
-| UBEC 5V 3A | 1 | ~80.000 ₫ | Nguồn riêng cho ESP32 + camera. Ăn ké 5V của stack = bo bay reset khi Wi-Fi bật. **Chặn Phase 17.** |
-| ESP32 DevKit, chip **CP210x** | 1 | ~120.000 ₫ | Chạy DroneBridge. Ưu tiên CP210x hơn CH340 vì driver tải từ trang chính hãng Silicon Labs, ít rủi ro hơn. **Chặn Phase 17.** |
-| Mạch USB-TTL 3,3 V (CP2102) | 1 | ~30.000 ₫ | Bắt buộc cho **hai** việc: bench test TFmini (Phase 17) và nạp ESP32-CAM (không có cổng USB). **Chặn Phase 17.** |
-| Tụ 470–1000 µF, ≥16 V, low-ESR | 2 | ~20.000 ₫ | Chống brownout cho ESP32-CAM lúc Wi-Fi bật. **Chặn Phase 17** — chỉ khi chọn nhánh camera A. |
-| Anten ngoài 2,4 GHz u.FL | 1 | ~13.000 ₫ | Chỉ cần nếu chọn ESP32-CAM. **Cảnh báo: phải hàn lại một điện trở SMD 0-ohm** — việc khó với người mới, và chỉ dùng được một trong hai anten. |
-| Smoke stopper | 1 | ~150.000 ₫ | **Tuỳ chọn nhưng rất nên có.** Lần cắm pin đầu tiên, nếu có ngắn mạch nó chặn dòng thay vì để cháy stack ~2 triệu. |
-| Camera | 1 | xem dưới | **Quyết định đang mở** |
+| UBEC 5V 3A | 1 | ~80.000 ₫ | Nguồn riêng cho ESP32 + camera. Ăn ké 5V của stack = bo bay reset khi Wi-Fi bật. **Chặn Phase 17.** **Đã mua** (12/10/2026). |
+| ESP32 DevKit, chip **CP210x** | 1 | ~120.000 ₫ | Chạy DroneBridge. Ưu tiên CP210x hơn CH340 vì driver tải từ trang chính hãng Silicon Labs, ít rủi ro hơn. **Chặn Phase 17.** **Đã có** — ESP32-D0WD-V3 + CP2102, đã nạp DroneBridge v2.4.1. |
+| Mạch USB-TTL 3,3 V (CP2102) | 1 | ~30.000 ₫ | Bench test TFmini Plus trên máy tính (Phase 17). **Chặn Phase 17.** **Đã mua** (12/10/2026). Không còn cần để nạp camera — bo camera ESP32-S3 có cổng USB. |
+| Tụ 470–1000 µF, ≥16 V, low-ESR | 2 | ~20.000 ₫ | Chống sụt áp cho bo camera lúc Wi-Fi bật. **Không bắt buộc mua trước** — chỉ hàn khi bo camera ESP32-S3 khởi động lại lúc bật Wi-Fi (Phase 12.5). |
+| ~~Anten ngoài 2,4 GHz u.FL~~ | — | — | **Không cần** — chỉ dành cho ESP32-CAM, đã loại ngày 12/10/2026. |
+| Smoke stopper | 1 | ~150.000 ₫ | **Không cần mua** nếu hộp stack là bản Deluxe: món "Short-Circuit Protection Tool" kèm trong hộp chính là smoke stopper. Bản Standard thì vẫn rất nên mua. |
+| Camera | 1 | — | **Đã có:** ESP32-S3 N16R8 + module OV3660 (chốt 12/10/2026). |
 
-Camera — ghi cả ba nhánh, **chốt trước khi bấm nút mua**:
-
-```text
-Nhanh A - ESP32-CAM AI-Thinker    ~180.000d + anten 13.000d + tu 20.000d
-  Re nhat. Anh xau nhat -> co gia tri nhat cho de tai Xu ly anh.
-  Doi lai: khong co cong USB (nghi thuc IO0->GND moi lan nap), hay brownout,
-  phai han SMD neu muon anten ngoai.
-
-Nhanh B - XIAO ESP32S3 Sense      ~459.000d
-  USB-C (cam la nap), 8MB PSRAM, kem san anten ngoai, cam bien OV3660 moi hon.
-  Tiet kiem rat nhieu thoi gian cho nguoi moi.
-
-Nhanh C - mua ca hai              ~640.000d
-  XIAO gan len drone; ESP32-CAM de ban lam "camera xau nhat" de so sanh
-  3 muc chat luong.
-```
+Camera **đã chốt ngày 12/10/2026**: bo ESP32-S3 N16R8 gắn module OV3660 — không phải ESP32-CAM,
+không phải XIAO ESP32S3 Sense. Ba nhánh A/B/C cân nhắc ngày 21/09/2026 không còn áp dụng; lý do
+cũ nằm ở `plans/QUYET-DINH-CHUA-CHOT.md`.
 
 Năm câu nhắn shop **trước khi trả tiền** (nhắn trong khung chat của sàn để có bằng chứng nếu
 phải khiếu nại):
@@ -107,14 +98,13 @@ KHONG -- Dong ho do cell pin : sac B6AC V2 da co san chuc nang Battery Meter
 KHONG -- Day 14AWG cho motor : xem muc 13.2
 ```
 
-**Kết quả mong đợi:** danh sách có tổng tiền cho từng nhánh camera; mỗi món nói rõ nó chặn phase
-nào; **đơn hàng đã đặt**.
+**Kết quả mong đợi:** danh sách có tổng tiền; mỗi món nói rõ nó chặn phase nào và đã có hay chưa;
+**đơn hàng cho các món còn thiếu đã đặt**.
 
 **Nếu lỗi:**
 - Shop không trả lời câu hỏi 2 → đổi shop. Dây 16AWG lõi cứng sẽ nứt mối hàn theo thời gian, và
   bạn không phát hiện được cho tới khi nó hỏng trên không.
-- Chưa chốt được camera → vẫn đặt 10 món còn lại ngay hôm nay, camera đặt sau. Đừng để cả đơn chờ.
-- Nếu chưa chốt camera (`plans/QUYET-DINH-CHUA-CHOT.md`) vào ngày đặt hàng: đặt ngay 10 món còn lại, camera đặt riêng sau khi chốt; không đặt "tạm" một loại.
+- Camera đã chốt và đã có (12/10/2026) — bỏ qua mọi bước "chờ chốt camera" của bản plan cũ.
 
 ### 13.2 Bảng tra từng chân bo bay — tờ giấy quan trọng nhất
 
@@ -198,7 +188,8 @@ UBEC 5V 3A rieng:          ESP32 DevKit (DroneBridge) + camera.
 
 Ly do tach: ESP32 bat Wi-Fi gay burst dong va sut ap. Datasheet TFmini Plus ghi ro
 san pham KHONG co bao ve qua ap/nguoc cuc, chi chiu dao dong +-0.5V.
-Cho ESP32-CAM: han them tu 470-1000uF sat chan nguon de chong brownout.
+Bo camera ESP32-S3: neu khoi dong lai luc bat Wi-Fi thi han them tu 470-1000uF
+sat chan 5V-GND cua bo de chong brownout.
 ```
 
 **(d) Hai điều tuyệt đối không làm** — in to, tách riêng trên tờ giấy:
@@ -426,7 +417,7 @@ mối đạt và một mối nguội, dán vào `docs/so-tay/13-tap-han.md` đ�
 ## Cổng pass
 
 - [ ] `docs/so-tay/13-mua-sam.md` có đủ 11 dòng món kèm cột "chặn phase nào"; **đơn hàng đã đặt**.
-- [ ] Camera đã chốt nhánh (A/B/C) **hoặc** đã đặt 10 món còn lại và ghi rõ camera đặt sau.
+- [x] Camera đã chốt: ESP32-S3 N16R8 + OV3660, đã có (12/10/2026).
 - [ ] `docs/so-tay/13-dau-day.md` có: bảng tra 10 cổng, mục GPS với 3 lỗi kinh điển, mục TFmini với màu dây, mục phân bổ nguồn 5V, hai điều cấm, danh sách 12 mối hàn có ô tick.
 - [ ] `docs/so-tay/13-bo-tri-khung.md` có sơ đồ nhìn từ trên và bảng 6 quyết định vị trí kèm lý do.
 - [ ] Ba tờ checklist đã **in ra giấy** và đang nằm cạnh bàn; mỗi tờ có dòng "KHÔNG CÁNH QUẠT" ở đầu trang.
@@ -444,7 +435,7 @@ mối đạt và một mối nguội, dán vào `docs/so-tay/13-tap-han.md` đ�
 | Mua nhầm dây 14AWG hoặc dây lõi cứng | 3 | 3 | 9 | Câu hỏi số 2 gửi shop; điều cấm số 2 trên tờ in. |
 | Đấu GPS TX→TX (quên bắt chéo) | 4 | 2 | 8 | Ghi thành "chỗ kiểm tra ĐẦU TIÊN" trong mục GPS; triệu chứng (đèn sáng nhưng MP báo No GPS) đã ghi sẵn. |
 | Đặt GPS thấp/gần dây nguồn → la bàn sai → Loiter bay vòng tròn, không báo lỗi gì | 3 | 4 | **12** | 13.3 chốt vị trí cột nâng phía sau ≥ 8–10 cm kèm lý do; Phase 19 hiệu chỉnh la bàn ngoài trời; Phase 20 F3 có cổng pass "không toilet-bowl". |
-| Camera chưa chốt làm cả đơn hàng chờ | 3 | 3 | 9 | 13.1 tách rõ: đặt 10 món trước, camera sau. |
+| ~~Camera chưa chốt làm cả đơn hàng chờ~~ | — | — | — | Đã hết: camera chốt và đã có ngày 12/10/2026. |
 
 **Rủi ro điểm 15 (mối hàn nguội)** là rủi ro cao nhất của cả nhóm phase phần cứng. Biện pháp giảm
 thiểu nằm ở ba chỗ (13.6 tập hàn, 16.x test desync, 18.x bọc gen + tick 12 mối) và **phải hoàn

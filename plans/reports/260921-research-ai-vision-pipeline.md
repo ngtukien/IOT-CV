@@ -1,5 +1,10 @@
 # Nghiên cứu pipeline AI thị giác — phát hiện người từ UAV bằng camera nhúng giá rẻ
 
+> **Ghi chú 12/10/2026:** bản ghi nghiên cứu ngày 21/09/2026, giữ nguyên để biết lý do. Phần cứng
+> thật đã đổi: camera là **ESP32-S3 N16R8 + OV3660** (không phải ESP32-CAM / XIAO ESP32S3 Sense);
+> số liệu fps, góc nhìn, dòng điện, anten của ESP32-CAM/OV2640 ở đây chưa đúng cho bo mới. Danh
+> sách linh kiện đúng nhất: `docs/phan-cung-thuc-te.md`.
+
 > Báo cáo khảo sát, ngày 2026-09-21. Mọi URL đã kiểm tra truy cập được (WebFetch) trừ những mục ghi
 > rõ trong phần **URL chưa kiểm chứng** ở cuối. Báo cáo này **bổ sung** cho
 > `docs/bao-cao-tong-quan-du-an.md`, không thay thế: mục tiêu là chốt phiên bản/lệnh cụ thể của năm
