@@ -695,23 +695,29 @@ của Phase 17.
 
 Plan: plans/phase-12-firmware-esp32-camera.md
 
-Ngày bắt đầu: 12/10/2026 · Ngày xong: ______
+Ngày bắt đầu: 12/10/2026 · Ngày xong: 13/10/2026
 
-- [ ] `firmware/dronebridge/bin/` có file `.bin`; `git status` **không** liệt kê nó.
-- [ ] `firmware/dronebridge/README.md` có đủ 5 mục; bảng cấu hình điền hết trừ 3 ô *chưa xác minh*.
-- [ ] `pio run -e esp32s3_n16r8` → `SUCCESS` trên project thật `firmware/camera/` (cấu hình bo đã build thử 12/10/2026).
-- [x] Bảng chân camera đã đối chiếu với ảnh/sơ đồ bo thật **trước khi nạp**; có bo thì log `esp_camera_init` OK và `PID 0x3660`. *(13/10/2026: dấu "camera" in trên bo — ảnh `picture/esp32-s3-n16r8-ov3660/` — trùng tập chân `CAMERA_MODEL_ESP32S3_EYE`; đoạn mã dò in `CAMERA init=OK`, `SENSOR pid=0x3660 OV3660`, chụp được khung VGA thật. Sổ tay 14 mục 8.)*
-- [ ] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`.
-- [ ] `firmware/camera/README.md` có cách nạp bo ESP32-S3 (kể cả giữ BOOT + nhấn RST khi không vào được chế độ nạp) và cảnh báo nguồn.
-- [ ] `py -3.13 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp.
-- [ ] Hotspot laptop bật được ở 2,4 GHz; SSID/mật khẩu đã vào `secrets.h`; IP laptop đã ghi vào `docs/so-tay/12-hotspot-laptop.md`.
-- [ ] `Get-NetFirewallRule -DisplayName "IOTCV*"` trả về rule UDP 14550.
-- [ ] `docs/so-tay/12-esp32-cho-nguoi-moi.md` giải thích đủ 8 khái niệm ở 12.8.
+- [x] `firmware/dronebridge/bin/` có file `.bin`; `git status` **không** liệt kê nó. *(13/10: `bin/v2.4.1/…/esp32/` đủ 4 file; `git check-ignore` → `.gitignore:110`.)*
+- [x] `firmware/dronebridge/README.md` có đủ 5 mục; bảng cấu hình điền hết trừ 3 ô *chưa xác minh*. *(Mục (a)–(e); cả 3 ô cũ cũng đã có số thật: TX GPIO17, RX GPIO16, UDP target 192.168.137.1.)*
+- [x] `pio run -e esp32s3_n16r8` → `SUCCESS` trên project thật `firmware/camera/` (cấu hình bo đã build thử 12/10/2026). *(13/10: SUCCESS, RAM 14,5 %, flash 11,8 %, không warning.)*
+- [x] Bảng chân camera đã đối chiếu với ảnh/sơ đồ bo thật **trước khi nạp**; có bo thì log `esp_camera_init` OK và `PID 0x3660`. *(13/10/2026: dấu "camera" in trên bo — ảnh `picture/esp32-s3-n16r8-ov3660/` — trùng tập chân `CAMERA_MODEL_ESP32S3_EYE`; đoạn mã dò in `CAMERA init=OK`, `SENSOR pid=0x3660 OV3660`, chụp được khung VGA thật. Sổ tay 14 mục 8.)* *(Firmware thật cũng in `camera init OK pid=0x3660`.)*
+- [x] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`. *(`firmware/camera/.gitignore` dòng 1–2, kiểm bằng `git check-ignore`.)*
+- [x] `firmware/camera/README.md` có cách nạp bo ESP32-S3 (kể cả giữ BOOT + nhấn RST khi không vào được chế độ nạp) và cảnh báo nguồn.
+- [x] `py -3.13 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp. *(`Khong mo duoc cong COM99: could not open port`, mã thoát 2.)*
+- [x] Hotspot laptop bật được ở 2,4 GHz; SSID/mật khẩu đã vào `secrets.h`; IP laptop đã ghi vào `docs/so-tay/12-hotspot-laptop.md`. *(`IOTCV-HOTSPOT`, `TwoPointFourGigahertz`, laptop 192.168.137.1; `secrets.h` sinh bằng `scripts/esp32/camera-secrets.ps1`, camera đã vào mạng.)*
+- [x] `Get-NetFirewallRule -DisplayName "IOTCV*"` trả về rule UDP 14550. *(`IOTCV MAVLink UDP 14550`, Enabled, Inbound Allow, Profile Any.)*
+- [x] `docs/so-tay/12-esp32-cho-nguoi-moi.md` giải thích đủ 8 khái niệm ở 12.8. *(Mục 1–8, thêm 9 nạp bằng tay và 10 brownout.)*
 
-Ghi chú: 13/10/2026 — bo camera ESP32-S3 N16R8 + OV3660 đã kiểm trên bo thật (sổ tay 14 mục 8). Bo có
-hai cổng USB-C; cổng `USB-UART` là CH343P (COM7, Windows tự nhận) nên `Serial` hiện thẳng trên cổng
-đó, không cần `-DARDUINO_USB_CDC_ON_BOOT=1`. Trên bo đang là đoạn mã dò ngoài repo; firmware QC của
-shop đã sao lưu ra ổ D. Project thật `firmware/camera/` vẫn chưa viết.
+Ghi chú: 13/10/2026 — xong trên phần cứng thật, không cổng nào hoãn. Cả hai bo nối `IOTCV-HOTSPOT`:
+DroneBridge (COM4) `DroneBridgeESP32.mshome.net` đẩy HEARTBEAT + RADIO_STATUS về :14550; camera (COM7,
+cổng USB-UART CH343P) `iotcv-camera.mshome.net`, `/stream` ở cổng 81, `/set` + `/status` ở 80, VGA
+~7,5 fps, `scripts/esp32/camera_check.py --frames 300` PASS (300/300 khung giải mã sạch, nhãn
+`X-Jpeg-Quality` khớp khung thật). **XCLK phải là 10 MHz** — 20 MHz như ví dụ gốc làm nhiễu Wi-Fi của
+bo (~3 fps, có khung hỏng); số đo ở `docs/test-log.md`. Làm lại cả phase bằng script:
+`docs/so-tay/12-firmware-esp32-camera.md`. TFmini thật kiểm ở Phase 17.
+**Rủi ro mở cho Phase 17:** laptop làm cả hai bo mất sóng 1–3 s, đều đặn mỗi ~15,5 s (đo bằng
+`scripts/esp32/wifi_ping_check.py`; tắt roaming của card không chữa được) → video đứng, telemetry hụt,
+dead-man 300 ms sẽ dừng drone khi lái tay. Hướng thử: `docs/so-tay/12-hotspot-laptop.md` mục 6.
 
 ## Phase 13 — Chuẩn bị lắp ráp
 

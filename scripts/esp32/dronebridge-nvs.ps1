@@ -28,15 +28,8 @@ if (-not $dev) { throw "Khong thay $Port. Cam ESP32 roi xem cong bang: Get-CimIn
 if ($dev.DeviceID -notmatch 'VID_10C4') { throw "$Port la '$($dev.Name)', khong phai CP210x cua ESP32. Dung -Port dung." }
 
 # 2. Doc cau hinh Mobile Hotspot (bang tan phai la 2,4 GHz: ESP32 khong bat duoc 5 GHz).
-Add-Type -AssemblyName System.Runtime.WindowsRuntime
-[void][Windows.Networking.Connectivity.NetworkInformation, Windows.Networking.Connectivity, ContentType = WindowsRuntime]
-[void][Windows.Networking.NetworkOperators.NetworkOperatorTetheringManager, Windows.Networking.NetworkOperators, ContentType = WindowsRuntime]
-$profile = [Windows.Networking.Connectivity.NetworkInformation]::GetInternetConnectionProfile()
-if (-not $profile) { throw 'Laptop chua co mang internet nao; Mobile Hotspot can mot ket noi de chia se.' }
-$hotspot = [Windows.Networking.NetworkOperators.NetworkOperatorTetheringManager]::CreateFromConnectionProfile($profile).GetCurrentAccessPointConfiguration()
-if ($hotspot.Band -ne 'TwoPointFourGigahertz') {
-    throw "Mobile Hotspot dang o bang '$($hotspot.Band)'. Doi sang 2.4 GHz (Settings > Network > Mobile hotspot > Band) roi chay lai."
-}
+. (Join-Path $PSScriptRoot 'hotspot.ps1')
+$hotspot = Get-IotcvHotspot
 Assert-SafeCsvValue 'SSID hotspot' $hotspot.Ssid
 Assert-SafeCsvValue 'Mat khau hotspot' $hotspot.Passphrase
 

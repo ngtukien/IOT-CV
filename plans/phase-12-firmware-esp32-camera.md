@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| đang làm — 12/10/2026: nạp DroneBridge v2.4.1, cấu hình STA qua USB, ESP32 vào hotspot 2,4 GHz và đẩy MAVLink về laptop; README 5 mục, camera, TFmini chưa làm. 12/10/2026: camera đã chốt ESP32-S3 N16R8 + OV3660, mục 12.3–12.5 đã viết lại cho bo này | Phase 11 | ~6,5 giờ | Không — làm hết trên PC, board chưa về vẫn làm được |
+| **xong 13/10/2026** — cả hai bo chạy trên phần cứng thật: DroneBridge vào `IOTCV-HOTSPOT` và đẩy MAVLink về laptop; firmware camera nạp lên ESP32-S3 + OV3660, 7,5 fps VGA, đúng hợp đồng MJPEG (`scripts/esp32/camera_check.py` PASS 300 khung). Chỗ lệch so với bản viết trước khi có bo: `/stream` ở cổng 81 riêng (12.4), XCLK 10 MHz (12.4), SSID đã đổi (12.6). Số đo: `docs/test-log.md` mục Phase 12 | Phase 11 | ~6,5 giờ | Không — làm hết trên PC, board chưa về vẫn làm được |
 
 ## Mục tiêu
 
@@ -41,9 +41,13 @@ firmware/camera/src/camera_pins.h
 firmware/camera/include/secrets.example.h
 firmware/camera/.gitignore                     (loại include/secrets.h và .pio/)
 scripts/bench_tfmini.py
+scripts/esp32/**                               (thêm 13/10/2026: hotspot, tường lửa, nạp + kiểm camera, đọc log)
+docs/so-tay/12-firmware-esp32-camera.md        (chỉ mục + thứ tự lệnh làm lại)
 docs/so-tay/12-hotspot-laptop.md
 docs/so-tay/12-esp32-cho-nguoi-moi.md
 ```
+
+`firmware/camera/camera.ino` (khung TODO cũ từ Phase 01) đã bị xoá: `src/main.cpp` thay nó.
 
 Không đụng `firmware/ardupilot/**` (Phase 11 sở hữu) và không đụng `backend/**` (Phase 17 sẽ đổi
 điểm kết nối).
@@ -148,13 +152,13 @@ ngồi trước một trang web đầy ô trống:
 
 | Ô trong web UI | Điền | Vì sao |
 |---|---|---|
-| UART TX pin | GPIO nối tới **R2** của FC | *chưa xác minh* số GPIO — phụ thuộc board DevKit cụ thể, đọc lúc cắm (Phase 17) |
-| UART RX pin | GPIO nối tới **T2** của FC | như trên |
+| UART TX pin | **GPIO17** ("TX2" trên bo) nối tới **R2** của FC | đã chốt 12/10/2026 |
+| UART RX pin | **GPIO16** ("RX2" trên bo) nối tới **T2** của FC | đã chốt 12/10/2026 |
 | Baud | `115200` | khớp `SERIAL2_BAUD,115` trong `01-base.param` |
 | Wi-Fi mode | **WiFi Client (STA)** | mặc định là AP; **bắt buộc đổi**, xem 12.6 |
 | SSID | SSID hotspot laptop | laptop không nối được 2 AP cùng lúc |
 | Password | mật khẩu hotspot | |
-| GCS IP / UDP target | **IP của laptop** trên mạng hotspot | *chưa xác minh* tên chính xác của ô này trong UI v2.4.1 — đọc nhãn lúc mở |
+| GCS IP / UDP target | **`192.168.137.1`** (IP laptop trên hotspot) | khoá NVS `udp_client_ip`; ghi qua USB nên không cần biết nhãn ô trong web UI |
 | Port | `14550` | cổng MAVLink tiêu chuẩn |
 
 **(c) Đấu dây sang bo bay** (bảng này sẽ được chép lại vào `docs/so-tay/13-dau-day.md` ở Phase 13):
@@ -245,8 +249,9 @@ Y2 11  Y3 9  Y4 8  Y5 10  Y6 12  Y7 18  Y8 17  Y9 16
 VSYNC 6   HREF 7   PCLK 13
 ```
 
-**CHƯA XÁC MINH bo của dự án đúng loại này.** Có nhiều biến thể bo S3 gắn camera với bảng chân
-khác nhau. Trước khi nạp: đối chiếu với ảnh bo hoặc sơ đồ của shop bán. Xác minh cuối cùng: log
+**ĐÃ XÁC MINH 13/10/2026** trên bo thật: dấu "camera" in trên bo trùng tập chân này, và firmware
+`firmware/camera/` in `camera init OK pid=0x3660`, ra ảnh đúng chiều. Đoạn dưới giữ lại để biết cách
+kiểm khi thay bo: có nhiều biến thể bo S3 gắn camera với bảng chân khác nhau. Trước khi nạp: đối chiếu với ảnh bo hoặc sơ đồ của shop bán. Xác minh cuối cùng: log
 `esp_camera_init` thành công **và** đọc ra `PID 0x3660` (OV3660). Sai thì sửa macro, đừng sửa số
 chân lẻ tẻ.
 
@@ -283,6 +288,10 @@ khung cũ.
 #define HTTP_PORT             80
 ```
 
+> **Bản thật (13/10/2026) thêm ba hằng số:** `WIFI_HOSTNAME "iotcv-camera"` (hotspot Windows phân
+> giải `iotcv-camera.mshome.net`), `STREAM_PORT 81` (lý do ở 12.4), `STATUS_LOG_MS 5000`.
+> `include/secrets.h` không chép tay mà sinh bằng `scripts/esp32/camera-secrets.ps1` từ Mobile Hotspot.
+
 `firmware/camera/.gitignore`:
 
 ```gitignore
@@ -300,6 +309,17 @@ không tự phát Wi-Fi):
 | `GET /stream` | luồng MJPEG liên tục | `Content-Type: multipart/x-mixed-replace; boundary=frame` |
 | `GET /set?quality=N` | đổi `jpeg_quality` lúc đang chạy, N trong **0..63** | `200` + JSON giá trị mới; `400` nếu N ngoài khoảng |
 | `GET /status` | trạng thái | JSON: `quality`, `framesize`, `rssi`, `uptime_ms`, `frames_sent` |
+
+> **Lệch có chủ đích (13/10/2026):** `/stream` chạy trên máy chủ HTTP thứ hai ở cổng `STREAM_PORT`
+> (81); `/set` và `/status` ở `HTTP_PORT` (80). Máy chủ HTTP của ESP-IDF xử lý một yêu cầu một lúc,
+> `/stream` không bao giờ kết thúc, nên chung cổng thì `/set` treo suốt lúc phát — đúng lúc cần đổi
+> chất lượng giữa luồng. `CameraWebServer` gốc cũng tách như vậy.
+>
+> **XCLK 10 MHz, không phải 20 MHz như ví dụ gốc:** trên bo này 20 MHz làm nhiễu Wi-Fi (luồng ~3 fps,
+> có khung hỏng); 10 MHz cho ~7,5 fps. Số đo tách biến: `docs/test-log.md` mục Phase 12.
+>
+> **Thứ tự header:** khối dưới đây viết `Content-Length` lên đầu; firmware theo đúng thứ tự của
+> `docs/hop-dong-mjpeg.md` §2 (`Content-Length` sau bốn header `X-`). Hợp đồng là nguồn sự thật.
 
 **Header từng khung** — đây là thứ backend cần để gắn nhãn chất lượng cho từng ảnh (phục vụ cơ
 chế QoS ở Phase 24 và luồng AI sau này). Cài đặt **đúng nguyên văn** theo hợp đồng
@@ -450,6 +470,13 @@ Kiem tra    : ping OK; http://192.168.137.9/ tra "DB for ESP32 Settings";
               (goi cua chinh DroneBridge; goi cua FC chi co khi da noi day o Phase 17).
 ```
 
+**13/10/2026 — tự động hoá và đổi SSID:** `scripts/esp32/hotspot-on.ps1 -Ssid IOTCV-HOTSPOT` đổi tên
+mạng, ép 2,4 GHz, bật hotspot và tắt chế độ tự tắt khi không có thiết bị (bẫy 1) — không cần quyền
+admin. DroneBridge được ghi lại NVS cho SSID mới, IP nhảy `.9` → `.60`. Camera `192.168.137.102`.
+Tên `DroneBridgeESP32.mshome.net` / `iotcv-camera.mshome.net` phân giải được, nên không phụ thuộc IP
+DHCP. Rule tường lửa tạo bằng `scripts/esp32/firewall-mavlink.ps1` (tự xin UAC). Sổ tay:
+`docs/so-tay/12-hotspot-laptop.md`.
+
 Bẫy 2 ở trên chỉ đúng khi bỏ trống `udp_client_ip`. Đã đặt `udp_client_ip 192.168.137.1` thì
 ESP32 **tự đẩy** gói về laptop, GCS không phải gửi trước. Python nghe được gói khi chưa tạo rule
 `IOTCV*`; Mission Planner vẫn có thể bị tường lửa chặn, nên vẫn tạo rule như trên.
@@ -584,7 +611,9 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
 - **MJPEG là gì** — không phải video nén, chỉ là chuỗi ảnh JPEG nối đuôi nhau. Nên xem được bằng
   trình duyệt và cắt ra từng khung rất dễ; đổi lại tốn băng thông hơn video nén thật.
 - **`jpeg_quality` 0..63**: số **nhỏ** = nét hơn = file to hơn = fps thấp hơn. Ngược trực giác.
-- **PSRAM là gì** và vì sao bắt buộc có nó cho mọi độ phân giải trên CIF khi dùng JPEG.
+- **PSRAM là gì** và vì sao cần nó: không có PSRAM, `CameraWebServer` gốc hạ xuống một bộ đệm trong
+  RAM trong chip và chặn JPEG ở tối đa SVGA (đối chiếu mã ví dụ ngày 13/10/2026 — câu cũ "bắt buộc cho
+  mọi độ phân giải trên CIF" là sai).
 - **Vì sao camera chỉ phục vụ được một client** — đó là lý do backend đứng giữa làm cầu phân phối,
   chứ trình duyệt không cắm thẳng vào camera.
 
@@ -616,7 +645,9 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
 | Bo camera S3 sụt áp / khởi động lại khi bật Wi-Fi | 2 | 3 | 6 | UBEC 5V 3A riêng (đã mua); hàn thêm tụ 470–1000 µF nếu thấy reset (12.5). |
 | Chép sai bảng chân `camera_pins.h` → camera không init, thông báo lỗi không chỉ ra chân nào | 3 | 3 | 9 | 12.3 bắt buộc lấy từ file gốc của `espressif/arduino-esp32`, cấm tự chế. |
 
-Không có rủi ro nào ≥ 15. Hai rủi ro điểm 12 đều được xử lý **trong phase này** chứ không để trôi
+| **(13/10/2026, đo thật)** Laptop làm cả hai bo mất sóng 1–3 s, đều đặn mỗi ~15,5 s — video đứng, telemetry hụt, dead-man 300 ms dừng drone khi lái tay | 5 | 3 | **15** | **Chưa chữa.** Đã loại roaming của card. Script đo `scripts/esp32/wifi_ping_check.py`; hướng thử (LAN + ngắt Wi-Fi, USB Wi-Fi riêng, hotspot điện thoại) ở `docs/so-tay/12-hotspot-laptop.md` mục 6 — chuyển sang Phase 17. |
+
+Rủi ro ≥ 15 duy nhất là dòng cuối, phát hiện khi đo thật và chuyển sang Phase 17. Hai rủi ro điểm 12 đều được xử lý **trong phase này** chứ không để trôi
 sang Phase 17.
 
 ## Timeline

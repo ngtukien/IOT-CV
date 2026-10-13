@@ -11,7 +11,7 @@ danh sách linh kiện.
 |---|---|---|---|
 | Bo bay + ESC | Stack **SpeedyBee F405 V5 OX32 55A**, bản **"Model Aircraft"** (FC F405 V5 + ESC 4in1 OX32 55A) | Đã có; **FC đã chạy ArduPilot từ 13/10/2026** (bản `d450a747` + `01-base.param`, lên COM6 trên máy dự án) | ArduPilot board `speedybeef4v5`, nạp DFU không cần kích hoạt app; `FRAME_TYPE 12`; hệ số dòng 370,4 A/V. Chi tiết ở mục dưới |
 | Cảm biến tránh vật cản | **Benewake TFmini Plus** | Đã có | `SERIAL3` = pad T3/R3; **chỉ cấp 5 V** |
-| Cầu MAVLink qua Wi-Fi | **ESP32 DevKit có chip USB-UART CP2102** (ESP32-D0WD-V3, flash 4 MB) | Đã nạp DroneBridge v2.4.1 ngày 12/10/2026 | Lên COM4 trên máy dự án. STA vào hotspot laptop: ESP32 `192.168.137.9`, laptop `192.168.137.1`, UDP 14550. UART TX = GPIO17, RX = GPIO16, 115200, nối `SERIAL2` (pad T2/R2) của FC. Xem `firmware/dronebridge/README.md` |
+| Cầu MAVLink qua Wi-Fi | **ESP32 DevKit có chip USB-UART CP2102** (ESP32-D0WD-V3, flash 4 MB) | Đã nạp DroneBridge v2.4.1 ngày 12/10/2026 | Lên COM4 trên máy dự án. STA vào hotspot laptop `IOTCV-HOTSPOT` (13/10/2026): ESP32 tên `DroneBridgeESP32.mshome.net` (IP DHCP, đổi mỗi lần hotspot khởi động lại), laptop `192.168.137.1`, UDP 14550. UART TX = GPIO17, RX = GPIO16, 115200, nối `SERIAL2` (pad T2/R2) của FC. Xem `firmware/dronebridge/README.md` |
 | Camera trên drone | **ESP32-S3 N16R8** (16 MB flash, 8 MB PSRAM octal) + module **OV3660** (3 MP) | Đã có; **kiểm trên bo 13/10/2026**: OV3660 ra ảnh, bảng chân `ESP32S3_EYE` đúng, PSRAM 8 MB chạy | Thay hẳn ESP32-CAM / XIAO ESP32S3 Sense trong tài liệu cũ. Cổng `USB-UART` (CH343P) lên COM7. Có tem bảo hành "không được xé". Chi tiết ở mục dưới |
 | USB-TTL | Mạch chuyển **USB to TTL UART CP2102** | Đã mua | Đọc TFmini Plus trên máy tính trước khi cắm vào bo bay (Phase 12.7 / 17). Không còn cần để nạp camera — ESP32-S3 có cổng USB |
 | Nguồn cho ESP32 + camera | **UBEC 5V 3A** | Đã mua | Lấy thẳng từ pin; **không** ăn 5 V của stack |
@@ -85,8 +85,11 @@ ArduPilot 4.7.1; cấu hình Betaflight `SPEEDYBEEF405V5`.
   `-DARDUINO_USB_CDC_ON_BOOT=1`.
 - Dấu in trên bo: `*` = chân 35/36/37 (PSRAM octal), `~` = 38/39/40 (khe thẻ microSD ở mặt dưới). Đừng
   gán các chân đó việc khác.
-- Firmware gốc của shop đã sao lưu ra `D:\IOT_Tools\downloads\esp32-backup\`; trên bo giờ là đoạn mã
-  dò, Phase 12 nạp firmware camera thật đè lên.
+- Firmware gốc của shop đã sao lưu ra `D:\IOT_Tools\downloads\esp32-backup\`. **13/10/2026 trên bo là
+  firmware camera thật** (`firmware/camera/`): tên mạng `iotcv-camera.mshome.net`, `/stream` cổng 81,
+  VGA ~7,5 fps.
+- **XCLK phải là 10 MHz, không phải 20 MHz như ví dụ gốc:** ở 20 MHz Wi-Fi của chính bo tụt từ ~295
+  xuống ~60 KB/s và có khung JPEG hỏng. Số đo ở `docs/test-log.md` mục Phase 12.
 
 **Chưa biết — đo ở Phase 12/17:** số fps thật ở QVGA/VGA. Các con số cũ trong tài liệu (44 fps QVGA,
 14 fps VGA, ~1,3 fps ở độ phân giải cao) là của ESP32-CAM/OV2640, **chưa đo** trên bo này.

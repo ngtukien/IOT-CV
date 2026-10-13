@@ -148,3 +148,77 @@ lề 1/16. Canvas lệch ảnh ≤ 1 px mỗi phía.
   thật, và bài xanh. Test đỏ được đúng lúc cơ chế không chạy — đó là bằng chứng nó đo
   thật.
 
+## Phase 12 — ESP32 telemetry, camera, hotspot
+
+**Môi trường:** ESP32 DevKit CP2102 (COM4) chạy DroneBridge v2.4.1 · bo ESP32-S3 N16R8 + OV3660
+(COM7, cổng USB-UART CH343P) chạy `firmware/camera/` (Arduino core 2.0.17, espressif32 7.1.3) ·
+Mobile Hotspot `IOTCV-HOTSPOT` 2,4 GHz trên card MediaTek RZ616, laptop đồng thời nối "The One 2"
+5 GHz kênh 128 · chưa đấu FC, chưa có TFmini.
+
+**Ngày:** 2026-10-13 · **Người chạy:** Claude (phiên `/t1k:cook` Phase 12). Không bước nào cần bấm
+tay trừ hộp UAC khi tạo rule tường lửa.
+
+| # | Bài | Cách chạy | Kết quả | Đạt |
+|---|---|---|---|---|
+| 1 | Hotspot 2,4 GHz | `hotspot-on.ps1 -Ssid IOTCV-HOTSPOT` | `On`, `TwoPointFourGigahertz`, laptop `192.168.137.1` | ✓ |
+| 2 | Rule tường lửa | `firewall-mavlink.ps1` | đọc lại: `Enabled=True Inbound Allow Profile=Any UDP 14550` | ✓ |
+| 3 | DroneBridge vào mạng mới | `dronebridge-nvs.ps1` rồi nghe UDP 14550 6 s | 13 gói từ `192.168.137.60`: HEARTBEAT ×7, RADIO_STATUS ×6 (sys 1 comp 68) | ✓ |
+| 4 | Build camera | `pio run -e esp32s3_n16r8` | `SUCCESS`, RAM 14,5 %, flash 11,8 %, không warning | ✓ |
+| 5 | Boot camera | `nap_camera.ps1` | `camera init OK pid=0x3660 framesize=VGA`, `psram=8386279`, IP `192.168.137.102`, tên `iotcv-camera.mshome.net` phân giải được | ✓ |
+| 6 | `/status`, `/set` | `camera_check.py` bước 1–2 | đủ 5 trường bắt buộc; 6 kiểu tham số sai → 400; 0, 63, 12 → 200 và `/status` báo đúng | ✓ |
+| 7 | Hợp đồng MJPEG | `camera_check.py --frames 300` | 300/300 khung đủ 4 header, giải mã sạch, id/timestamp tăng dần, không nhảy cóc | ✓ |
+| 8 | Nhãn chất lượng | `camera_check.py` bước 4 | 8→60: khung đầu 6942 B (mức mới 6939, cũ 10017); 60→8: 10038 B (mới 10019, cũ 6940); bỏ 4 khung chuyển tiếp | ✓ |
+| 9 | TFmini script | `bench_tfmini.py COM99` | `Khong mo duoc cong COM99: could not open port`, mã 2; parser + 7 lệnh HEX đúng checksum | ✓ |
+
+**Số đo luồng camera** (VGA, `jpeg_quality` 12, RSSI −25 dBm, 300 khung): **7,5 fps**, khung ~8,5 KB,
+khoảng chụp trung vị 144 ms (min 71 / max 289). Số cũ "~1,3 fps ở độ phân giải cao" là của
+ESP32-CAM/OV2640, không áp dụng.
+
+### XCLK 20 MHz bóp Wi-Fi — đo tách biến
+
+Lần đầu luồng chỉ 2,6–5,3 fps, có một khung hỏng (sọc tím nửa dưới). Tắt Nagle không đổi được gì.
+Thêm endpoint thử nghiệm `/blob` (gửi 512 KB từ RAM trong, không đụng camera) vào một bản firmware
+ngoài repo, đổi đúng một biến mỗi lần:
+
+| Biến thể | `/blob` | Luồng VGA |
+|---|---|---|
+| Không khởi động camera | 285 KB/s | — |
+| XCLK 20 MHz, `GRAB_LATEST` (như `CameraWebServer` gốc) | 58–67 KB/s | 32–48 KB/s, ~3–4,5 fps |
+| XCLK 20 MHz, `GRAB_WHEN_EMPTY` | 18–63 KB/s | ~3,3 fps |
+| XCLK 16 MHz | 71–87 KB/s | timeout |
+| **XCLK 10 MHz** | **293–297 KB/s** | **105–108 KB/s, ~8,5 fps** |
+
+Kết luận: nhiễu từ XCLK, không phải tranh chấp PSRAM. Firmware dùng 10 MHz.
+
+### Mất sóng tuần hoàn phía laptop — CHƯA CHỮA (rủi ro Phase 17)
+
+Lần nghiệm thu cuối có lúc đỏ vì luồng đứng > 5 s. Thêm log vào firmware (vòng nào > 1 s thì in thời
+gian lấy khung và gửi), chạy 200 s: 1137 khung, 0 khung hỏng, **31 lần đứng 1,2–2,7 s, một lần 10,5 s
+làm đứt kết nối (`0xb006`)**. Mọi lần đều kẹt ở khâu GỬI (`send_ms` 1205–10470), lấy khung chỉ
+17–101 ms — camera không kẹt.
+
+`scripts/esp32/wifi_ping_check.py` (ping đồng thời hai bo, 150 s):
+
+| Lần | Camera mất | DroneBridge mất | Giây mất CHUNG |
+|---|---|---|---|
+| card mặc định | 25/150 | 27/150 | 24 — giây 7–9, 23–24, 38–40, 54–55, 69–70, 84–86, 100–101, 115–117, 131–132, 146–147 |
+| `Roaming Aggressiveness = Disabled` | 16/150 | 21/150 | 16 — giây 3, 19, 34, 49–50, 65, 80–81, 95–96, 111, 126–127, 139–142 |
+
+Hai bo khác nhau mất gói **cùng giây, chu kỳ ~15,5 s** → nguồn ở laptop. Tắt roaming không đổi chu kỳ
+(đã trả về `Medium-Low`). Hệ quả cho Phase 17/21: telemetry hụt 1–3 s mỗi 15 s, dead-man 300 ms sẽ
+dừng drone khi lái tay. Hướng thử tiếp ghi ở `docs/so-tay/12-hotspot-laptop.md` mục 6.
+
+Phụ: card reset làm hotspot khởi động lại và cấp IP mới cho cả hai bo; camera tự nối lại **không
+reboot** (`uptime` tiếp tục), DroneBridge đẩy MAVLink lại sau vài giây.
+
+### Chứng minh phép kiểm ĐỎ ĐƯỢC
+
+- **Khung hỏng:** bộ phát hiện đầu tiên (bắt stderr bằng `os.dup2` trong cùng tiến trình) trả "sạch"
+  cho cả khung đã biết là hỏng — DLL OpenCV có bảng fd riêng. Bỏ, thay bằng giải mã ở tiến trình con:
+  chuỗi tốt/hỏng/tốt/hỏng/tốt/cắt-ngắn/tốt cho đúng
+  `''`/`premature end of data segment`/`''`/…/`premature end…`/`''`.
+- **Nhãn chất lượng:** nạp bản thử `QUALITY_SETTLE_FRAMES = 0` → bước 4 **FAIL** ở chiều 60→8 (khung
+  đầu nhãn 8 nặng 6937 B = cỡ của mức 60). Nạp lại firmware thật → PASS.
+- **Ngưỡng tỉ lệ cỡ khung 1,4 lần** (bản đầu của bước 4) đỏ vì cảnh trần trơn chỉ chênh 1,3 lần — ngưỡng
+  phụ thuộc cảnh là sai thiết kế. Thay bằng "khung đầu gần mức mới hơn mức cũ ít nhất 3 lần" và "hai
+  mức chênh ≥ 10 %".
