@@ -9,7 +9,7 @@ danh sách linh kiện.
 
 | Vai trò | Món thật | Trạng thái | Điều phải nhớ |
 |---|---|---|---|
-| Bo bay + ESC | Stack **SpeedyBee F405 V5 OX32 55A**, bản **"Model Aircraft"** (FC F405 V5 + ESC 4in1 OX32 55A) | Đã có; đã soi ảnh với tài liệu chính hãng | ArduPilot board `speedybeef4v5`, nạp DFU không cần kích hoạt app; `FRAME_TYPE 12`; hệ số dòng 370,4 A/V. Chi tiết ở mục dưới |
+| Bo bay + ESC | Stack **SpeedyBee F405 V5 OX32 55A**, bản **"Model Aircraft"** (FC F405 V5 + ESC 4in1 OX32 55A) | Đã có; **FC đã chạy ArduPilot từ 13/10/2026** (bản `d450a747` + `01-base.param`, lên COM6 trên máy dự án) | ArduPilot board `speedybeef4v5`, nạp DFU không cần kích hoạt app; `FRAME_TYPE 12`; hệ số dòng 370,4 A/V. Chi tiết ở mục dưới |
 | Cảm biến tránh vật cản | **Benewake TFmini Plus** | Đã có | `SERIAL3` = pad T3/R3; **chỉ cấp 5 V** |
 | Cầu MAVLink qua Wi-Fi | **ESP32 DevKit có chip USB-UART CP2102** (ESP32-D0WD-V3, flash 4 MB) | Đã nạp DroneBridge v2.4.1 ngày 12/10/2026 | Lên COM4 trên máy dự án. STA vào hotspot laptop: ESP32 `192.168.137.9`, laptop `192.168.137.1`, UDP 14550. UART TX = GPIO17, RX = GPIO16, 115200, nối `SERIAL2` (pad T2/R2) của FC. Xem `firmware/dronebridge/README.md` |
 | Camera trên drone | **ESP32-S3 N16R8** (16 MB flash, 8 MB PSRAM octal) + module **OV3660** (3 MP) | Đã có; **chưa xác minh tên bo và bảng chân** | Thay hẳn ESP32-CAM / XIAO ESP32S3 Sense trong tài liệu cũ. Chi tiết ở mục dưới |
@@ -48,7 +48,8 @@ ArduPilot 4.7.1; cấu hình Betaflight `SPEEDYBEEF405V5`.
 - Jumper SBUS (dưới nút BOOT) đang **hở** — đúng cho iBUS, không hàn nối. Jumper "BARO →" mặt dưới
   **đã nối thiếc sẵn** từ nhà máy (ảnh render để hở) — để nguyên.
 - Baro SPA06-003: bản build dự án chỉ có driver SPL06/SPA06 → phải kiểm baro được nhận ngay sau khi
-  nạp (Phase 14.5b).
+  nạp (Phase 14.5b). **Đã kiểm 13/10/2026:** baro khoẻ, `press_abs` 1012,6 hPa. Hướng gyro cũng đúng
+  dấu (`docs/so-tay/14-hang-ve-nap-firmware.md`).
 - ESC OX32 đánh số motor kiểu Betaflight: **M1 sau-phải, M2 trước-phải, M3 sau-trái, M4
   trước-trái** → `FRAME_TYPE 12`. Mép có 8 pad `V G C T 1 2 3 4` của ESC nằm cùng phía cổng 10 chân
   và cổng GPS của FC = phía **mũi**.

@@ -684,6 +684,13 @@ class SitlInstance:
         Đếm theo `param_index` chứ không theo tên: FC báo `param_count` trong mỗi
         gói, và chỉ khi đủ từng index mới chắc là không rớt gói nào. Gói rớt thì
         xin lại đúng index đó, không xin lại cả bảng.
+
+        Ngoại lệ: chưa nhận được gói nào THUỘC BẢNG thì xin lại cả bảng. FC đang
+        khởi động (HEARTBEAT báo MAV_STATE_BOOT) bỏ im lặng PARAM_REQUEST_LIST —
+        đo trên SITL 13/10/2026, xin ngay sau HEARTBEAT đầu tiên của FC vừa reboot:
+        0 tham số trong 90 s. Gói 65535 (FC tự báo một tham số vừa đổi) vẫn đến
+        trong lúc đó và mang `param_count`; bản cũ coi chúng là "bảng đã chạy" rồi
+        xin lần lượt từng index: 887/1359 sau 120 s.
         """
         m = self.master
         m.mav.param_request_list_send(m.target_system, m.target_component)
@@ -700,13 +707,17 @@ class SitlInstance:
                 # 65535 = gói trả lời PARAM_SET, không mang index của bảng.
                 if msg.param_index != 65535:
                     da_co.add(msg.param_index)
-                lan_cuoi_co_goi = time.monotonic()
+                    lan_cuoi_co_goi = time.monotonic()
             if tong is not None and len(da_co) >= tong:
                 return params
-            if tong is not None and time.monotonic() - lan_cuoi_co_goi > 2.0:
+            if time.monotonic() - lan_cuoi_co_goi <= 2.0:
+                continue
+            if not da_co:
+                m.mav.param_request_list_send(m.target_system, m.target_component)
+            else:
                 for i in sorted(set(range(tong)) - da_co)[:50]:
                     m.mav.param_request_read_send(m.target_system, m.target_component, b"", i)
-                lan_cuoi_co_goi = time.monotonic()
+            lan_cuoi_co_goi = time.monotonic()
         raise SitlError(f"fetch_all_params: hết {timeout}s mới có {len(da_co)}/{tong} tham số.")
 
     def try_set_param(self, name: str, value: float, *, timeout: float = 8.0) -> float | None:
