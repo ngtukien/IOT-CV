@@ -155,3 +155,17 @@ Runner sửa theo hai chỗ, cả hai chỉ cho SITL:
 `bash scripts/sitl/run-all.sh --chi run_param_load` → `RUN_ALL: PASS` (67 s). `FRAME_TYPE 12`,
 `BATT_AMP_PERVLT 370.4`, `BATT_AMP_OFFSET 0.0071` đều **nhận**; danh sách dòng không nhận vẫn đúng 6
 dòng như trên. Bù bit 18 + dòng 17 A/V: arm, cất cánh 5 m, vẫn GUIDED sau 20 s.
+
+## Kết quả trên bo thật — 13/10/2026 (Phase 14)
+
+Nạp `arducopter_with_bl.hex` qua DFU rồi đọc lại bằng `scripts/fc/kiem_fc.py` (chi tiết:
+`docs/so-tay/14-hang-ve-nap-firmware.md`):
+
+- Banner `ArduCopter V4.7.1 (dbe79216)` + `speedybeef4v5` — đúng bản build này.
+- Bản chụp `firmware/ardupilot/params/00-after-flash.param` (850 tham số, chụp trước khi đổi gì) có
+  `PRX1_TYPE`, `RNGFND1_TYPE`, `AVOID_ENABLE`, `AVOID_ANG_MAX`, `SERVO_BLH_POLES`, `SERVO_BLH_TRATE`.
+  Mọi dòng "Phải có" ở bảng mục "Param SITL từ chối" đều có.
+- `01-base.param`: **34/34 dòng nhận**, đọc lại đúng sau một lần reboot. Bo thật từ chối 0 dòng (SITL
+  từ chối 2: `SERVO_BLH_POLES`, `SERVO_BLH_TRATE`).
+- Chưa thử trên bo thật: `02-avoid-tfmini.param`, kể cả ba dòng `RNGFND1_ORIENT/MIN/MAX` chỉ hiện sau
+  reboot — nạp ở Phase 17, khi TFmini Plus đã nối vào R3.

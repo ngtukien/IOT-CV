@@ -211,6 +211,10 @@ với vật cản giả, khi đã quen cách drone phản ứng.
 | (sổ tay 04) `AVOID_ANG_MAX` chắc board thật cũng không có | Board thật **có** | `extra_hwdef.dat`: `define AP_AVOIDANCE_ALTHOLD_ENABLED 1` |
 | Lệnh `Compare-Object` với `-match '^\s+- '` | Bắt 0 dòng của yaml trong thư mục build, báo khác 54 dòng dù giống hệt | Dùng `'^\s*- '` + `Trim()` — xem `NOTES.md` |
 
+**Sau phase này (12–13/10/2026):** `01-base.param` thành 34 dòng — thêm `BATT_AMP_OFFSET`, cùng lúc
+`FRAME_TYPE` 1 → 12 và `BATT_AMP_PERVLT` 25 → 370,4 cho khớp ESC OX32 (lý do ghi trong chính file
+param). Bo thật nhận đủ 34/34 dòng và có `PRX1_TYPE` — xem [sổ tay 14](14-hang-ve-nap-firmware.md).
+
 ## Tự chạy lại
 
 ```bash

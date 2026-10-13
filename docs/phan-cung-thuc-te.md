@@ -12,7 +12,7 @@ danh sách linh kiện.
 | Bo bay + ESC | Stack **SpeedyBee F405 V5 OX32 55A**, bản **"Model Aircraft"** (FC F405 V5 + ESC 4in1 OX32 55A) | Đã có; **FC đã chạy ArduPilot từ 13/10/2026** (bản `d450a747` + `01-base.param`, lên COM6 trên máy dự án) | ArduPilot board `speedybeef4v5`, nạp DFU không cần kích hoạt app; `FRAME_TYPE 12`; hệ số dòng 370,4 A/V. Chi tiết ở mục dưới |
 | Cảm biến tránh vật cản | **Benewake TFmini Plus** | Đã có | `SERIAL3` = pad T3/R3; **chỉ cấp 5 V** |
 | Cầu MAVLink qua Wi-Fi | **ESP32 DevKit có chip USB-UART CP2102** (ESP32-D0WD-V3, flash 4 MB) | Đã nạp DroneBridge v2.4.1 ngày 12/10/2026 | Lên COM4 trên máy dự án. STA vào hotspot laptop: ESP32 `192.168.137.9`, laptop `192.168.137.1`, UDP 14550. UART TX = GPIO17, RX = GPIO16, 115200, nối `SERIAL2` (pad T2/R2) của FC. Xem `firmware/dronebridge/README.md` |
-| Camera trên drone | **ESP32-S3 N16R8** (16 MB flash, 8 MB PSRAM octal) + module **OV3660** (3 MP) | Đã có; **chưa xác minh tên bo và bảng chân** | Thay hẳn ESP32-CAM / XIAO ESP32S3 Sense trong tài liệu cũ. Chi tiết ở mục dưới |
+| Camera trên drone | **ESP32-S3 N16R8** (16 MB flash, 8 MB PSRAM octal) + module **OV3660** (3 MP) | Đã có; **kiểm trên bo 13/10/2026**: OV3660 ra ảnh, bảng chân `ESP32S3_EYE` đúng, PSRAM 8 MB chạy | Thay hẳn ESP32-CAM / XIAO ESP32S3 Sense trong tài liệu cũ. Cổng `USB-UART` (CH343P) lên COM7. Có tem bảo hành "không được xé". Chi tiết ở mục dưới |
 | USB-TTL | Mạch chuyển **USB to TTL UART CP2102** | Đã mua | Đọc TFmini Plus trên máy tính trước khi cắm vào bo bay (Phase 12.7 / 17). Không còn cần để nạp camera — ESP32-S3 có cổng USB |
 | Nguồn cho ESP32 + camera | **UBEC 5V 3A** | Đã mua | Lấy thẳng từ pin; **không** ăn 5 V của stack |
 | Khung | S500 | Như tài liệu, người dùng xác nhận không đổi | |
@@ -72,16 +72,24 @@ ArduPilot 4.7.1; cấu hình Betaflight `SPEEDYBEEF405V5`.
   core 2.0.17, và `firmware.map` dùng đúng bộ SDK `esp32s3/qio_opi`. Mới kiểm trên máy tính, chưa
   chạy trên bo thật.
 
-**Chưa biết — phải xác minh ở Phase 12 trước khi tin:**
+**Đã kiểm trên bo thật ngày 13/10/2026** (`docs/so-tay/14-hang-ve-nap-firmware.md` mục 8):
 
-- **Tên bo chính xác và bảng chân camera.** Giả định hiện tại là bảng chân `CAMERA_MODEL_ESP32S3_EYE`
-  (XCLK 15, SIOD 4, SIOC 5, Y2…Y9 = 11, 9, 8, 10, 12, 18, 17, 16, VSYNC 6, HREF 7, PCLK 13, không có
-  PWDN/RESET) — trùng loại bo "ESP32-S3-WROOM N16R8 CAM" phổ biến nhất. Xác minh bằng ảnh bo hoặc
-  sơ đồ của shop, rồi bằng log `esp_camera_init` thành công và đọc ra PID `0x3660`.
-- Bo có một hay hai cổng USB-C (cổng USB gốc của chip, và/hoặc cổng "COM" qua CH343/CP210x) → quyết
-  định có cần driver và có cần `-DARDUINO_USB_CDC_ON_BOOT=1` không.
-- Số fps thật ở QVGA/VGA. Các con số cũ trong tài liệu (44 fps QVGA, 14 fps VGA, ~1,3 fps ở độ phân
-  giải cao) là của ESP32-CAM/OV2640, **chưa đo** trên bo này.
+- Bo của shop Phúc Minh Tech, ảnh ở `picture/esp32-s3-n16r8-ov3660/`. Module ghi "ESP32-S3-N16R8",
+  flash hãng Boya — module bên thứ ba, không phải WROOM-1 của Espressif. Chip ESP32-S3 rev v0.2, PSRAM
+  8 MB chạy ở chế độ octal, flash 16 MB.
+- **Bảng chân `CAMERA_MODEL_ESP32S3_EYE` đúng** (XCLK 15, SIOD 4, SIOC 5, Y2…Y9 = 11, 9, 8, 10, 12, 18,
+  17, 16, VSYNC 6, HREF 7, PCLK 13, không có PWDN/RESET): dấu "camera" in trên bo trùng tập chân này;
+  `esp_camera_init` OK, đọc ra PID `0x3660`, chụp được khung VGA thật.
+- **Hai cổng USB-C**, nhãn in ở mặt dưới: `USB-UART` (chip CH343P, Windows tự nhận, không cần cài
+  driver) và `USB-OTG` (USB gốc của chip). Nạp và xem log qua `USB-UART`, nên **không cần**
+  `-DARDUINO_USB_CDC_ON_BOOT=1`.
+- Dấu in trên bo: `*` = chân 35/36/37 (PSRAM octal), `~` = 38/39/40 (khe thẻ microSD ở mặt dưới). Đừng
+  gán các chân đó việc khác.
+- Firmware gốc của shop đã sao lưu ra `D:\IOT_Tools\downloads\esp32-backup\`; trên bo giờ là đoạn mã
+  dò, Phase 12 nạp firmware camera thật đè lên.
+
+**Chưa biết — đo ở Phase 12/17:** số fps thật ở QVGA/VGA. Các con số cũ trong tài liệu (44 fps QVGA,
+14 fps VGA, ~1,3 fps ở độ phân giải cao) là của ESP32-CAM/OV2640, **chưa đo** trên bo này.
 
 ## Khi phần cứng đổi tiếp
 

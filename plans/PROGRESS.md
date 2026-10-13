@@ -666,7 +666,7 @@ Ngày bắt đầu: 25/09/2026 · Ngày xong: 25/09/2026
 - [x] Hai danh sách `selected_features` giống hệt, 54 feature — sau khi sửa regex so sánh của plan (ghi trong `NOTES.md`).
 - [x] `NOTES.md` có: bảng 6 feature đã tick kèm số dòng `build.log` + cờ `extra_hwdef`, cách rebuild 5 bước, cách kiểm chứng `PRX1_TYPE`.
 - [x] `firmware/ardupilot/params/README.md` mô tả đủ quy ước `00..07` và ba luật.
-- [x] `01-base.param` có đúng 33 dòng tham số; ASCII thuần, không BOM, không CRLF.
+- [x] `01-base.param` có đúng 33 dòng tham số; ASCII thuần, không BOM, không CRLF. *(Từ 12/10/2026 là 34 dòng — thêm `BATT_AMP_OFFSET`, xem Ghi chú. Kiểm lại 13/10: 34 dòng, ASCII, LF, không BOM.)*
 - [x] `02-avoid-tfmini.param` có đủ 17 dòng tham số (giống hệt từng byte file cũ) và giữ nguyên chú thích gốc; không còn tham chiếu tới đường dẫn cũ.
 - [x] Đã nạp thử cả hai file vào SITL bằng `run_param_load` (PASS): 50 dòng, 44 nhận ngay, 6 lệch — đã dán vào `NOTES.md`.
 - [x] `docs/so-tay/11-firmware-ardupilot-param.md` giải thích đủ 7 khái niệm ở 11.8 (thêm mục `OA_TYPE`).
@@ -683,16 +683,24 @@ bốn dòng còn lại của plan đã được luật sẵn có chặn. Sổ ta
 `11-firmware-ardupilot-param.md` (tên theo quy ước thư mục) thay vì tạo
 `11-firmware-va-param.md`.
 
+13/10/2026 — rà lại sau khi nạp bo thật: mọi cổng kiểm bằng máy chạy lại đều đạt (đủ 7 file; 4 file
+nhị phân bị ignore; `build.log` 28/6/8/3 dòng; 54 feature khớp; `02-avoid-tfmini.param` 17 dòng, ASCII,
+LF). Lệch duy nhất là có chủ ý: `01-base.param` sửa 12/10 (`FRAME_TYPE` 12, `BATT_AMP_PERVLT` 370,4 +
+`BATT_AMP_OFFSET` 0,0071) nên thành 34 dòng; SITL chạy lại PASS. Bo thật xác nhận mọi điều phase này để
+ngỏ: có `PRX1_TYPE`, `AVOID_ANG_MAX`, `SERVO_BLH_*`, nhận 34/34 dòng (Phase 14). Plan 11 thêm khối
+"Cập nhật" để không ai chép lại khối 33 dòng cũ. `02-avoid-tfmini.param` chưa nạp lên bo thật — việc
+của Phase 17.
+
 ## Phase 12 — Firmware ESP32 + camera
 
 Plan: plans/phase-12-firmware-esp32-camera.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 12/10/2026 · Ngày xong: ______
 
 - [ ] `firmware/dronebridge/bin/` có file `.bin`; `git status` **không** liệt kê nó.
 - [ ] `firmware/dronebridge/README.md` có đủ 5 mục; bảng cấu hình điền hết trừ 3 ô *chưa xác minh*.
 - [ ] `pio run -e esp32s3_n16r8` → `SUCCESS` trên project thật `firmware/camera/` (cấu hình bo đã build thử 12/10/2026).
-- [ ] Bảng chân camera đã đối chiếu với ảnh/sơ đồ bo thật **trước khi nạp**; có bo thì log `esp_camera_init` OK và `PID 0x3660`.
+- [x] Bảng chân camera đã đối chiếu với ảnh/sơ đồ bo thật **trước khi nạp**; có bo thì log `esp_camera_init` OK và `PID 0x3660`. *(13/10/2026: dấu "camera" in trên bo — ảnh `picture/esp32-s3-n16r8-ov3660/` — trùng tập chân `CAMERA_MODEL_ESP32S3_EYE`; đoạn mã dò in `CAMERA init=OK`, `SENSOR pid=0x3660 OV3660`, chụp được khung VGA thật. Sổ tay 14 mục 8.)*
 - [ ] `git status` **không** hiện `firmware/camera/include/secrets.h` và **không** hiện `.pio/`.
 - [ ] `firmware/camera/README.md` có cách nạp bo ESP32-S3 (kể cả giữ BOOT + nhấn RST khi không vào được chế độ nạp) và cảnh báo nguồn.
 - [ ] `py -3.13 scripts/bench_tfmini.py COM99` báo lỗi **mở cổng**, không phải lỗi cú pháp.
@@ -700,7 +708,10 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] `Get-NetFirewallRule -DisplayName "IOTCV*"` trả về rule UDP 14550.
 - [ ] `docs/so-tay/12-esp32-cho-nguoi-moi.md` giải thích đủ 8 khái niệm ở 12.8.
 
-Ghi chú: 
+Ghi chú: 13/10/2026 — bo camera ESP32-S3 N16R8 + OV3660 đã kiểm trên bo thật (sổ tay 14 mục 8). Bo có
+hai cổng USB-C; cổng `USB-UART` là CH343P (COM7, Windows tự nhận) nên `Serial` hiện thẳng trên cổng
+đó, không cần `-DARDUINO_USB_CDC_ON_BOOT=1`. Trên bo đang là đoạn mã dò ngoài repo; firmware QC của
+shop đã sao lưu ra ổ D. Project thật `firmware/camera/` vẫn chưa viết.
 
 ## Phase 13 — Chuẩn bị lắp ráp
 
@@ -752,6 +763,11 @@ lệnh nạp + sao lưu, người dùng chỉ giữ BOOT và cắm cáp.
 COM5 → ArduPilot COM6. Mọi cổng kiểm bằng máy đều PASS; chi tiết và số đo ở
 `docs/so-tay/14-hang-ve-nap-firmware.md`. Đã vào `main` qua PR #44. Còn lại là việc tay: kiểm hàng
 theo Tờ 1, chiều ren motor, điện áp từng cell pin.
+
+13/10/2026 (chiều) — kiểm hàng phần điện tử: bo camera ESP32-S3 N16R8 + OV3660 cấp điện lần đầu, đạt
+(chip, PSRAM 8 MB, flash 16 MB, OV3660 ra ảnh; sổ tay 14 mục 8); ESP32 CP2102 đạt từ 12/10. Tờ 1 thuộc
+Phase 13 chưa có, nên sổ tay 14 mục 6 thành phiếu kiểm hàng có cột kết quả. Cổng đầu của phase vẫn
+trống vì còn việc tay: ảnh các món, đủ món, motor + chiều ren, ESC, phụ kiện, GPS, iA6B, điện áp cell.
 
 ## 🔧 Phase 15 — Bàn: RC + GPS + compass
 
