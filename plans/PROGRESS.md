@@ -742,6 +742,14 @@ trạng thái của firmware, không const được), 8 "dùng `std::string`/`st
 cấp phát heap trong vòng phát luồng), 3 "dùng `std::format`" (không có trên GCC 8.4 của ESP32), và 4
 cái vặt (ép kiểu thừa, raw string, `auto`, CTAD). Để lại, giống tiền lệ.
 
+**Mở rộng sau merge (13/10/2026, người dùng chọn): nạp firmware camera qua Wi-Fi — OTA (plan §12.9).**
+`POST /update` có token + MD5, ghi khe OTA còn lại rồi khởi động lại; `/status` báo `firmware_sha`
+và `partition`. Lệnh: `scripts/esp32/nap_camera.ps1 -Ota` (gọi `ota_camera.py`, script chứng minh SHA
+trên chip = SHA của file vừa gửi và khe chạy đã đổi). Nghiệm thu đỏ 5/5 (sai token `401`, thiếu MD5
+`400`, MD5 sai `422`, cắt giữa chừng, dữ liệu rác `500` — lần nào chip cũng vẫn chạy bản cũ) và xanh
+(nạp lại cùng bản, nạp biến thể khác SHA rồi nạp về, nạp trong lúc đang stream, `camera_check` PASS
+sau OTA). Số đo: `docs/test-log.md` mục OTA.
+
 ## Phase 13 — Chuẩn bị lắp ráp
 
 Plan: plans/phase-13-chuan-bi-lap-rap.md

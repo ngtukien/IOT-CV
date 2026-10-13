@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| **xong 13/10/2026** — cả hai bo chạy trên phần cứng thật: DroneBridge vào `IOTCV-HOTSPOT` và đẩy MAVLink về laptop; firmware camera nạp lên ESP32-S3 + OV3660, 7,5 fps VGA, đúng hợp đồng MJPEG (`scripts/esp32/camera_check.py` PASS 300 khung). Chỗ lệch so với bản viết trước khi có bo: `/stream` ở cổng 81 riêng (12.4), XCLK 10 MHz (12.4), SSID đã đổi (12.6). Số đo: `docs/test-log.md` mục Phase 12 | Phase 11 | ~6,5 giờ | Không — làm hết trên PC, board chưa về vẫn làm được |
+| **xong 13/10/2026** — cả hai bo chạy trên phần cứng thật: DroneBridge vào `IOTCV-HOTSPOT` và đẩy MAVLink về laptop; firmware camera nạp lên ESP32-S3 + OV3660, 7,5 fps VGA, đúng hợp đồng MJPEG (`scripts/esp32/camera_check.py` PASS 300 khung). Chỗ lệch so với bản viết trước khi có bo: `/stream` ở cổng 81 riêng (12.4), XCLK 10 MHz (12.4), SSID đã đổi (12.6). Số đo: `docs/test-log.md` mục Phase 12. Mở rộng sau merge: nạp camera qua Wi-Fi — OTA (12.9) | Phase 11 | ~6,5 giờ | Không — làm hết trên PC, board chưa về vẫn làm được |
 
 ## Mục tiêu
 
@@ -616,6 +616,36 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
   mọi độ phân giải trên CIF" là sai).
 - **Vì sao camera chỉ phục vụ được một client** — đó là lý do backend đứng giữa làm cầu phân phối,
   chứ trình duyệt không cắm thẳng vào camera.
+
+### 12.9 (mở rộng 13/10/2026) Nạp firmware camera qua Wi-Fi — OTA
+
+Người dùng chọn thêm phần này sau khi Phase 12 đã merge (PR #47). Lý do: khi bo camera đã gắn lên
+drone, muốn nạp bản mới không phải tháo bo ra cắm USB. Không trùng Phase 23/24 (hai phase đó làm ở
+laptop, không đụng `firmware/**`).
+
+```text
+LAPTOP  --POST /update (cong 80, body = firmware.bin)-->  CAMERA
+        header X-OTA-Token: <bi mat 32 hex, trong secrets.h>
+        header X-OTA-MD5  : <md5 cua firmware.bin>
+CAMERA: kiem token + MD5 + kich thuoc -> dung luong /stream, tat camera (de DMA khong dung luc ghi
+        flash) -> ghi vao khe OTA con lai (app0 <-> app1) -> kiem MD5 -> khoi dong lai.
+        Hong bat cu buoc nao -> khe cu khong bi dung, khoi dong lai van chay ban cu.
+```
+
+- Token sinh ngẫu nhiên **một lần** bởi `scripts/esp32/camera-secrets.ps1`, nằm trong
+  `include/secrets.h` (đã `.gitignore`), **giữ nguyên** qua các lần sinh lại — đổi token thì bản đang
+  chạy trên chip sẽ từ chối bản mới, phải nạp USB một lần.
+- `/status` thêm `firmware_sha` (16 hex đầu của SHA-256 file ELF, chip tự đọc từ ảnh đang chạy) và
+  `partition` (`app0`/`app1`).
+- `scripts/esp32/ota_camera.py`: đọc SHA cần có từ `firmware.bin`, gửi, chờ bo khởi động lại, rồi
+  **chứng minh** SHA trên chip = SHA của file vừa gửi và khe chạy đã đổi.
+  `scripts/esp32/nap_camera.ps1 -Ota` = sinh secrets → build → nạp qua Wi-Fi.
+- Giới hạn: bootloader dựng sẵn của core Arduino không bật rollback tự động. Bản mới khởi động được
+  nhưng không vào được Wi-Fi (sai SSID/mật khẩu) thì OTA không cứu được — nạp USB.
+
+**Kết quả mong đợi (đỏ và xanh):** sai token → `401`; MD5 sai → lỗi, bo khởi động lại vẫn chạy bản cũ
+(SHA không đổi); gửi thiếu dữ liệu → lỗi, bản cũ; gửi đúng → khe chạy đổi `app0` ↔ `app1`, SHA trên
+chip = SHA file, `camera_check.py` PASS sau khi nạp.
 
 ---
 

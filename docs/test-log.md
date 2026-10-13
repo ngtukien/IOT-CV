@@ -242,3 +242,31 @@ ma, cho qua log khởi động thật (7.725 B/15 s).
 - **Ngưỡng tỉ lệ cỡ khung 1,4 lần** (bản đầu của bước 4) đỏ vì cảnh trần trơn chỉ chênh 1,3 lần — ngưỡng
   phụ thuộc cảnh là sai thiết kế. Thay bằng "khung đầu gần mức mới hơn mức cũ ít nhất 3 lần" và "hai
   mức chênh ≥ 10 %".
+
+### OTA — nạp firmware camera qua Wi-Fi (mở rộng 13/10/2026, plan §12.9)
+
+Bản có OTA nạp USB một lần: `FIRMWARE sha=c4bf760faf53dddf partition=app0`. `ota_camera.py` tự tính
+SHA từ `firmware.bin` ra đúng `c4bf760faf53dddf` (= 16 hex đầu `sha256sum firmware.elf`) → script
+dừng ở "chip đã chạy đúng bản này".
+
+**Phép thử đỏ** (script ngoài repo bắn thẳng vào `POST /update`; sau mỗi bài đọc lại `/status`):
+
+| Yêu cầu sai | Chip trả | Khởi động lại | Sau đó |
+|---|---|---|---|
+| Sai token | `401 sai hoac thieu X-OTA-Token` | không | `c4bf…` / `app0` / camera OK |
+| Thiếu `X-OTA-MD5` | `400` | không | như trên |
+| MD5 không khớp | `422 MD5 Check Failed` | có | như trên — bản cũ |
+| Gửi 200 KB / 793 KB rồi cắt kết nối | (đã cắt) | có | như trên — bản cũ |
+| 300 KB dữ liệu rác, MD5 đúng của rác | `500 Wrong Magic Byte` | có | như trên — bản cũ |
+
+**Phép thử xanh:**
+
+| Bài | Kết quả |
+|---|---|
+| `ota_camera.py --force` (cùng bản) | `200`, gửi 6,6 s, chạy lại sau 8,9 s; khe `app0` → `app1`, SHA khớp, camera OK |
+| Nạp một **biến thể** (chỉ đổi dòng log khởi động, SHA `c28cf61fb3720f84`) | chip báo đúng `c28cf61f…`, khe `app1` → `app0` |
+| `ota_camera.py` nạp lại bản thật | `c4bf760f…`, khe `app0` → `app1`, PASS |
+| OTA **trong lúc đang stream** | PASS (khe `app1` → `app0`); người xem: luồng cắt gọn (`IncompleteRead`), 8 lần nối lại nhận `503` trong lúc nạp, rồi luồng chạy lại; 0 khung hỏng |
+| `camera_check.py --frames 120` sau OTA | PASS, 120/120 khung sạch, 8,1 fps |
+| `nap_camera.ps1 -Ota` (lệnh gói) | build xong, "chip đã chạy đúng bản này", mã 0 |
+| `camera-secrets.ps1` chạy hai lần | token OTA 32 hex, giữ nguyên (cùng dấu băm dòng token) |

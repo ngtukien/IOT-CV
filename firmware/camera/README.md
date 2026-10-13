@@ -12,7 +12,8 @@ Chạy ở chế độ **STA**: nối vào Mobile Hotspot của laptop, không t
 |---|---|---|---|
 | `GET /stream` | `STREAM_PORT` (81) | luồng MJPEG liên tục, đúng [`docs/hop-dong-mjpeg.md`](../../docs/hop-dong-mjpeg.md) | `multipart/x-mixed-replace; boundary=frame`; `503` nếu camera hỏng |
 | `GET /set?quality=N` | `HTTP_PORT` (80) | đổi `jpeg_quality` lúc đang chạy, N trong **0..63** | `200 {"quality":N}`; `400` nếu N thiếu, không phải số nguyên, hoặc ngoài khoảng |
-| `GET /status` | `HTTP_PORT` (80) | trạng thái | JSON `quality`, `framesize`, `rssi`, `uptime_ms`, `frames_sent`, `camera`, `sensor_pid`, `stream_clients`, `stream_port`, `free_psram` |
+| `GET /status` | `HTTP_PORT` (80) | trạng thái | JSON `quality`, `framesize`, `rssi`, `uptime_ms`, `frames_sent`, `camera` (`OK`/`FAIL`/`OTA`), `sensor_pid`, `stream_clients`, `stream_port`, `free_psram`, `firmware_sha` (16 hex đầu SHA-256 file ELF đang chạy), `partition` (`app0`/`app1`) |
+| `POST /update` | `HTTP_PORT` (80) | nạp firmware qua Wi-Fi (mục "Nạp qua Wi-Fi") | `200` rồi khởi động lại vào bản mới; `401` sai token; `400` thiếu MD5; `422` MD5 không khớp; `500` không phải ảnh firmware |
 
 Địa chỉ: `http://iotcv-camera.mshome.net:81/stream` — hotspot Windows phân giải tên này, khỏi cần
 biết IP DHCP (13/10/2026 là `192.168.137.102`).
@@ -37,6 +38,29 @@ Script làm hết: sinh `include/secrets.h` từ Mobile Hotspot (`scripts\esp32\
 cổng `USB-UART` của bo (chip CH343P, VID `1A86` PID `55D3` — không bao giờ nạp nhầm sang ESP32
 DroneBridge hay FC đang cắm cùng lúc), build + nạp, reset bo, đọc log tới khi bo báo IP.
 `-NoUpload` chỉ build (không cần bo).
+
+### Nạp qua Wi-Fi (OTA) — khi bo đã gắn lên drone
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\esp32\nap_camera.ps1 -Ota [-Force]
+```
+
+Sinh `secrets.h`, build, rồi `scripts\esp32\ota_camera.py` gửi `firmware.bin` tới `POST /update` kèm
+`X-OTA-Token` (bí mật trong `secrets.h`) và `X-OTA-MD5`. Chip ghi vào khe còn lại (`app0` ↔ `app1`),
+kiểm MD5, khởi động lại. Script **chứng minh** chip chạy đúng bản vừa gửi: `firmware_sha` trên chip phải
+bằng SHA-256 của file ELF đọc ra từ `firmware.bin`, và khe chạy phải đổi. Chip đã chạy đúng bản này thì
+script không nạp (thêm `-Force` để nạp lại). Đo 13/10/2026: 793 KB, gửi ~6,5 s, chạy lại xong ~9 s.
+
+- Trong lúc nạp, luồng `/stream` bị cắt và camera tắt (DMA camera không chạy song song với việc ghi
+  flash); `/stream` và `/set` trả `503` cho tới khi bo khởi động lại.
+- Nạp hỏng ở bất cứ bước nào (MD5 sai, đứt mạng giữa chừng, file không phải firmware) thì khe cũ
+  không bị đụng: bo khởi động lại vẫn chạy bản cũ. Đã thử đủ năm kiểu hỏng (`docs/test-log.md`).
+- **Token phải khớp bản đang chạy.** `camera-secrets.ps1` giữ nguyên token qua các lần sinh lại; xoá
+  `secrets.h` thì token mới được sinh và bản trên chip sẽ trả `401` — nạp USB một lần.
+- **Lần đầu** dùng OTA, bo phải đang chạy bản có `/update` — tức đã nạp USB ít nhất một lần sau khi
+  có OTA (đã làm 13/10/2026).
+- **Không có rollback tự động:** bootloader dựng sẵn của core Arduino không bật tính năng đó. Bản mới
+  khởi động được nhưng không vào được Wi-Fi (sai SSID/mật khẩu) thì OTA không cứu được — nạp USB.
 
 ### Làm tay từng bước
 
@@ -91,7 +115,7 @@ uv run python scripts\esp32\camera_check.py [--frames 300] [--save khung.jpg]
 ```
 
 Script gọi camera bằng tên cố định `iotcv-camera.mshome.net` (đổi tên máy thì sửa hằng `CAMERA_HOST`
-trong script); `--save` ghi vào `logs/camera/` (đã `.gitignore` — khung ảnh có thể có mặt người).
+trong `scripts/esp32/camera_net.py`); `--save` ghi vào `logs/camera/` (đã `.gitignore` — khung ảnh có thể có mặt người).
 
 Bốn nhóm kiểm, dừng mã 1 ở lỗi đầu tiên: `/status` đủ trường và PID `0x3660`; `/set` từ chối 6
 kiểu tham số sai; `/stream` đúng hợp đồng — đọc bằng **chính parser của backend**
@@ -132,6 +156,8 @@ chẩn đoán bằng `py -3.13 scripts\esp32\wifi_ping_check.py` (`docs/so-tay/1
 |---|---|
 | `platformio.ini` | env `esp32s3_n16r8`: flash 16 MB QIO, PSRAM 8 MB octal (`qio_opi`), bảng phân vùng 16 MB |
 | `src/main.cpp` | camera + Wi-Fi + hai máy chủ HTTP |
+| `src/ota_update.cpp`, `src/ota_update.h` | `POST /update`: kiểm token + MD5, ghi khe OTA, khởi động lại; `firmware_sha`, `partition` |
+| `src/http_json.h` | hàm trả JSON dùng chung cho mọi handler |
 | `src/camera_pins.h` | chép **nguyên văn** từ ví dụ `CameraWebServer` của arduino-esp32 v2.0.17; chọn bảng bằng macro `CAMERA_MODEL_ESP32S3_EYE` trong `platformio.ini`, đã kiểm trên bo thật (sổ tay 14 mục 8). Sai bo thì đổi macro, đừng sửa số chân lẻ tẻ |
 | `include/secrets.example.h` | mẫu cấu hình; `secrets.h` sinh ra từ đây |
 

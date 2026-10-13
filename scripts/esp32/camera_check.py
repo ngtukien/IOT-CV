@@ -3,9 +3,9 @@
 Chạy (trong repo, cần env của backend vì dùng chính parser MJPEG của backend):
     uv run python scripts/esp32/camera_check.py [--frames 300] [--save khung.jpg]
 
-Camera gọi bằng tên cố định CAMERA_HOST (hotspot Windows phân giải tên máy của bo); `--save` ghi
-vào logs/camera/ (đã .gitignore). Không nhận địa chỉ tuỳ ý từ dòng lệnh: script chỉ để kiểm đúng
-con camera của dự án.
+Camera gọi bằng tên cố định CAMERA_HOST trong camera_net.py (hotspot Windows phân giải tên máy);
+`--save` ghi vào logs/camera/ (đã .gitignore). Không nhận địa chỉ tuỳ ý từ dòng lệnh: script chỉ
+để kiểm đúng con camera của dự án.
 
 Kiểm, theo thứ tự, và dừng mã 1 ở lỗi đầu tiên:
  1. `/status` trả đủ trường, camera OK, cảm biến PID 0x3660.
@@ -32,12 +32,12 @@ import urllib.request
 from itertools import pairwise
 from pathlib import Path
 
+from camera_net import CONTROL_PORT, camera_url
+
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 from backend.vision.stream import MJPEG_MEDIA_TYPE, iter_multipart_frames  # noqa: E402
 
-CAMERA_HOST = "iotcv-camera.mshome.net"  # WIFI_HOSTNAME của firmware + đuôi mạng hotspot Windows
-CONTROL_PORT = 80  # HTTP_PORT trong firmware/camera/include/secrets.example.h
 SAVE_DIR = REPO / "logs" / "camera"
 STATUS_KEYS = ("quality", "framesize", "rssi", "uptime_ms", "frames_sent")
 X_FIELDS = ("frame_id", "timestamp_ms", "jpeg_quality", "framesize")  # 4 header X- đã tách
@@ -303,15 +303,6 @@ def check_quality_switch(base: str, stream_url: str) -> None:
             )
     finally:
         col.stop()
-
-
-def camera_url(port: int, path: str = "") -> str:
-    # HTTP, không HTTPS: firmware ESP32 không có TLS (mã hoá từng khung MJPEG trên chip làm sụp
-    # fps), và camera chỉ nằm trong mạng Mobile Hotspot riêng của laptop. Đây là chỗ DUY NHẤT dựng
-    # URL camera trong script.
-    return (
-        f"http://{CAMERA_HOST}:{port:d}{path}"  # NOSONAR - camera không có TLS, xem chú thích trên
-    )
 
 
 def resolve_save_path(name: str) -> Path:

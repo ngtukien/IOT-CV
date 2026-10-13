@@ -12,7 +12,8 @@
 >   **Không** nối laptop vào Wi-Fi riêng của board như 17.1 cũ mô tả (mất internet, cắt phiên).
 > - **Bo camera đã nạp firmware thật**: `http://iotcv-camera.mshome.net:81/stream`, `/status` và
 >   `/set?quality=` ở cổng **80**. Nạp lại: `scripts\esp32\nap_camera.ps1` (tự sinh `secrets.h`).
->   Kiểm: `uv run python scripts\esp32\camera_check.py`. VGA ~7,5 fps đã đo.
+>   Kiểm: `uv run python scripts\esp32\camera_check.py`. VGA ~7,5 fps đã đo. Bo đã bắt vít lên khung
+>   thì nạp qua Wi-Fi: `scripts\esp32\nap_camera.ps1 -Ota` (plan Phase 12 §12.9), khỏi tháo cáp.
 > - Gọi hai bo bằng tên `*.mshome.net`, đừng ghi IP: IP DHCP đổi mỗi lần hotspot khởi động lại.
 > - Hotspot: `scripts\esp32\hotspot-on.ps1`; rule tường lửa đã có (`scripts\esp32\firewall-mavlink.ps1`).
 > - **Rủi ro mới (điểm 15):** mỗi lần laptop quét Wi-Fi, cả hai bo mất sóng 3–6 s → dead-man 300 ms
