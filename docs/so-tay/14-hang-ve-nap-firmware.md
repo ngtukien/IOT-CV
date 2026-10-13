@@ -122,7 +122,8 @@ kênh MAVLink thứ hai, ở đây là SERIAL2) mới xuất hiện vì SERIAL2 
 - Motor: vặn tay đếm đủ **2 ren thuận + 2 ren nghịch** (vì sao cần cả hai chiều: Phase 18.3).
 - Pin: đo điện áp từng cell bằng sạc SkyRC; pin mới về để ở mức storage 3,80–3,85 V/cell, đừng sạc
   đầy (4,20 V/cell) khi chưa bay.
-- Commit `firmware/ardupilot/params/00-after-flash.param`: chờ chủ dự án cho phép.
+
+`00-after-flash.param` và các script đã vào `main` qua PR #44.
 
 ## 7. Cho lần sau
 

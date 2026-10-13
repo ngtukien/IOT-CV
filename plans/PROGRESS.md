@@ -734,7 +734,7 @@ Ngày bắt đầu: 13/10/2026 · Ngày xong: ______
 - [x] Mission Planner CONNECT được; banner ghi `ArduCopter V4.7.1 (dbe79216)` + `speedybeef4v5`. *(COM6, 115200; nút thành DISCONNECT.)*
 - [x] **Tìm thấy `PRX1_TYPE`, `RNGFND1_TYPE`, `AVOID_ENABLE` trong Full Parameter List.** *(Đọc cả bảng tham số bằng `kiem_fc.py`, có thêm `AVOID_ANG_MAX`, `SERVO_BLH_POLES`.)*
 - [x] Baro được nhận (`press_abs` ≈ 1000 hPa, không có lỗi Baro); nghiêng bo thì pitch/roll đổi đúng dấu (14.5b). *(1012,6 hPa; pitch −68°, roll +53°.)*
-- [ ] `firmware/ardupilot/params/00-after-flash.param` đã lưu **và đã commit**. *(Đã lưu 850 tham số; chờ chủ dự án cho commit.)*
+- [x] `firmware/ardupilot/params/00-after-flash.param` đã lưu **và đã commit**. *(850 tham số; vào `main` qua PR #44, commit `d8c7e9d`.)*
 - [x] `01-base.param` đã Write + reboot; 8 tham số then chốt đọc lại đúng giá trị. *(`nap_param.py`: cả 34/34 dòng đọc lại đúng sau reboot.)*
 - [x] Danh sách tham số bị từ chối đã ghi vào `docs/so-tay/14-hang-ve-nap-firmware.md` và ngắn hơn danh sách của SITL (Phase 11.7). *(Bo thật từ chối 0 dòng, SITL 2.)*
 - [x] **Chưa cắm pin lần nào trong phase này.** *(Tới 13/10: FC chạy riêng qua USB, chưa nối ESC; HUD báo điện áp pin dưới ngưỡng 14 V.)*
@@ -750,8 +750,8 @@ lệnh nạp + sao lưu, người dùng chỉ giữ BOOT và cắm cáp.
 13/10/2026 — **đã nạp ArduPilot**, tự động hoàn toàn bằng `scripts/fc/` (`nap_dfu.py` →
 `kiem_fc.py` → `nap_param.py`): vào DFU bằng lệnh MSP, không bấm BOOT, không rút cáp. Betaflight
 COM5 → ArduPilot COM6. Mọi cổng kiểm bằng máy đều PASS; chi tiết và số đo ở
-`docs/so-tay/14-hang-ve-nap-firmware.md`. Còn lại là việc tay: kiểm hàng theo Tờ 1, chiều ren
-motor, điện áp từng cell pin — và commit `00-after-flash.param` khi chủ dự án cho phép.
+`docs/so-tay/14-hang-ve-nap-firmware.md`. Đã vào `main` qua PR #44. Còn lại là việc tay: kiểm hàng
+theo Tờ 1, chiều ren motor, điện áp từng cell pin.
 
 ## 🔧 Phase 15 — Bàn: RC + GPS + compass
 
