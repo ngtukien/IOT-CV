@@ -90,6 +90,9 @@ cho ESP32 DroneBridge): cả hai không có màn hình để báo lỗi.
 uv run python scripts\esp32\camera_check.py [--frames 300] [--save khung.jpg]
 ```
 
+Script gọi camera bằng tên cố định `iotcv-camera.mshome.net` (đổi tên máy thì sửa hằng `CAMERA_HOST`
+trong script); `--save` ghi vào `logs/camera/` (đã `.gitignore` — khung ảnh có thể có mặt người).
+
 Bốn nhóm kiểm, dừng mã 1 ở lỗi đầu tiên: `/status` đủ trường và PID `0x3660`; `/set` từ chối 6
 kiểu tham số sai; `/stream` đúng hợp đồng — đọc bằng **chính parser của backend**
 (`backend/vision/stream.py`), mọi khung **giải mã sạch** qua libjpeg, id và timestamp tăng dần; đổi

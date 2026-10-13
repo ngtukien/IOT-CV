@@ -1,7 +1,11 @@
 """Nghiệm thu firmware camera ESP32-S3 + OV3660 qua Wi-Fi (plans/phase-12 §12.4).
 
 Chạy (trong repo, cần env của backend vì dùng chính parser MJPEG của backend):
-    uv run python scripts/esp32/camera_check.py [--host iotcv-camera.mshome.net] [--save frame.jpg]
+    uv run python scripts/esp32/camera_check.py [--frames 300] [--save khung.jpg]
+
+Camera gọi bằng tên cố định CAMERA_HOST (hotspot Windows phân giải tên máy của bo); `--save` ghi
+vào logs/camera/ (đã .gitignore). Không nhận địa chỉ tuỳ ý từ dòng lệnh: script chỉ để kiểm đúng
+con camera của dự án.
 
 Kiểm, theo thứ tự, và dừng mã 1 ở lỗi đầu tiên:
  1. `/status` trả đủ trường, camera OK, cảm biến PID 0x3660.
@@ -28,9 +32,13 @@ import urllib.request
 from itertools import pairwise
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO))
 from backend.vision.stream import MJPEG_MEDIA_TYPE, iter_multipart_frames  # noqa: E402
 
+CAMERA_HOST = "iotcv-camera.mshome.net"  # WIFI_HOSTNAME của firmware + đuôi mạng hotspot Windows
+CONTROL_PORT = 80  # HTTP_PORT trong firmware/camera/include/secrets.example.h
+SAVE_DIR = REPO / "logs" / "camera"
 STATUS_KEYS = ("quality", "framesize", "rssi", "uptime_ms", "frames_sent")
 X_FIELDS = ("frame_id", "timestamp_ms", "jpeg_quality", "framesize")  # 4 header X- đã tách
 OV3660_PID = "0x3660"
@@ -297,19 +305,38 @@ def check_quality_switch(base: str, stream_url: str) -> None:
         col.stop()
 
 
+def camera_url(port: int, path: str = "") -> str:
+    # HTTP, không HTTPS: firmware ESP32 không có TLS (mã hoá từng khung MJPEG trên chip làm sụp
+    # fps), và camera chỉ nằm trong mạng Mobile Hotspot riêng của laptop. Đây là chỗ DUY NHẤT dựng
+    # URL camera trong script.
+    return (
+        f"http://{CAMERA_HOST}:{port:d}{path}"  # NOSONAR - camera không có TLS, xem chú thích trên
+    )
+
+
+def resolve_save_path(name: str) -> Path:
+    """Đường dẫn ghi khung ảnh, neo vào logs/camera/ — không cho ghi ra ngoài thư mục đó."""
+    path = (SAVE_DIR / name).resolve()
+    if not path.is_relative_to(SAVE_DIR.resolve()):
+        raise ValueError(f"--save '{name}' nằm ngoài {SAVE_DIR} — không nhận")
+    return path
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--host", default="iotcv-camera.mshome.net")
-    ap.add_argument("--port", type=int, default=80)
     ap.add_argument("--frames", type=int, default=BASELINE_FRAMES, help="số khung kiểm ở bước 3")
-    ap.add_argument("--save", type=Path, help="lưu một khung JPEG ra file để xem bằng mắt")
+    ap.add_argument("--save", metavar="TEN.jpg", help="lưu một khung JPEG vào logs/camera/TEN.jpg")
     args = ap.parse_args()
-    base = f"http://{args.host}:{args.port}"
+    try:
+        save_path = resolve_save_path(args.save) if args.save else None
+    except ValueError as exc:
+        ap.error(str(exc))
+    base = camera_url(CONTROL_PORT)
     original = None
     try:
         status = check_status(base)
         original = status["quality"]
-        stream_url = f"http://{args.host}:{status['stream_port']}/stream"
+        stream_url = camera_url(int(status["stream_port"]), "/stream")
         check_set_validation(base, original)
 
         col = StreamCollector(stream_url)
@@ -319,9 +346,10 @@ def main() -> int:
             col.stop()
         expect(col.content_type == MJPEG_MEDIA_TYPE, f"Content-Type '{col.content_type}'")
         check_contract(base, col.frames[: args.frames], status)
-        if args.save:
-            args.save.write_bytes(col.frames[-1].jpeg)
-            print(f"      đã lưu {args.save}")
+        if save_path:
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            save_path.write_bytes(col.frames[-1].jpeg)
+            print(f"      đã lưu {save_path}")
         time.sleep(0.5)  # để firmware đóng phiên /stream trước khi mở phiên mới
         check_quality_switch(base, stream_url)
     except CheckFailed as exc:

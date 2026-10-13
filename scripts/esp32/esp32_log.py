@@ -35,13 +35,20 @@ def max_plausible_bytes(baud: int, elapsed_s: float) -> float:
     return baud / 10 * elapsed_s * 1.5 + PLAUSIBLE_SLACK_BYTES
 
 
+def set_rts(ser: serial.Serial, level: bool) -> None:
+    """Đặt RTS (nối EN qua mạch tự reset) rồi GHI LẠI DTR mức thấp (IO0 cao = chạy bình thường).
+
+    usbser.sys (CH343P) chỉ đẩy trạng thái RTS xuống chip khi DTR được ghi lại — mẹo `_setRTS`
+    của esptool. Setter của pyserial luôn gửi lệnh xuống driver, kể cả khi giá trị không đổi.
+    """
+    ser.rts = level
+    ser.dtr = False
+
+
 def reset_chip(ser: serial.Serial) -> None:
-    ser.dtr = False  # IO0 cao = khởi động bình thường, không vào chế độ nạp
-    ser.rts = True  # EN thấp = giữ reset
-    ser.dtr = ser.dtr  # usbser.sys chỉ gửi trạng thái RTS khi DTR được ghi lại
+    set_rts(ser, True)  # EN thấp = giữ reset
     time.sleep(RESET_PULSE_S)
-    ser.rts = False
-    ser.dtr = ser.dtr
+    set_rts(ser, False)
 
 
 def main() -> int:

@@ -28,6 +28,7 @@ RTT_PATTERN = re.compile(r"time[=<](\d+)ms")
 SCAN_WATCHER = Path(__file__).with_name("wifi_scan_watch.ps1")
 SCAN_DURATION_S = 6  # một lần quét đo được 4,2-4,9 s; giây mất trong khoảng này coi là do quét
 WATCHER_GRACE_S = 15
+WATCH_TAIL_S = 2
 
 
 def ping_once(ip: str) -> int | None:
@@ -49,7 +50,8 @@ def ping_series(ip: str, seconds: int, t0: float, out: list) -> None:
         time.sleep(max(0.0, (i + 1) - (time.monotonic() - t0)))
 
 
-def start_scan_watch(seconds: int) -> subprocess.Popen | None:
+def start_scan_watch() -> subprocess.Popen | None:
+    """Chạy wifi_scan_watch.ps1 tới khi bị dừng. Lệnh chỉ gồm hằng số, không lấy từ dòng lệnh."""
     if sys.platform != "win32" or not SCAN_WATCHER.exists():
         print(
             "Không theo dõi được lần quét Wi-Fi (chỉ chạy trên Windows, cần wifi_scan_watch.ps1)."
@@ -57,7 +59,7 @@ def start_scan_watch(seconds: int) -> subprocess.Popen | None:
         return None
     cmd = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]
     return subprocess.Popen(
-        [*cmd, str(SCAN_WATCHER), "-Seconds", str(seconds)],
+        [*cmd, str(SCAN_WATCHER)],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -66,10 +68,16 @@ def start_scan_watch(seconds: int) -> subprocess.Popen | None:
     )
 
 
-def scan_end_seconds(proc: subprocess.Popen, t0_wall: float, seconds: int) -> list[float] | None:
-    """Giây (tính từ lúc bắt đầu ping) mà mỗi lần quét kết thúc. None = không theo dõi được."""
+def scan_end_seconds(proc: subprocess.Popen, t0_wall: float) -> list[float] | None:
+    """Dừng bộ theo dõi, trả các giây (tính từ lúc bắt đầu ping) mà mỗi lần quét kết thúc.
+
+    None = không theo dõi được. Bộ theo dõi ghi và đẩy từng dòng ngay, nên dừng nó giữa chừng
+    không mất dòng nào đã in.
+    """
+    time.sleep(WATCH_TAIL_S)  # đợi lần quét đang dở (nếu có) kịp in
+    proc.terminate()
     try:
-        out, _ = proc.communicate(timeout=seconds + WATCHER_GRACE_S)
+        out, _ = proc.communicate(timeout=WATCHER_GRACE_S)
     except subprocess.TimeoutExpired:
         proc.kill()
         out, _ = proc.communicate()
@@ -91,7 +99,7 @@ def main() -> int:
     ap.add_argument("--no-scan-watch", action="store_true", help="không theo dõi lần quét Wi-Fi")
     args = ap.parse_args()
     ips = {h: socket.gethostbyname(h) for h in args.hosts}  # phân giải một lần, trước khi đo
-    watcher = None if args.no_scan_watch else start_scan_watch(args.seconds + 2)
+    watcher = None if args.no_scan_watch else start_scan_watch()
     results: dict[str, list] = {h: [] for h in args.hosts}
     t0 = time.monotonic()
     t0_wall = time.time()
@@ -116,7 +124,7 @@ def main() -> int:
     common = sorted(set.intersection(*lost_sets)) if lost_sets else []
     print(f"Giây mất CHUNG ở mọi bo: {len(common)} {common}")
 
-    ends = scan_end_seconds(watcher, t0_wall, args.seconds) if watcher else None
+    ends = scan_end_seconds(watcher, t0_wall) if watcher else None
     if ends is not None:
         print(f"Laptop quét Wi-Fi {len(ends)} lần, xong ở giây: {ends}")
         during = [s for s in common if any(e - SCAN_DURATION_S <= s <= e + 1 for e in ends)]

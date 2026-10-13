@@ -9,6 +9,7 @@
 // (SAFETY.md muc 9). Moi so tinh chinh nam trong include/secrets.h.
 #include <Arduino.h>
 #include <WiFi.h>
+#include <atomic>
 #include "esp_camera.h"
 #include "esp_http_server.h"
 #include "lwip/sockets.h"
@@ -37,8 +38,10 @@ static SemaphoreHandle_t stateLock;
 static int activeQuality = JPEG_QUALITY_DEFAULT;  // chat luong cua khung ke tiep duoc gui
 static int settleLeft = 0;
 static uint32_t nextFrameId = 0;                   // dem moi khung lay tu cam bien, ke ca khung bo
-static volatile uint32_t framesSent = 0;
-static volatile int streamClients = 0;
+// Tang o task may chu /stream, doc o task /status va loop() -> std::atomic, khong phai volatile
+// (volatile khong lam phep ++ thanh nguyen tu, va ++ tren volatile da bi C++20 bo).
+static std::atomic<uint32_t> framesSent{0};
+static std::atomic<int> streamClients{0};
 
 struct FramesizeName {
   framesize_t size;
@@ -165,7 +168,7 @@ static esp_err_t streamHandler(httpd_req_t *req) {
     }
   }
   streamClients--;
-  Serial.printf("STREAM client disconnected res=0x%x frames_sent=%u\n", (unsigned)res, (unsigned)framesSent);
+  Serial.printf("STREAM client disconnected res=0x%x frames_sent=%u\n", (unsigned)res, (unsigned)framesSent.load());
   return res == ESP_OK ? ESP_FAIL : res;  // dong ket noi; luong MJPEG khong co ket thuc "dep"
 }
 
@@ -214,8 +217,8 @@ static esp_err_t statusHandler(httpd_req_t *req) {
            "\"camera\":\"%s\",\"sensor_pid\":\"0x%04x\",\"stream_clients\":%d,\"stream_port\":%d,"
            "\"free_psram\":%u}",
            quality, camErr == ESP_OK ? currentFramesizeName() : "UNKNOWN", (int)WiFi.RSSI(),
-           (unsigned long)millis(), (unsigned)framesSent, camErr == ESP_OK ? "OK" : "FAIL", sensorPid,
-           (int)streamClients, STREAM_PORT, (unsigned)ESP.getFreePsram());
+           (unsigned long)millis(), (unsigned)framesSent.load(), camErr == ESP_OK ? "OK" : "FAIL", sensorPid,
+           streamClients.load(), STREAM_PORT, (unsigned)ESP.getFreePsram());
   return sendJson(req, "200 OK", body);
 }
 
@@ -298,7 +301,7 @@ void loop() {
     lastStatus = millis();
     Serial.printf("STATUS ip=%s rssi=%d camera=%s quality=%d frames_sent=%u clients=%d free_psram=%u\n",
                   WiFi.localIP().toString().c_str(), (int)WiFi.RSSI(), camErr == ESP_OK ? "OK" : "FAIL",
-                  activeQuality, (unsigned)framesSent, (int)streamClients, (unsigned)ESP.getFreePsram());
+                  activeQuality, (unsigned)framesSent.load(), streamClients.load(), (unsigned)ESP.getFreePsram());
   }
   delay(50);
 }
