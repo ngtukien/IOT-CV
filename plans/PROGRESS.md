@@ -720,6 +720,28 @@ minh; có lúc một chương trình bắt quét mỗi ~15,5 s) → video đứn
 dừng drone khi lái tay. Chẩn đoán: `scripts/esp32/wifi_ping_check.py`; hướng chữa:
 `docs/so-tay/12-hotspot-laptop.md` mục 6.
 
+**SonarCloud đỏ trên PR #47, đã xử (theo tiền lệ Phase 01 và Phase 06).** Gate hỏng ở
+`new_reliability_rating=4` và `new_security_rating=3`. Đã sửa thật, không tắt luật nào:
+- 3 BUG `++`/`--` trên biến `volatile` ở `main.cpp` → `std::atomic` (bộ đếm tăng ở task `/stream`,
+  đọc ở task khác — `volatile` vốn không làm phép tăng thành nguyên tử). Nạp lại bo, `camera_check`
+  300 khung PASS.
+- 2 BUG `ser.dtr = ser.dtr` ở `esp32_log.py` → hàm `set_rts()` ghi lại DTR tường minh (mẹo usbser.sys
+  giữ nguyên tác dụng; reset kiểm lại trên cả COM7 lẫn COM4).
+- 3 lỗ hổng "tham số dòng lệnh chảy vào URL / subprocess / đường dẫn": bỏ `--host`/`--port` của
+  `camera_check` (gọi bằng hằng `CAMERA_HOST`), `--save` chỉ ghi vào `logs/camera/`, bộ theo dõi quét
+  Wi-Fi không nhận số giây từ dòng lệnh nữa.
+- 4 cảnh báo HTTP: camera ESP32 không có TLS. Dựng URL camera ở một hàm duy nhất và đánh dấu đúng
+  một dòng đó là ngoại lệ có lý do (`# NOSONAR` kèm chú thích) — lần đầu repo dùng `NOSONAR`, vì đây
+  là giới hạn của phần cứng chứ không phải lỗi sửa được.
+- `camera_pins.h` (chép nguyên văn từ Espressif) loại khỏi phân tích, cùng lý do với
+  `build-d450a747/`.
+
+Kết quả: gate OK, 5/5 điều kiện xanh, mọi rating = 1 (0 bug, 0 lỗ hổng). **Còn 21 code smell chưa
+sửa, đều ở `main.cpp`, không kéo rating nào khỏi 1:** 6 "biến/con trỏ toàn cục phải const" (đó là
+trạng thái của firmware, không const được), 8 "dùng `std::string`/`std::array` thay mảng C" (`std::string` sẽ
+cấp phát heap trong vòng phát luồng), 3 "dùng `std::format`" (không có trên GCC 8.4 của ESP32), và 4
+cái vặt (ép kiểu thừa, raw string, `auto`, CTAD). Để lại, giống tiền lệ.
+
 ## Phase 13 — Chuẩn bị lắp ráp
 
 Plan: plans/phase-13-chuan-bi-lap-rap.md
