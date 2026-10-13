@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| đang làm — 14.2 → 14.7 xong 13/10/2026 (nạp, kiểm, `01-base`); còn 14.1 kiểm hàng | Phase 13 + **hàng đã về** | ~3,5 giờ | **Có** — stack SpeedyBee F405 V5, cáp USB-C có dây dữ liệu, toàn bộ đơn hàng |
+| đang làm — 14.2 → 14.7 xong 13/10/2026 (nạp, kiểm, `01-base`); 14.1: ba bo điện tử đã kiểm (FC, ESP32 CP2102, ESP32-S3 + OV3660), còn việc tay — phiếu ở `docs/so-tay/14-hang-ve-nap-firmware.md` mục 6 | Phase 13 + **hàng đã về** | ~3,5 giờ | **Có** — stack SpeedyBee F405 V5, cáp USB-C có dây dữ liệu, toàn bộ đơn hàng |
 
 **AN TOÀN:** toàn bộ phase này không lắp cánh lên motor (NO PROPELLERS, `SAFETY.md` mục 2). Cánh
 chỉ được gắn ở Phase 19 bước 19.13.
@@ -58,7 +58,8 @@ vào bo, không sửa nội dung).
 
 ### 14.1 Mở thùng, chụp ảnh, kiểm đếm
 
-Cầm **Tờ 1** đã in. Làm trước khi lắp bất cứ thứ gì.
+Cầm **Tờ 1** đã in. Làm trước khi lắp bất cứ thứ gì. Tờ 1 chưa có (Phase 13 chưa làm) thì dùng phiếu ở
+`docs/so-tay/14-hang-ve-nap-firmware.md` mục 6 — cùng nội dung, có cột ghi kết quả.
 
 ```text
 [ ] CHUP ANH toan bo hang con nguyen trong hop, TRUOC khi boc.
@@ -86,6 +87,10 @@ Kiểm từng nhóm:
 **AN TOÀN:** nếu cả 4 motor cùng một chiều ren, **đổi hàng ngay**, đừng "lắp tạm rồi tính".
 Ốc chóp ren sai chiều sẽ tự nới lỏng do chính chiều quay của motor, và cánh quạt văng ra khi
 đang bay.
+
+Bộ AIR GEAR 450 II không có ốc chóp riêng: cánh T1045 vặn thẳng lên trục ren của motor (Phase 18.3,
+`docs/phan-cung-thuc-te.md`). "Vặn thử ốc chóp" ở trên nghĩa là vặn tay thử một cánh lên trục, đúng
+như 18.3 bước 1–3 — motor chưa nối dây nên không cần điện và không thể quay.
 
 **Stack (SpeedyBee F405 V5 OX32 Deluxe):**
 

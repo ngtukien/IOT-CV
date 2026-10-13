@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 01 (repo đã có `firmware/`) | ~4,5 giờ | Không — làm hết trên PC |
+| ĐÃ XONG (25/09/2026, PR #37) — 12/10/2026 sửa `01-base.param` (`FRAME_TYPE` 12, hệ số dòng OX32; PR #38); bo thật nhận 34/34 dòng ngày 13/10/2026 | Phase 01 (repo đã có `firmware/`) | ~4,5 giờ | Không — làm hết trên PC |
 
 ## Mục tiêu
 
@@ -27,6 +27,14 @@ Phase này **không** đụng vào phần cứng và không cần chờ hàng v�
 > **Đường dẫn.** Phase 01 đã chuyển `params/` vào `firmware/ardupilot/`. Phase này dùng đường dẫn
 > **mới** (`firmware/ardupilot/params/...`). Nếu Phase 01 chưa chạy thì làm Phase 01 trước — đừng
 > tạo song song hai chỗ rồi sau phải hợp nhất.
+
+> **Cập nhật 12–13/10/2026 — đọc trước khi chép khối ở 11.5.** `01-base.param` trong repo đã đổi
+> sau phase này: `FRAME_TYPE` 1 → 12 (ESC OX32 đánh số motor kiểu Betaflight), `BATT_AMP_PERVLT`
+> 25 → 370,4 và thêm `BATT_AMP_OFFSET 0.0071` (hệ số dòng SpeedyBee công bố), nên giờ có **34** dòng
+> tham số, không phải 33. Lý do ghi ngay trong file; SITL chạy lại PASS (`build-d450a747/NOTES.md`
+> mục "Chạy lại 12/10/2026"). Khối ở 11.5 và con số 33 ở cổng pass là bản 25/09/2026, giữ để đọc
+> lịch sử — **file trong repo mới là bản đúng**, đừng chép đè. Ngày 13/10/2026 bo thật nhận đủ
+> 34/34 dòng và có `PRX1_TYPE` (`docs/so-tay/14-hang-ve-nap-firmware.md`).
 
 ## File và thư mục sở hữu
 

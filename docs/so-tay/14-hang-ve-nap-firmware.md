@@ -4,8 +4,8 @@ Trang này ghi lại lần nạp ArduPilot đầu tiên lên bo bay thật, ngà
 dưới đây là số đo thật, in ra bởi bốn script trong `scripts/fc/`. Cả quá trình không bấm nút
 BOOT và không rút cáp lần nào: người vận hành chỉ cắm cáp USB và cầm bo nghiêng khi được nhắc.
 
-Phần **kiểm hàng** (14.1: mở thùng, chiều ren motor, điện áp từng cell pin) là việc tay, chưa
-làm — xem mục 6.
+Phần **kiểm hàng** (14.1) mới xong ba bo điện tử: FC, ESP32 CP2102 và bo camera ESP32-S3 + OV3660
+(mục 8). Motor, chiều ren, pin, phụ kiện là việc tay, còn lại — phiếu điền kết quả ở mục 6.
 
 ## 1. Kết quả
 
@@ -115,13 +115,40 @@ kênh MAVLink thứ hai, ở đây là SERIAL2) mới xuất hiện vì SERIAL2 
   qua DFU ghi đè Betaflight nên không cần kích hoạt — lần này đúng như vậy.
 - **Ba jumper trên bo:** SBUS để hở (đúng cho iBUS), "BARO →" đã nối thiếc từ nhà máy, 9V để hở. Để
   nguyên cả ba. Baro đọc 1012,6 hPa là bằng chứng jumper baro đang đúng.
+- **Chiều ren motor.** Cánh T1045 vặn thẳng lên trục ren của motor. Khi motor tăng tốc và khi cánh
+  cắt gió, cánh luôn có xu hướng trễ lại so với trục, tức là xoay ngược chiều quay; ren được chọn để
+  chính xu hướng đó vặn cánh **chặt** thêm. Quad cần 2 motor quay thuận và 2 quay nghịch (để mô-men
+  xoắn triệt tiêu, drone không tự xoay tròn), nên bộ motor phải có 2 ren phải + 2 ren trái. Lắp sai
+  thì cánh tự nới dần và văng ra khi đang bay. Ghép ren nào vào vị trí nào: Phase 18.3.
+- **Điện áp storage của pin LiPo.** Pin mới xuất xưởng ở mức "storage" 3,80–3,85 V/cell — mức pin
+  lão hoá chậm nhất. Sạc đầy là 4,20 V/cell. Để pin đầy nhiều ngày làm pin phồng và mất dung lượng
+  nhanh, nên chỉ sạc đầy **ngay trước** buổi bay; không bay thì đưa về storage (chế độ `Storage` của
+  B6AC). Các cell lệch nhau là dấu hiệu sớm của một cell yếu.
 
-## 6. Chưa làm — việc tay của người vận hành
+## 6. Kiểm hàng (14.1) — phiếu điền kết quả
 
-- 14.1: mở thùng theo **Tờ 1**, chụp ảnh vào `logs/kiem-hang/`.
-- Motor: vặn tay đếm đủ **2 ren thuận + 2 ren nghịch** (vì sao cần cả hai chiều: Phase 18.3).
-- Pin: đo điện áp từng cell bằng sạc SkyRC; pin mới về để ở mức storage 3,80–3,85 V/cell, đừng sạc
-  đầy (4,20 V/cell) khi chưa bay.
+Tờ 1 in sẵn thuộc Phase 13 (`13-checklist-in-ra.md`), phase đó chưa làm; phiếu này thay nó, gom từ
+plan 14.1. Kiểm xong món nào thì điền cột "Kết quả" (hoặc đọc kết quả cho Claude ghi). Món lỗi: ghi
+lỗi gì và đã báo shop chưa — đây là lúc còn đổi trả được.
+
+| Món | Kiểm gì | Kết quả |
+|---|---|---|
+| Ảnh hàng | Chụp mọi món, món nào còn hộp thì chụp cả hộp → `logs/kiem-hang/` | Đã có: FC 8 ảnh, ESP32 CP2102 3 ảnh, ESP32-S3 2 ảnh + 5 ảnh shop (`picture/`). Còn các món khác |
+| Đủ món | Đối chiếu bảng `docs/phan-cung-thuc-te.md` (danh sách mua `13-mua-sam.md` chưa có) | |
+| 4 motor AIR2216II | Trục thẳng, xoay tay êm, bạc đạn không lạo xạo, 3 dây không tróc, nam châm không cạ | |
+| Chiều ren motor | **2 ren phải + 2 ren trái.** Vặn tay một cánh T1045 lên trục từng motor như Phase 18.3 bước 1–3 (motor chưa nối gì, không cần điện): vào ngọt ở 2 motor, không vào ở 2 motor kia. Phải dùng lực là sai cặp, dừng. Cả 4 cùng một chiều → đổi hàng ngay | |
+| ESC OX32 | Không cháy, không phồng tụ, không biến dạng | |
+| Phụ kiện stack | Theo `v5_29.jpg` (Deluxe): 2 cáp 10 chân (25 và 75 mm); **1** tụ 1000 µF 35 V + 2 gen; 5 ốc nylon + 5 đệm + 10 vỏ silicone; 4 ốc M3×30 + dây XT60; dây GPS 6 chân, 6→4 chân, dây receiver 4 chân; smoke stopper, 4 bảng chia nguồn, bảng tập hàn, nối dài USB-C, còi | |
+| Bo FC F405 V5 | Không cháy, không phồng tụ; jumper SBUS hở, "BARO →" nối sẵn, tem QR còn | **Đạt** — soi ảnh 12/10, nạp và kiểm đủ 13/10 |
+| GPS Holybro M10 | Anten gốm không vỡ; cột nâng đủ ống + 2 đế + ốc | |
+| Receiver iA6B | Còn bind plug (jumper nhựa nhỏ) | |
+| Pin Ovonic 4S 5300 | `Battery Meter` của B6AC đo **từng cell**: mỗi cell 3,80–3,85 V, tổng 15,2–15,4 V, cao trừ thấp < 0,05 V; không phồng, rách vỏ, dây lỏng | |
+| ESP32 CP2102 | Lên cổng COM, nạp được | **Đạt** — nạp DroneBridge 2.4.1 ngày 12/10 |
+| ESP32-S3 N16R8 + OV3660 | Chip, flash 16 MB, PSRAM 8 MB, camera ra ảnh | **Đạt** 13/10 — PSRAM 8 MB, flash 16 MB, OV3660 ra ảnh (mục 8) |
+| Món còn lại | Khung S500, TFmini Plus, FS-i6X, UBEC 5V 3A, USB-TTL CP2102, sạc B6AC: còn nguyên, không vỡ | |
+
+Đo cell là cắm dây cân bằng của pin vào **sạc**, không phải vào bo — luật "chưa cắm pin vào bo" vẫn
+giữ tới Phase 16.
 
 `00-after-flash.param` và các script đã vào `main` qua PR #44.
 
@@ -135,3 +162,34 @@ kênh MAVLink thứ hai, ở đây là SERIAL2) mới xuất hiện vì SERIAL2 
    Nạp firmware có thể xoá hết tham số.
 4. **Quay về Betaflight gốc:** nạp `factory-betaflight-4.5.2.bin` qua DFU bằng
    `STM32_Programmer_CLI -c port=USB1 -w <file> 0x08000000 -v`.
+
+## 8. Bo camera ESP32-S3 N16R8 + OV3660 — kiểm 13/10/2026
+
+Cấp điện lần đầu ngày 13/10/2026. Ảnh bo và 5 ảnh của shop (Phúc Minh Tech):
+`picture/esp32-s3-n16r8-ov3660/`. Log và khung ảnh thử: `logs/kiem-hang/esp32s3-*` (không lên git —
+khung ảnh có mặt người).
+
+| Mục | Kết quả |
+|---|---|
+| Cổng USB | Hai cổng USB-C, nhãn in ở **mặt dưới**: `USB-UART` (chip CH343P, `1A86:55D3`, Windows tự nhận, lên **COM7**) và `USB-OTG` (USB gốc của chip). Nạp và đọc log qua USB-UART: có mạch tự reset, không bấm BOOT |
+| Chip | ESP32-S3 (QFN56) revision v0.2, 2 nhân 240 MHz, MAC `68:ee:8f:4d:06:e4` |
+| PSRAM | `esptool` báo Embedded PSRAM 8MB; chạy thật ở chế độ octal: 8.386.279 byte |
+| Flash | 16 MB, hãng Boya (`0x68`, mã `0x4018`) — module bên thứ ba ghi "ESP32-S3-N16R8", không phải WROOM-1 của Espressif. Không phải lỗi |
+| Firmware gốc | Bản QC của shop (Arduino core 3.3.11): in `PSRAM_STAGE_PASS`, camera chờ lệnh QC nên không tự bật |
+| Sao lưu | Cả 16 MB ở `D:\IOT_Tools\downloads\esp32-backup\esp32s3-68ee8f4d06e4-20261013.bin`, SHA-256 `AC744928…D147E5`; `esptool` so MD5 khớp |
+| Bảng chân camera | Mặt trên gạch chân (dấu "camera") đúng 14 chân {4–13, 15–18} = bảng `CAMERA_MODEL_ESP32S3_EYE`. Vạch dưới chân 13 không đọc được trên ảnh — khung ảnh thật bù chỗ đó, vì sai PCLK thì không ra khung |
+| Camera | `esp_camera_init` OK, **PID `0x3660` (OV3660)**, khung VGA 640×480 JPEG 12.446 byte, đầu/đuôi hợp lệ, ảnh thật (trần nhà, đèn, người) và đúng chiều với `set_vflip(1)` |
+| Tem bảo hành | "KHÔNG ĐƯỢC XÉ" dán cạnh nút BOOT — đừng bóc, giữ quyền đổi trả |
+
+Trên bo giờ là đoạn mã dò (`D:\DevCache\tmp\esp32s3-camera-probe\`, ngoài repo), không còn firmware
+của shop. Phase 12 nạp firmware camera thật đè lên. Muốn trả nguyên trạng cho shop:
+`esptool --port COM7 write-flash 0 <file sao lưu ở trên>`.
+
+Cho Phase 12: bo có cổng USB-UART, nên `Serial` (UART0) hiện thẳng trên cổng đó — **không cần**
+`-DARDUINO_USB_CDC_ON_BOOT=1` (cờ đó chỉ cần khi bo chỉ có cổng USB gốc). Theo dấu in trên bo, khe
+thẻ microSD dùng chân 38/39/40 (`~`) và PSRAM giữ 35/36/37 (`*`) — đừng gán các chân đó việc khác.
+
+**Bẫy khi tự viết script đọc cổng:** trên Windows, driver `usbser.sys` (CH343P chạy chế độ CDC) chỉ
+gửi trạng thái chân RTS xuống chip khi chân DTR cũng được đặt lại. Đổi RTS một mình thì lệnh reset
+không tới bo và log rỗng — trông như bo chết. `esptool` có sẵn mẹo này; với pyserial thì sau mỗi lần
+đổi `ser.rts` phải gán lại `ser.dtr = ser.dtr`.
