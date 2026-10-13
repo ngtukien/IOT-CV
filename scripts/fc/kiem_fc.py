@@ -47,6 +47,7 @@ THAM_SO_CUSTOM = [
 AP_SUAT_MIN, AP_SUAT_MAX = 850.0, 1100.0
 GOC_NGHIENG_DO = 15.0  # nghiêng tay ít nhất chừng này mới tính là đã thử
 CMD_DO_SEND_BANNER = 42428
+AP_VID = 0x1209  # USB của ArduPilot (chibios_hwdef.py, get_USB_IDs)
 CAM_BIEN = {
     "gyro": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO,
     "accel": mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_ACCEL,
@@ -66,19 +67,75 @@ class FcThat(SitlInstance):
 
     def start(self) -> None:
         m = mavutil.mavlink_connection(self.ket_noi, baud=self.baud, source_system=255)
-        if m.wait_heartbeat(timeout=20) is None:
-            raise SitlError(
-                f"Không có HEARTBEAT từ {self.ket_noi} sau 20 s — "
-                "sai cổng COM, hoặc bo còn ở chế độ DFU."
-            )
-        self.master = m
+        try:
+            if m.wait_heartbeat(timeout=20) is None:
+                raise SitlError(
+                    f"Không có HEARTBEAT từ {self.ket_noi} sau 20 s — "
+                    "sai cổng COM, hoặc bo còn ở chế độ DFU."
+                )
+            self.master = m
+            self.cho_het_boot()
+        except BaseException:
+            m.close()  # không đóng thì lần thử lại sau mở cổng COM này bị "Access denied"
+            self.master = None
+            raise
         m.mav.request_data_stream_send(
             m.target_system, m.target_component, mavutil.mavlink.MAV_DATA_STREAM_ALL, 4, 1
+        )
+
+    def cho_het_boot(self, giay: float = 30.0) -> None:
+        """Đợi HEARTBEAT hết báo MAV_STATE_BOOT, tức FC đã khởi động xong.
+
+        Trong lúc BOOT, ArduPilot bỏ im lặng yêu cầu tải bảng tham số và SYS_STATUS
+        chưa phản ánh cảm biến. Đo trên SITL 13/10/2026: FC vừa reboot báo BOOT
+        (system_status 1) khoảng 1–3 s rồi chuyển STANDBY (3). FC kẹt BOOT lâu hơn
+        `giay` — thường do "Config Error", ví dụ không thấy baro — thì vẫn đi tiếp
+        để còn đọc được lỗi, vì ArduPilot cho tải tham số khi đang Config Error."""
+        het = time.monotonic() + giay
+        while time.monotonic() < het:
+            hb = self.recv_match("HEARTBEAT", timeout=2.0)
+            if hb is not None and hb.system_status != mavutil.mavlink.MAV_STATE_BOOT:
+                return
+        print(
+            f"[fc] CẢNH BÁO: sau {giay:.0f} s FC vẫn báo MAV_STATE_BOOT. "
+            f"STATUSTEXT gần nhất: {self.statustext_log[-5:]}",
+            flush=True,
         )
 
     def stop(self) -> None:
         if self.master is not None:
             self.master.close()
+
+
+def tim_cong_ardupilot() -> str | None:
+    from serial.tools import list_ports
+
+    for p in list_ports.comports():
+        if p.vid == AP_VID:
+            return p.device
+    return None
+
+
+def noi_fc(ket_noi: str, baud: int, *, giay: float = 60.0) -> FcThat:
+    """Nối tới FC, thử lại tới `giay` giây. Ngay sau khi nạp hay reboot, cổng USB có thể
+    biến mất rồi hiện lại: bootloader ArduPilot chạy trước vài giây với CÙNG mã USB
+    1209:5741 rồi mới nhường chỗ cho firmware. Số COM thường giữ nguyên (Windows gắn số
+    theo số serial USB, ArduPilot lấy số đó từ UID của chip), nhưng vẫn dò lại theo VID."""
+    het = time.monotonic() + giay
+    loi: Exception | None = None
+    while time.monotonic() < het:
+        cong = ket_noi
+        if ket_noi.upper().startswith("COM"):
+            cong = tim_cong_ardupilot() or ket_noi
+        fc = FcThat(cong, baud)
+        try:
+            fc.start()
+            print(f"[fc] đã nối {cong}", flush=True)
+            return fc
+        except (SitlError, OSError) as exc:
+            loi = exc
+            time.sleep(2.0)
+    raise SitlError(f"Không nối được FC sau {giay:.0f} s: {loi}")
 
 
 def doc_banner(fc: FcThat, giay: float = 4.0) -> list[str]:
@@ -146,8 +203,7 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    fc = FcThat(args.ket_noi, args.baud)
-    fc.start()
+    fc = noi_fc(args.ket_noi, args.baud)
     rows: list[tuple[str, str]] = []
     dat = True
     try:

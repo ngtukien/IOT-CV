@@ -2,7 +2,7 @@
 
 | Trạng thái | Phụ thuộc | Ước lượng | Cần phần cứng |
 |---|---|---|---|
-| chưa bắt đầu | Phase 13 + **hàng đã về** | ~3,5 giờ | **Có** — stack SpeedyBee F405 V5, cáp USB-C có dây dữ liệu, toàn bộ đơn hàng |
+| đang làm — 14.2 → 14.7 xong 13/10/2026 (nạp, kiểm, `01-base`); còn 14.1 kiểm hàng | Phase 13 + **hàng đã về** | ~3,5 giờ | **Có** — stack SpeedyBee F405 V5, cáp USB-C có dây dữ liệu, toàn bộ đơn hàng |
 
 **AN TOÀN:** toàn bộ phase này không lắp cánh lên motor (NO PROPELLERS, `SAFETY.md` mục 2). Cánh
 chỉ được gắn ở Phase 19 bước 19.13.
@@ -32,11 +32,19 @@ hàng lỗi lúc này thì còn đổi trả được, phát hiện sau khi đã
 > đã đổi `FRAME_TYPE` 1 → 12 và `BATT_AMP_PERVLT` 25 → 370,4 (thêm `BATT_AMP_OFFSET` 0,0071) — lý
 > do ghi ngay trong file. Phase này vẫn chỉ **nạp** file, không sửa.
 
+> **Cập nhật 13/10/2026 — nạp tự động:** `scripts/fc/nap_dfu.py` làm trọn 14.3 → 14.4 (vào DFU
+> bằng lệnh MSP, không bấm BOOT), `scripts/fc/kiem_fc.py` làm 14.5 → 14.6, `scripts/fc/nap_param.py`
+> làm 14.7. Người vận hành chỉ cắm cáp; bấm BOOT hay rút cắm lại **chỉ khi script in ra yêu cầu
+> đó**. Cách tay trong từng mục vẫn đúng và là đường lui. Đã chạy thật trên bo ngày 13/10/2026:
+> cả ba script PASS, không phải bấm BOOT hay rút cáp lần nào — kết quả ở
+> `docs/so-tay/14-hang-ve-nap-firmware.md`.
+
 ## File và thư mục sở hữu
 
 ```text
 firmware/ardupilot/params/00-after-flash.param    snapshot ngay sau khi nạp
-docs/so-tay/14-nap-firmware.md
+scripts/fc/                                       nap_dfu.py, vao_dfu.py, kiem_fc.py, nap_param.py
+docs/so-tay/14-hang-ve-nap-firmware.md
 logs/kiem-hang/                                   ảnh chụp lúc mở thùng (đã .gitignore)
 plans/PROGRESS.md                                 chỉ tick các dòng của Phase 14
 ```
@@ -56,7 +64,7 @@ Cầm **Tờ 1** đã in. Làm trước khi lắp bất cứ thứ gì.
 [ ] CHUP ANH toan bo hang con nguyen trong hop, TRUOC khi boc.
     Anh nay la bang chung neu phai khieu nai. Luu vao logs/kiem-hang/
 [ ] Dem du mon theo don hang, doi chieu docs/so-tay/13-mua-sam.md
-[ ] Ghi vao docs/so-tay/14-nap-firmware.md: mon nao thieu, mon nao khac mo ta
+[ ] Ghi vao docs/so-tay/14-hang-ve-nap-firmware.md: mon nao thieu, mon nao khac mo ta
 ```
 
 Kiểm từng nhóm:
@@ -169,7 +177,31 @@ LAN DAU   bo con Betaflight    ->  DFU             ->  nap arducopter_with_bl.he
 LAN SAU   bo da co ArduPilot   ->  Mission Planner ->  nap arducopter.apj
 ```
 
-Quy trình vào DFU:
+**Cách tự động (làm luôn 14.3, 14.3b và 14.4):** bo cắm USB, còn chạy Betaflight; đóng
+Betaflight Configurator và Mission Planner (một cổng COM chỉ một chương trình mở được):
+
+```powershell
+uv run --with pyserial python scripts/fc/nap_dfu.py
+```
+
+Script hỏi tên bo qua MSP (không phải `SPEEDYBEEF405V5` thì từ chối), ra lệnh vào DFU như
+Betaflight Configurator vẫn làm (MSP_REBOOT kiểu bootloader ROM; không ăn thì lệnh `bl`), kiểm
+RDP, sao lưu 1 MB (14.3b), nạp và đọc lại so sánh (14.4), ra lệnh chạy thay cho rút cắm cáp, rồi
+đợi cổng COM của ArduPilot (USB `1209:5741`). Bước nào không tự làm được thì script in đúng việc
+phải làm tay và thoát mã khác 0:
+
+| Mã thoát | Nghĩa | Người vận hành làm gì |
+|---|---|---|
+| 0 | ArduPilot đã lên cổng COM (script in số COM) | sang 14.5 |
+| 1 | không vào được DFU bằng lệnh | giữ BOOT trong lúc cắm cáp (quy trình ngay dưới), rồi chạy lại script |
+| 2 | bo trả lời MSP không phải `SPEEDYBEEF405V5` | dừng, kiểm lại đang cắm bo nào |
+| 3 | chip khoá đọc (RDP khác `0xAA`) | dừng, xem "Nếu lỗi" ở 14.3b |
+| 4 | nạp và đọc lại đã đúng, nhưng bo chưa tự chạy | rút cáp, đợi 2 giây, cắm lại, **không** giữ BOOT |
+
+Chạy lại script là an toàn: bo đã ở DFU thì nó bỏ bước vào DFU; đã có file `factory-*.bin` thì
+không sao lưu lại.
+
+Quy trình vào DFU bằng tay:
 
 ```text
 1. Tim nut BOOT: nut kim loai co num den, MAT TREN, mep TRAI, ngay duoi chu "BOOT"
@@ -221,6 +253,10 @@ New-Item -ItemType Directory -Force "D:\IOT_Tools\downloads\speedybee-f405v5" | 
 ```
 
 **Kết quả mong đợi:** file đúng 1.048.576 byte.
+
+`nap_dfu.py` tự làm bước này và tự kiểm cỡ file. Tên file theo thứ firmware đọc được qua MSP trước
+khi vào DFU: `factory-betaflight-<phiên bản>.bin`. Bo đã ở DFU sẵn (không biết đang chứa gì) thì tên
+là `flash-truoc-khi-nap-<ngày giờ>.bin`.
 
 **Nếu lỗi:** `RDP` khác `0xAA` (chip bị khoá đọc) → bỏ qua bước này và **dừng hỏi lại trước khi bấm
 "Read Unprotect"** — lệnh đó xoá sạch chip. Không sao lưu được thì muốn về Betaflight vẫn nạp lại
@@ -285,6 +321,12 @@ Kiểm banner `ArduCopter V4.7.1 (dbe79216)` + `speedybeef4v5`, năm tham số c
 accel + baro (`press_abs`), hướng nghiêng (trong 20 giây bạn chúc mũi tên xuống rồi hạ cạnh phải),
 và lưu bản chụp tham số. `KET QUA: PASS` là đạt; mục nào FAIL thì xem cách tay bên dưới. Đã chạy thử
 trên SITL ngày 12/10/2026. Các bước bằng Mission Planner dưới đây vẫn đúng, dùng để xem bằng mắt.
+
+Script đợi FC khởi động xong (HEARTBEAT hết báo `MAV_STATE_BOOT`) rồi mới đọc: lúc còn BOOT,
+ArduPilot bỏ im lặng yêu cầu tải tham số, và SYS_STATUS chưa phản ánh cảm biến — đo trên SITL
+13/10/2026. FC kẹt BOOT quá 30 giây (thường là "Config Error", ví dụ không thấy baro) thì script
+in cảnh báo rồi vẫn đọc tiếp để lấy được dòng lỗi. Chỉ thêm `--nghieng 20` khi người vận hành đã
+cầm bo và biết 20 giây đó bắt đầu lúc nào.
 
 Đây là bước kiểm chứng quan trọng nhất của phase. Có hai thứ phải thấy: đúng phiên bản, và **có
 nhóm tham số `PRX_*`**.
@@ -391,6 +433,21 @@ trong đó.
 
 Bây giờ mới nạp cấu hình nền.
 
+**Cách tự động** (số COM lấy ở dòng cuối của `nap_dfu.py`):
+
+```powershell
+uv run --with pyserial python scripts/fc/nap_param.py COMx firmware/ardupilot/params/01-base.param
+```
+
+Nạp từng dòng theo thứ tự file, khởi động lại bằng lệnh MAVLink (không rút cáp), rồi đọc lại
+**từng** dòng từ bo — trong đó có cả 8 tham số then chốt bên dưới. Tham số chỉ hiện ra sau reboot
+thì nạp nốt và reboot thêm, tối đa 3 lần. Bảng kết quả xếp mỗi dòng vào một loại (nhận / chỉ có sau
+reboot / không tồn tại / FC tự đổi sau reboot) và in kèm danh sách SITL từ chối để đối chiếu. Thử
+trên SITL 13/10/2026: 32/34 dòng nhận; `SERVO_BLH_POLES` và `SERVO_BLH_TRATE` không tồn tại, đúng
+mốc SITL. Bo thật phải nhận cả hai.
+
+Cách tay bằng Mission Planner:
+
 ```text
 Mission Planner -> CONFIG -> Full Parameter List
   -> Load from file  -> chon firmware\ardupilot\params\01-base.param
@@ -414,7 +471,7 @@ MOT_PWM_TYPE     = 5        (DShot300)
 BATT_MONITOR     = 4
 ```
 
-Ghi vào `docs/so-tay/14-nap-firmware.md` **mọi dòng Mission Planner báo đỏ** khi Write Params.
+Ghi vào `docs/so-tay/14-hang-ve-nap-firmware.md` **mọi dòng Mission Planner báo đỏ** khi Write Params.
 Đối chiếu với danh sách "param SITL từ chối" đã ghi ở Phase 11.7: trên bo thật, danh sách này
 phải **ngắn hơn** (vì bo thật có nhóm `PRX_*` mà SITL không có). Nếu bo thật từ chối nhiều hơn
 SITL → có gì đó sai, dừng lại và tìm hiểu.
@@ -430,7 +487,7 @@ danh sách bị từ chối ngắn hơn danh sách của SITL.
 
 ### 14.8 Ghi sổ tay và tick PROGRESS
 
-Viết `docs/so-tay/14-nap-firmware.md`:
+Viết `docs/so-tay/14-hang-ve-nap-firmware.md`:
 
 - Ngày nạp, phiên bản đọc được từ banner, hash bản build đã dùng (`d450a747`).
 - Số COM port của bo (ghi lại — sẽ dùng suốt các phase sau).
@@ -464,7 +521,7 @@ Tick các dòng Phase 14 trong `plans/PROGRESS.md`.
 - [ ] Baro được nhận (`press_abs` ≈ 1000 hPa, không có lỗi Baro); nghiêng bo thì pitch/roll đổi đúng dấu (14.5b).
 - [ ] `firmware/ardupilot/params/00-after-flash.param` đã lưu **và đã commit**.
 - [ ] `01-base.param` đã Write + reboot; 8 tham số then chốt đọc lại đúng giá trị.
-- [ ] Danh sách tham số bị từ chối đã ghi vào `docs/so-tay/14-nap-firmware.md` và ngắn hơn danh sách của SITL (Phase 11.7).
+- [ ] Danh sách tham số bị từ chối đã ghi vào `docs/so-tay/14-hang-ve-nap-firmware.md` và ngắn hơn danh sách của SITL (Phase 11.7).
 - [ ] **Chưa cắm pin lần nào trong phase này.**
 
 ## Rủi ro
