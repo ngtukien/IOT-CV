@@ -118,19 +118,38 @@ sys 1 comp 68, 1 Hz — gói của chính DroneBridge. Gói của FC chỉ có k
   `firmware/dronebridge/db_params.iotcv.csv` rồi chạy lại script NVS.
 - **`hotspot-on.ps1` báo "Laptop chưa có mạng internet nào"** → Mobile Hotspot của Windows chỉ bật
   được khi laptop có một kết nối để chia sẻ. Nối mạng trước.
-- **Mất sóng tuần hoàn — CHƯA CHỮA, rủi ro cho Phase 17.** Đo 13/10/2026 bằng
-  `py -3.13 scripts\esp32\wifi_ping_check.py` (ping đồng thời cả hai bo 150 s): **cả hai bo mất gói
-  cùng giây, đều đặn mỗi ~15,5 s, mỗi lần 1–3 s** (16–27 giây mất / 150). Hai bo khác nhau mà mất
-  cùng lúc theo chu kỳ → lỗi phía laptop: có thứ gì đó kéo radio rời kênh hotspot. Hệ quả: luồng
-  camera đứng 1,2–2,7 s (log bo: `STREAM slow frame … send_ms=…`, khâu lấy khung chỉ 17–101 ms),
-  thỉnh thoảng đứt hẳn; telemetry MAVLink hụt cùng lúc; **dead-man 300 ms của web sẽ dừng drone
-  mỗi ~15 s khi lái tay**.
+- **Mất sóng khi laptop quét Wi-Fi — đã rõ cơ chế, rủi ro cho Phase 17.** Card của laptop vừa nối
+  mạng nhà vừa phát hotspot trên **một** radio. Mỗi lần nó quét Wi-Fi, radio rời kênh hotspot vài
+  giây và **cả hai bo mất gói cùng lúc**. Đo 13/10/2026:
+  - Hai lần đo đầu (chiều tối): cả hai bo mất gói cùng giây, đều đặn mỗi ~15,5 s, mỗi lần 1–3 s (16–27 giây mất /
+    150) — tức có chương trình nào đó bắt card quét mỗi ~15,5 s. Luồng camera đứng 1,2–2,7 s (log
+    bo: `STREAM slow frame … send_ms=…`, lấy khung chỉ 17–101 ms), có lần đứt hẳn.
+  - Các lần đo sau (20:18–20:24), không đổi cài đặt gì: **0 giây mất** trong 90 s và 150 s, và card không quét lần
+    nào. Chương trình kia đã thôi chạy.
+  - Ép quét bằng `WiFiAdapter.ScanAsync()` hai lần: cả hai bo mất 3–6 s **đúng lúc** quét. Đã
+    chứng minh cơ chế.
   - Đã loại: `Roaming Aggressiveness` của card RZ616 (đặt `Disabled` vẫn y chu kỳ — đã trả về
-    `Medium-Low`); WLAN-AutoConfig không ghi sự kiện nào theo chu kỳ đó.
-  - Thử tiếp ở Phase 17, mỗi lần đổi một biến, đo lại bằng script trên: (1) laptop lấy internet
-    bằng dây LAN và ngắt Wi-Fi "The One 2", để card chỉ còn phát hotspot; (2) USB Wi-Fi riêng làm
-    hotspot; (3) điện thoại phát hotspot 2,4 GHz (cách ở mục trên).
-  - Ping giật thường ngày (p50 ~6–14 ms, p95 ~100 ms) không phải nút thắt băng thông: camera đạt
-    ~295 KB/s khi bỏ nhiễu XCLK (`firmware/camera/README.md`, bẫy 1).
+    `Medium-Low`).
+
+  **Chẩn đoán khi gặp lại — một lệnh:** `py -3.13 scripts\esp32\wifi_ping_check.py`. Nó tự chạy
+  `scripts\esp32\wifi_scan_watch.ps1` song song và in "Giây mất chung TRÙNG lúc laptop quét: k/n".
+  k = n → do quét. Khi đó tìm chương trình đang bắt quét: đóng danh sách Wi-Fi ở góc màn hình và
+  trang Settings → Wi-Fi; tắt Location cho ứng dụng desktop (Settings → Privacy & security → Location); đóng
+  lần lượt app đang mở rồi đo lại. (Bộ theo dõi chỉ thấy lần quét có kết quả; một lần đo còn 3/13
+  giây mất không trùng lần quét nào nó thấy.)
+
+  **Hệ quả cho Phase 17/21:** telemetry hụt cùng lúc với video; **dead-man 300 ms của web sẽ dừng
+  drone** mỗi lần như vậy khi lái tay. Hướng chữa, chưa thử, mỗi lần đổi một biến rồi đo lại bằng
+  lệnh trên: (1) không mở danh sách Wi-Fi / app dùng vị trí trong lúc bay; (2) USB Wi-Fi riêng chỉ
+  để phát hotspot (radio không phải chia); (3) điện thoại phát hotspot 2,4 GHz (cách ở mục trên);
+  (4) `netsh wlan set autoconfig enabled=no interface="Wi-Fi"` (cần admin) chặn quét nền — nhưng
+  laptop cũng thôi tự nối lại mạng; chưa biết Mobile Hotspot có còn chạy không.
+- **Luồng camera vẫn khựng 1,2–2,2 s vài lần mỗi phút** ngay cả khi ping không mất gói nào
+  (20:20, stream 150 s: 10 lần, rải rác, 0 khung hỏng, 0 lần đứt). Đó là TCP phải chờ gửi lại gói
+  bị mất: bộ đệm gửi của lwIP trong core Arduino chỉ 4 gói nên hiếm khi gửi lại nhanh được.
+  `CAMERA_STALE_S=2.0` của backend có thể chớp "CAMERA OFFLINE" một nhịp. Phase 17 đo lại trên đúng
+  cấu hình bay; nếu khó chịu thì hạ framesize xuống QVGA (mốc thiết kế của `docs/hop-dong-mjpeg.md`).
+- Ping giật thường ngày (p50 ~4–40 ms, p95 ~66–145 ms) không phải nút thắt băng thông: camera đạt
+  ~295 KB/s khi bỏ nhiễu XCLK (`firmware/camera/README.md`, bẫy 1).
 - **IP DHCP đổi mỗi lần hotspot khởi động lại** (13/10/2026 đổi ba lần: `.60/.102` → `.67/.97` →
   `.150/.41`). Luôn dùng tên `*.mshome.net`, đừng ghi cứng IP của bo vào đâu.

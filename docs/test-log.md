@@ -190,7 +190,7 @@ ngoài repo, đổi đúng một biến mỗi lần:
 
 Kết luận: nhiễu từ XCLK, không phải tranh chấp PSRAM. Firmware dùng 10 MHz.
 
-### Mất sóng tuần hoàn phía laptop — CHƯA CHỮA (rủi ro Phase 17)
+### Mất sóng khi laptop quét Wi-Fi — đã rõ cơ chế (rủi ro Phase 17)
 
 Lần nghiệm thu cuối có lúc đỏ vì luồng đứng > 5 s. Thêm log vào firmware (vòng nào > 1 s thì in thời
 gian lấy khung và gửi), chạy 200 s: 1137 khung, 0 khung hỏng, **31 lần đứng 1,2–2,7 s, một lần 10,5 s
@@ -210,6 +210,26 @@ dừng drone khi lái tay. Hướng thử tiếp ghi ở `docs/so-tay/12-hotspot
 
 Phụ: card reset làm hotspot khởi động lại và cấp IP mới cho cả hai bo; camera tự nối lại **không
 reboot** (`uptime` tiếp tục), DroneBridge đẩy MAVLink lại sau vài giây.
+
+**Kiểm lại sau khi phiên bị ngắt (20:15–20:25)** — không đổi cài đặt gì:
+
+| Bài | Kết quả |
+|---|---|
+| Ping 90 s, 150 s, 30 s | **0 giây mất** ở cả hai bo; card không quét lần nào |
+| Stream camera 150 s cùng lúc ping | 1148 khung, 7,65 fps, 0 khung hỏng, 0 lần đứt; 10 lần khựng 1,2–2,2 s rải rác (TCP gửi lại gói mất) |
+| Ép quét `WiFiAdapter.ScanAsync()` ở giây 10 và 25, chạy 2 lần | cả hai bo mất gói cùng giây. Lần chạy 1: giây 27–29 (đúng lần quét thứ hai; lần quét thứ nhất không gây mất). Lần chạy 2: giây 9–14 và 24, 27–29 (trùng hai lần quét), cộng 21–23 không trùng lần quét nào |
+
+Kết luận: mỗi lần laptop quét Wi-Fi, radio rời kênh hotspot 3–6 s. Chu kỳ ~15,5 s lúc trước là do
+một chương trình nào đó bắt quét định kỳ, sau đó nó thôi chạy. `wifi_ping_check.py` giờ tự chạy
+`wifi_scan_watch.ps1` song song. Kiểm hai chiều: ép quét → in "trùng lúc laptop quét: 10/13" và mã
+1; không ép → "quét 0 lần", mã 0. Còn 3/13 giây mất không trùng lần quét nào bộ theo dõi thấy — nó
+chỉ thấy các lần quét có kết quả, chưa giải thích được hết.
+
+**Driver CP210x trả dữ liệu ma (COM4):** sau khi phiên bị ngắt, đọc log COM4 không reset ra
+1.039.872 byte trong 3 s, toàn chuỗi `ending complete` — gấp ~30 lần mức 115200 baud chở được. Bo vẫn
+chạy tốt (MAVLink, web UI). Một lần `esptool flash-id` mở cổng lại là hết. `esp32_log.py` giờ xoá bộ
+đệm khi mở cổng và tự dừng (mã 3) nếu tốc độ vượt mức cổng chở nổi: ngưỡng 60.032 B/3 s chặn số liệu
+ma, cho qua log khởi động thật (7.725 B/15 s).
 
 ### Chứng minh phép kiểm ĐỎ ĐƯỢC
 

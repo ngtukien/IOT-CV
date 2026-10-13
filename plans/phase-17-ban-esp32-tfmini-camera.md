@@ -4,6 +4,23 @@
 |---|---|---|---|
 | chưa bắt đầu | Phase 16 + Phase 10 (web) + Phase 12 (firmware ESP32) | ~6,8 giờ | **Có** — stack, ESP32 DevKit, UBEC 5V 3A, TFmini Plus, USB-TTL, board camera, pin 4S |
 
+> **Bàn giao từ Phase 12 (13/10/2026) — đọc trước khi làm.** Phase 12 đã làm sẵn trên phần cứng
+> thật nhiều việc mà các bước dưới đây còn mô tả theo kế hoạch cũ:
+>
+> - **ESP32 DroneBridge đã ở chế độ STA**, nối `IOTCV-HOTSPOT`, TX GPIO17 / RX GPIO16, 115200,
+>   đẩy MAVLink về `192.168.137.1:14550`. Cấu hình qua USB bằng `scripts\esp32\dronebridge-nvs.ps1`.
+>   **Không** nối laptop vào Wi-Fi riêng của board như 17.1 cũ mô tả (mất internet, cắt phiên).
+> - **Bo camera đã nạp firmware thật**: `http://iotcv-camera.mshome.net:81/stream`, `/status` và
+>   `/set?quality=` ở cổng **80**. Nạp lại: `scripts\esp32\nap_camera.ps1` (tự sinh `secrets.h`).
+>   Kiểm: `uv run python scripts\esp32\camera_check.py`. VGA ~7,5 fps đã đo.
+> - Gọi hai bo bằng tên `*.mshome.net`, đừng ghi IP: IP DHCP đổi mỗi lần hotspot khởi động lại.
+> - Hotspot: `scripts\esp32\hotspot-on.ps1`; rule tường lửa đã có (`scripts\esp32\firewall-mavlink.ps1`).
+> - **Rủi ro mới (điểm 15):** mỗi lần laptop quét Wi-Fi, cả hai bo mất sóng 3–6 s → dead-man 300 ms
+>   dừng drone khi lái tay. Chẩn đoán: `py -3.13 scripts\esp32\wifi_ping_check.py`; hướng chữa:
+>   `docs/so-tay/12-hotspot-laptop.md` mục 6. Xử lý xong mới sang bài lái từ web (17.5).
+> - `.env.example` vẫn có `CAMERA_STREAM_URL=http://192.168.4.1:81/stream` (cũ) — 17.9 đổi thành
+>   `http://iotcv-camera.mshome.net:81/stream`.
+
 ## Mục tiêu
 
 Đây là phase khép kín toàn bộ chuỗi **drone thật → Wi-Fi → laptop → website**. Xong phase này,
@@ -51,6 +68,11 @@ ghi lại và xử lý như một việc riêng, đừng sửa lẫn vào phase 
 ## Việc theo thứ tự
 
 ### 17.1 Nạp DroneBridge và đưa ESP32 về chế độ STA
+
+> **ĐÃ LÀM ở Phase 12 (12–13/10/2026), qua cáp USB.** Chỉ cần kiểm: `hotspot-on.ps1` liệt kê
+> `DroneBridgeESP32`, và nghe UDP 14550 thấy HEARTBEAT. Các bước dưới là cách cũ qua web UI — **đừng**
+> nối laptop vào Wi-Fi của board; nếu phải cấu hình lại, sửa `firmware/dronebridge/db_params.iotcv.csv`
+> rồi chạy `scripts\esp32\dronebridge-nvs.ps1`.
 
 ```text
 1. Mo Chrome hoac Edge, vao  https://drone-bridge.com/flasher/
@@ -411,6 +433,12 @@ Camera đã chốt ngày 12/10/2026: **ESP32-S3 N16R8 + OV3660** (`docs/phan-cun
 
 Trước khi nạp, điền `firmware/camera/include/secrets.h` với SSID/mật khẩu hotspot thật.
 
+> **Bàn giao từ Phase 12:** bo đã chạy firmware thật. `secrets.h` không điền tay —
+> `scripts\esp32\nap_camera.ps1` sinh nó từ Mobile Hotspot rồi nạp. Trong các bước dưới, thay
+> `<ip-camera>` bằng tên `iotcv-camera.mshome.net`; `/stream` ở cổng **81**
+> (`http://iotcv-camera.mshome.net:81/stream`), `/status` và `/set` ở cổng 80. Bước 5:
+> `CAMERA_STREAM_URL=http://iotcv-camera.mshome.net:81/stream`.
+
 **AN TOÀN:** cấp nguồn camera từ **UBEC 5V 3A** vào chân 5V của bo, không từ pad 5V của stack và
 không cấp thẳng vào chân 3V3. Camera cộng Wi-Fi tạo xung dòng lúc truyền; thiếu dòng thì bo khởi
 động lại liên tục và bạn sẽ đi tìm lỗi trong phần mềm trong khi lỗi nằm ở nguồn.
@@ -535,6 +563,7 @@ Các cổng phụ:
 | Cắm dây đỏ TFmini nhầm pad 9V (nằm sát R3) hoặc dùng cáp DJI 6 chân → cháy TFmini | 2 | 4 | 8 | Cảnh báo ở 17.7; chỉ pad ghi 5V; đo điện áp pad trước khi hàn. |
 | Wi-Fi 2,4 GHz rớt lặt vặt → nếu bật GCS failsafe thì drone tự RTL giữa chừng | 3 | 4 | **12** | `FS_GCS_ENABLE=0` đã nằm trong `01-base.param` và là cổng pass; RC mới là đường dây cứu sinh, không phải Wi-Fi. |
 | Backend và Mission Planner giành nhau cổng 14550 → tưởng ESP32 hỏng | 4 | 2 | 8 | 17.4 nêu rõ và đưa hai cách; khuyến nghị Cách A (dùng một cái) cho phase này. |
+| **(Thêm từ Phase 12, 13/10/2026)** Laptop quét Wi-Fi → cả hai bo mất sóng 3–6 s cùng lúc; có lúc một chương trình bắt quét mỗi ~15,5 s → video đứng, telemetry hụt, dead-man 300 ms dừng drone khi lái tay | 5 | 3 | **15** | Chẩn đoán `scripts/esp32/wifi_ping_check.py` (tự theo dõi lần quét); hướng chữa ở `docs/so-tay/12-hotspot-laptop.md` mục 6. Xử lý trước bài lái từ web. |
 
 Rủi ro điểm 15 (nguồn ESP32) được giảm thiểu bằng yêu cầu cứng "UBEC riêng" ngay từ danh sách mua
 ở Phase 13 và phép đo điện áp khi đang tải ở 17.2.

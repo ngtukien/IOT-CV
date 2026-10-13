@@ -62,5 +62,13 @@ bản sau đè bản trước mà không báo gì.
 - Bo ESP32 DroneBridge (CP2102, COM4) chỉ nạp được ở **115200** baud. Các bẫy khác của DroneBridge
   và hotspot (đừng cho laptop nối Wi-Fi không có internet, log boot in lộ mật khẩu Wi-Fi…): đọc
   `firmware/dronebridge/README.md` mục "Bẫy đã gặp" trước khi đụng vào ESP32.
+- Bo camera ESP32-S3 (CH343P, COM7): XCLK phải **10 MHz** — 20 MHz làm nhiễu Wi-Fi của chính bo
+  (~3 fps, khung JPEG hỏng). Nạp bằng `scripts\esp32\nap_camera.ps1`, kiểm bằng
+  `uv run python scripts\esp32\camera_check.py`; bẫy khác: `firmware/camera/README.md`.
+- Hai ESP32 nối Mobile Hotspot của laptop: gọi bằng tên `iotcv-camera.mshome.net` /
+  `DroneBridgeESP32.mshome.net`, IP DHCP đổi mỗi lần hotspot khởi động lại. Mỗi lần laptop quét
+  Wi-Fi, cả hai bo mất sóng 3–6 s — chạy `py -3.13 scripts\esp32\wifi_ping_check.py` trước khi nghi bo.
+- Đọc log ESP32 bằng `py -3.13 scripts\esp32\esp32_log.py COMx` (không reset bo, tự che mật khẩu);
+  pyserial mở cổng theo mặc định là reset bo.
 - SITL: mô hình vật lý phải khớp `FRAME_TYPE` (`-f bfx`); cảm biến dòng ảo cố định 17 A/V.
 - Mã thoát của một đường ống (`cmd | tail`) là của lệnh cuối — đọc chính kết quả trước khi kết luận PASS.

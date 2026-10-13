@@ -8,6 +8,8 @@ Chạy:  py -3.13 scripts/esp32/esp32_log.py COM7 --reset --seconds 15
   sau đó, đúng mẹo `_setRTS` của esptool. Thiếu bước này thì reset im lặng không xảy ra.
 - `--until TEXT`: dừng ngay khi gặp dòng chứa TEXT (mã thoát 0); hết giờ mà chưa gặp → mã 1.
 - Mật khẩu Wi-Fi bị che trước khi in: log boot DroneBridge in `PASS: <mật khẩu>` dạng chữ thường.
+- Không `--reset` thì bo KHÔNG khởi động lại (DTR/RTS được tắt trước khi mở cổng).
+- Mã thoát 3: nhận nhanh hơn mức cổng chở nổi = dữ liệu giả của driver; chạy lại với `--reset`.
 """
 
 from __future__ import annotations
@@ -21,10 +23,16 @@ import serial
 
 PASSWORD_PATTERN = re.compile(r"((?:PASS|pass|password|PASSWORD)\s*[:=]\s*)[^\s)]+")
 RESET_PULSE_S = 0.1
+PLAUSIBLE_SLACK_BYTES = 8192  # bộ đệm của chip USB-UART có thể xả một mạch lúc mới mở cổng
 
 
 def redact(line: str) -> str:
     return PASSWORD_PATTERN.sub(r"\1[redacted]", line)
+
+
+def max_plausible_bytes(baud: int, elapsed_s: float) -> float:
+    """Số byte tối đa cổng nối tiếp chở nổi (10 bit/byte), cộng biên cho bộ đệm USB."""
+    return baud / 10 * elapsed_s * 1.5 + PLAUSIBLE_SLACK_BYTES
 
 
 def reset_chip(ser: serial.Serial) -> None:
@@ -59,12 +67,29 @@ def main() -> int:
         print(f"Không mở được {args.port}: {exc}", file=sys.stderr)
         return 2
     with ser:
+        # Bỏ dữ liệu cũ còn kẹt trong driver. 13/10/2026 driver CP210x (COM4) trả lặp một đoạn
+        # "ending complete" ~350 KB/s — gấp 30 lần mức 115200 baud chở được — tới khi esptool mở
+        # cổng lại. Bo vẫn chạy tốt; dữ liệu là của driver, không phải của bo.
+        ser.reset_input_buffer()
         if args.reset:
             reset_chip(ser)
-        deadline = time.monotonic() + args.seconds
+        start = time.monotonic()
+        deadline = start + args.seconds
+        received = 0
         pending = b""
         while time.monotonic() < deadline:
-            pending += ser.read(512)
+            chunk = ser.read(512)
+            received += len(chunk)
+            if received > max_plausible_bytes(args.baud, time.monotonic() - start):
+                elapsed = time.monotonic() - start
+                print(
+                    f"CANH BAO: nhan {received} byte trong {elapsed:.1f} s, nhanh hon"
+                    f" muc {args.baud} baud cho duoc -> du lieu gia cua driver, khong phai cua bo."
+                    " Chay lai voi --reset (hoac esptool flash-id) de xoa.",
+                    file=sys.stderr,
+                )
+                return 3
+            pending += chunk
             *lines, pending = pending.split(b"\n")
             for raw in lines:
                 line = redact(raw.decode("utf-8", "replace").rstrip("\r"))

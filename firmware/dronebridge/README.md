@@ -183,6 +183,11 @@ Get-CimInstance Win32_PnPEntity | Where-Object Name -match 'COM\d' | Format-Tabl
 5. **IP do DHCP cấp, có thể đổi.** Đổi SSID hotspot sang `IOTCV-HOTSPOT` làm IP nhảy từ
    `192.168.137.9` sang `192.168.137.60`. Không cần biết IP của board: board tự đẩy gói về laptop;
    muốn mở web UI thì dùng tên `DroneBridgeESP32.mshome.net`.
+6. **Driver CP210x có lúc trả "dữ liệu ma".** 13/10/2026, đọc log COM4 mà không reset ra hàng chục
+   nghìn dòng `ending complete` mỗi giây — nhanh gấp ~30 lần mức 115200 baud chở được, nên đó là
+   bộ đệm cũ kẹt trong driver, không phải bo. Bo vẫn chạy tốt. Một lần `esptool -p COM4 -b 115200
+   flash-id` (hoặc `esp32_log.py --reset`) mở cổng lại là hết. `scripts\esp32\esp32_log.py` giờ tự
+   xoá bộ đệm khi mở cổng và tự dừng (mã 3) nếu thấy tốc độ vô lý.
 
 ## `legacy-sketch/` là gì
 

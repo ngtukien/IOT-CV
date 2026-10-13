@@ -645,7 +645,7 @@ Viết `docs/so-tay/12-esp32-cho-nguoi-moi.md`:
 | Bo camera S3 sụt áp / khởi động lại khi bật Wi-Fi | 2 | 3 | 6 | UBEC 5V 3A riêng (đã mua); hàn thêm tụ 470–1000 µF nếu thấy reset (12.5). |
 | Chép sai bảng chân `camera_pins.h` → camera không init, thông báo lỗi không chỉ ra chân nào | 3 | 3 | 9 | 12.3 bắt buộc lấy từ file gốc của `espressif/arduino-esp32`, cấm tự chế. |
 
-| **(13/10/2026, đo thật)** Laptop làm cả hai bo mất sóng 1–3 s, đều đặn mỗi ~15,5 s — video đứng, telemetry hụt, dead-man 300 ms dừng drone khi lái tay | 5 | 3 | **15** | **Chưa chữa.** Đã loại roaming của card. Script đo `scripts/esp32/wifi_ping_check.py`; hướng thử (LAN + ngắt Wi-Fi, USB Wi-Fi riêng, hotspot điện thoại) ở `docs/so-tay/12-hotspot-laptop.md` mục 6 — chuyển sang Phase 17. |
+| **(13/10/2026, đo thật)** Mỗi lần laptop quét Wi-Fi, cả hai bo mất sóng 3–6 s (một radio vừa nối mạng nhà vừa phát hotspot); có lúc một chương trình bắt quét mỗi ~15,5 s — video đứng, telemetry hụt, dead-man 300 ms dừng drone khi lái tay | 5 | 3 | **15** | **Cơ chế đã chứng minh (ép quét), chưa chữa.** Đã loại roaming của card. Chẩn đoán một lệnh: `scripts/esp32/wifi_ping_check.py` (tự theo dõi lần quét); hướng chữa ở `docs/so-tay/12-hotspot-laptop.md` mục 6 — chuyển sang Phase 17. |
 
 Rủi ro ≥ 15 duy nhất là dòng cuối, phát hiện khi đo thật và chuyển sang Phase 17. Hai rủi ro điểm 12 đều được xử lý **trong phase này** chứ không để trôi
 sang Phase 17.

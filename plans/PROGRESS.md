@@ -715,9 +715,10 @@ cổng USB-UART CH343P) `iotcv-camera.mshome.net`, `/stream` ở cổng 81, `/se
 `X-Jpeg-Quality` khớp khung thật). **XCLK phải là 10 MHz** — 20 MHz như ví dụ gốc làm nhiễu Wi-Fi của
 bo (~3 fps, có khung hỏng); số đo ở `docs/test-log.md`. Làm lại cả phase bằng script:
 `docs/so-tay/12-firmware-esp32-camera.md`. TFmini thật kiểm ở Phase 17.
-**Rủi ro mở cho Phase 17:** laptop làm cả hai bo mất sóng 1–3 s, đều đặn mỗi ~15,5 s (đo bằng
-`scripts/esp32/wifi_ping_check.py`; tắt roaming của card không chữa được) → video đứng, telemetry hụt,
-dead-man 300 ms sẽ dừng drone khi lái tay. Hướng thử: `docs/so-tay/12-hotspot-laptop.md` mục 6.
+**Rủi ro mở cho Phase 17:** mỗi lần laptop quét Wi-Fi, cả hai bo mất sóng 3–6 s (đã ép quét để chứng
+minh; có lúc một chương trình bắt quét mỗi ~15,5 s) → video đứng, telemetry hụt, dead-man 300 ms sẽ
+dừng drone khi lái tay. Chẩn đoán: `scripts/esp32/wifi_ping_check.py`; hướng chữa:
+`docs/so-tay/12-hotspot-laptop.md` mục 6.
 
 ## Phase 13 — Chuẩn bị lắp ráp
 

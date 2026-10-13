@@ -51,7 +51,8 @@ py -3.13 scripts\bench_tfmini.py COM5
 | `nap_camera.ps1` | secrets → build → nạp → đọc IP, tự dò cổng CH343P |
 | `esp32_log.py` | đọc log Serial, `--reset`, `--until`, che mật khẩu |
 | `camera_check.py` | nghiệm thu camera qua Wi-Fi bằng parser MJPEG của backend |
-| `wifi_ping_check.py` | ping đồng thời các bo, tìm giây mất gói CHUNG (lỗi phía laptop) |
+| `wifi_ping_check.py` | ping đồng thời các bo, tìm giây mất gói CHUNG, đánh dấu giây trùng lúc laptop quét Wi-Fi |
+| `wifi_scan_watch.ps1` | in thời điểm card Wi-Fi laptop quét xong (`wifi_ping_check.py` tự gọi) |
 
 ## Bốn điều phase này dạy (đắt nhất)
 
@@ -59,8 +60,9 @@ py -3.13 scripts\bench_tfmini.py COM5
    Wi-Fi về như khi tắt camera, ~7,5 fps. Không tìm ra được nếu không đo tách biến (gửi dữ liệu rỗng
    từ RAM, bỏ camera ra khỏi đường đi).
 2. **Ảnh có đủ đầu `FF D8` đuôi `FF D9` vẫn có thể hỏng.** Kiểm ảnh bằng cách giải mã thật.
-3. **Mất sóng tuần hoàn phía laptop (chưa chữa).** Cả hai bo mất gói cùng giây, mỗi ~15,5 s, 1–3 s.
-   Rủi ro lớn nhất chuyển sang Phase 17: `12-hotspot-laptop.md` mục 6.
+3. **Laptop quét Wi-Fi là hai bo mất sóng.** Card vừa nối mạng nhà vừa phát hotspot trên một radio;
+   mỗi lần quét, cả hai bo mất gói 3–6 s cùng lúc (đã ép quét để chứng minh). Có lúc một chương
+   trình bắt quét mỗi ~15,5 s. Rủi ro lớn nhất chuyển sang Phase 17: `12-hotspot-laptop.md` mục 6.
 4. **Một phép kiểm chưa từng đỏ thì chưa chứng minh gì.** Bộ phát hiện khung hỏng đầu tiên trả "sạch"
    cả với khung đã biết là hỏng; phép kiểm nhãn chất lượng chỉ được tin sau khi nạp thử một firmware
    cố tình gắn nhãn sai và thấy nó đỏ.

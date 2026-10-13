@@ -102,8 +102,8 @@ Phase 12.
 Log Serial để chẩn đoán (đọc bằng `py -3.13 scripts\esp32\esp32_log.py COM7`, không reset bo):
 `STATUS …` mỗi 5 s; `STREAM slow frame id=… grab_ms=… send_ms=…` khi một khung mất quá 1 s —
 `grab_ms` lớn là camera kẹt, `send_ms` lớn là mạng kẹt; `FRAME grab FAIL`; `STREAM client
-disconnected res=…`. Luồng đứng định kỳ 1–3 s mỗi ~15 s là do laptop, không phải bo
-(`docs/so-tay/12-hotspot-laptop.md` mục 6).
+disconnected res=…`. Luồng đứng 3–6 s đúng lúc laptop quét Wi-Fi là do laptop, không phải bo:
+chẩn đoán bằng `py -3.13 scripts\esp32\wifi_ping_check.py` (`docs/so-tay/12-hotspot-laptop.md` mục 6).
 
 ## Bẫy đã gặp
 

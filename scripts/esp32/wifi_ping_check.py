@@ -1,10 +1,13 @@
-"""Đo mất gói Wi-Fi hotspot: ping ĐỒNG THỜI nhiều ESP32, mỗi giây một gói, tìm giây mất chung.
+"""Đo mất gói Wi-Fi hotspot: ping ĐỒNG THỜI nhiều ESP32, tìm giây mất chung và lúc laptop quét.
 
-Chạy:  py -3.13 scripts/esp32/wifi_ping_check.py [--seconds 150] [host ...]
+Chạy:  py -3.13 scripts/esp32/wifi_ping_check.py [--seconds 150] [--no-scan-watch] [host ...]
        (mặc định hai bo: iotcv-camera.mshome.net, DroneBridgeESP32.mshome.net)
 
-Mất gói CÙNG giây ở mọi bo = lỗi phía laptop/hotspot (radio rời kênh), không phải phía bo.
-13/10/2026 đo được: cả hai bo mất 2-3 s, đều đặn mỗi ~15,5 s (sổ tay 12-hotspot-laptop mục 6).
+- Mỗi giây một gói tới mỗi bo. Mất gói CÙNG giây ở mọi bo = lỗi phía laptop/hotspot (radio rời
+  kênh), không phải phía bo.
+- Song song chạy `wifi_scan_watch.ps1` để biết lúc nào card Wi-Fi của laptop quét: mỗi lần quét,
+  radio rời kênh hotspot vài giây. Đo 13/10/2026: ép quét một lần -> cả hai bo mất 3 s; trước đó
+  có chương trình nào đó bắt quét đều mỗi ~15,5 s (sổ tay 12-hotspot-laptop mục 6).
 Mã thoát 1 nếu có giây mất chung ở mọi bo.
 """
 
@@ -17,10 +20,14 @@ import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 
 DEFAULT_HOSTS = ("iotcv-camera.mshome.net", "DroneBridgeESP32.mshome.net")
 PING_TIMEOUT_MS = 800
 RTT_PATTERN = re.compile(r"time[=<](\d+)ms")
+SCAN_WATCHER = Path(__file__).with_name("wifi_scan_watch.ps1")
+SCAN_DURATION_S = 6  # một lần quét đo được 4,2-4,9 s; giây mất trong khoảng này coi là do quét
+WATCHER_GRACE_S = 15
 
 
 def ping_once(ip: str) -> int | None:
@@ -42,14 +49,52 @@ def ping_series(ip: str, seconds: int, t0: float, out: list) -> None:
         time.sleep(max(0.0, (i + 1) - (time.monotonic() - t0)))
 
 
+def start_scan_watch(seconds: int) -> subprocess.Popen | None:
+    if sys.platform != "win32" or not SCAN_WATCHER.exists():
+        print(
+            "Không theo dõi được lần quét Wi-Fi (chỉ chạy trên Windows, cần wifi_scan_watch.ps1)."
+        )
+        return None
+    cmd = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File"]
+    return subprocess.Popen(
+        [*cmd, str(SCAN_WATCHER), "-Seconds", str(seconds)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def scan_end_seconds(proc: subprocess.Popen, t0_wall: float, seconds: int) -> list[float] | None:
+    """Giây (tính từ lúc bắt đầu ping) mà mỗi lần quét kết thúc. None = không theo dõi được."""
+    try:
+        out, _ = proc.communicate(timeout=seconds + WATCHER_GRACE_S)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        out, _ = proc.communicate()
+    if "ACCESS Allowed" not in out:
+        print(f"Không theo dõi được lần quét Wi-Fi: {out.strip()[:200]}")
+        return None
+    ends = []
+    for line in out.splitlines():
+        kind, _, value = line.partition(" ")
+        if kind == "SCAN" and value.strip().isdigit():
+            ends.append(round(int(value) / 1000 - t0_wall, 1))
+    return ends
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("hosts", nargs="*", default=list(DEFAULT_HOSTS))
     ap.add_argument("--seconds", type=int, default=150)
+    ap.add_argument("--no-scan-watch", action="store_true", help="không theo dõi lần quét Wi-Fi")
     args = ap.parse_args()
     ips = {h: socket.gethostbyname(h) for h in args.hosts}  # phân giải một lần, trước khi đo
+    watcher = None if args.no_scan_watch else start_scan_watch(args.seconds + 2)
     results: dict[str, list] = {h: [] for h in args.hosts}
     t0 = time.monotonic()
+    t0_wall = time.time()
     threads = [
         threading.Thread(target=ping_series, args=(ips[h], args.seconds, t0, results[h]))
         for h in args.hosts
@@ -70,6 +115,15 @@ def main() -> int:
         print(f"    giây mất: {lost}")
     common = sorted(set.intersection(*lost_sets)) if lost_sets else []
     print(f"Giây mất CHUNG ở mọi bo: {len(common)} {common}")
+
+    ends = scan_end_seconds(watcher, t0_wall, args.seconds) if watcher else None
+    if ends is not None:
+        print(f"Laptop quét Wi-Fi {len(ends)} lần, xong ở giây: {ends}")
+        during = [s for s in common if any(e - SCAN_DURATION_S <= s <= e + 1 for e in ends)]
+        print(f"Giây mất chung TRÙNG lúc laptop quét: {len(during)}/{len(common)} {during}")
+        if common and len(during) == len(common):
+            print("=> Mất sóng do laptop quét Wi-Fi. Cách tìm chương trình bắt quét:")
+            print("   docs/so-tay/12-hotspot-laptop.md mục 6.")
     return 1 if common else 0
 
 
