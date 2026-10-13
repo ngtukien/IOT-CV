@@ -117,3 +117,25 @@ triggered`, hoặc bo khởi động lại đúng lúc bật Wi-Fi.
 Một tụ 470–1000 µF low-ESR hàn sát chân 5V–GND của bo là một "bình nước" nhỏ: lúc dòng vọt lên, tụ
 xả bù trong vài mili-giây đó, điện áp không kịp sụt. Và luôn cấp nguồn bằng **UBEC 5V riêng**, không
 lấy từ pad 5V của bo bay — một ESP32 sụt áp không được kéo bo bay reset theo giữa trời.
+
+## 11. OTA — nạp firmware qua Wi-Fi
+
+OTA (Over-The-Air) là nạp chương trình mới qua mạng thay vì qua cáp USB. Khi bo camera đã bắt vít lên
+khung drone, tháo ra cắm cáp mỗi lần sửa firmware rất phiền; OTA cho phép gõ một lệnh trên laptop.
+
+Bộ nhớ flash của bo được chia sẵn **hai khe chương trình**, `app0` và `app1`, cùng một ô nhỏ
+(`otadata`) ghi "lần khởi động tới chạy khe nào":
+
+```text
+Dang chay app0  ->  ban moi ghi vao app1 (app0 khong bi dung toi)
+                ->  kiem MD5 xong moi sua otadata tro sang app1  ->  khoi dong lai, chay app1
+Nap hong giua chung (dut mang, file sai)  ->  otadata khong doi  ->  khoi dong lai, van chay app0
+```
+
+Nhờ vậy nạp hỏng không làm "chết" bo: bản cũ vẫn nằm nguyên ở khe kia. Điều OTA **không** cứu được:
+bản mới khởi động được nhưng không vào được Wi-Fi (ví dụ sai mật khẩu) — khi đó không còn đường mạng
+để nạp lại, phải cắm USB.
+
+OTA phải có khoá: ai trong mạng hotspot cũng gửi được file tới bo, nên firmware chỉ nhận khi kèm đúng
+một **token** bí mật (nằm trong `secrets.h`, không lên git). Lệnh và chi tiết:
+`firmware/camera/README.md` mục "Nạp qua Wi-Fi".

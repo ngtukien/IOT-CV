@@ -63,7 +63,7 @@ bản sau đè bản trước mà không báo gì.
   và hotspot (đừng cho laptop nối Wi-Fi không có internet, log boot in lộ mật khẩu Wi-Fi…): đọc
   `firmware/dronebridge/README.md` mục "Bẫy đã gặp" trước khi đụng vào ESP32.
 - Bo camera ESP32-S3 (CH343P, COM7): XCLK phải **10 MHz** — 20 MHz làm nhiễu Wi-Fi của chính bo
-  (~3 fps, khung JPEG hỏng). Nạp bằng `scripts\esp32\nap_camera.ps1`, kiểm bằng
+  (~3 fps, khung JPEG hỏng). Nạp bằng `scripts\esp32\nap_camera.ps1` (thêm `-Ota` để nạp qua Wi-Fi), kiểm bằng
   `uv run python scripts\esp32\camera_check.py`; bẫy khác: `firmware/camera/README.md`.
 - Hai ESP32 nối Mobile Hotspot của laptop: gọi bằng tên `iotcv-camera.mshome.net` /
   `DroneBridgeESP32.mshome.net`, IP DHCP đổi mỗi lần hotspot khởi động lại. Mỗi lần laptop quét

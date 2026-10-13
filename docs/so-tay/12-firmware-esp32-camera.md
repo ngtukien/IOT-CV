@@ -5,10 +5,10 @@ và **thứ tự làm lại từ đầu**. Giải thích khái niệm ở trang 
 
 | Trang | Nội dung |
 |---|---|
-| [12-esp32-cho-nguoi-moi.md](12-esp32-cho-nguoi-moi.md) | ESP32 là gì, hai con trong dự án, AP/STA, UDP, MJPEG, `jpeg_quality`, PSRAM, brownout |
+| [12-esp32-cho-nguoi-moi.md](12-esp32-cho-nguoi-moi.md) | ESP32 là gì, hai con trong dự án, AP/STA, UDP, MJPEG, `jpeg_quality`, PSRAM, brownout, OTA |
 | [12-hotspot-laptop.md](12-hotspot-laptop.md) | Mobile Hotspot 2,4 GHz, IP thật, rule tường lửa UDP 14550, ba cái bẫy |
 | [`firmware/dronebridge/README.md`](../../firmware/dronebridge/README.md) | ESP32 telemetry (DroneBridge): nạp, bảng cấu hình, đấu dây, driver, phương án hai |
-| [`firmware/camera/README.md`](../../firmware/camera/README.md) | bo camera ESP32-S3 + OV3660: endpoint, nạp, nguồn, số đo, bẫy |
+| [`firmware/camera/README.md`](../../firmware/camera/README.md) | bo camera ESP32-S3 + OV3660: endpoint, nạp qua USB và qua Wi-Fi (OTA), nguồn, số đo, bẫy |
 | [`docs/test-log.md`](../test-log.md) mục Phase 12 | số đo nghiệm thu |
 
 ## Làm lại từ đầu — thứ tự lệnh
@@ -28,6 +28,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\esp32\dronebridg
 
 # 4. Bo camera (cong USB-UART, CH343P): sinh secrets.h, build, nap, doi bo bao IP
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\esp32\nap_camera.ps1
+#    Bo da gan len drone, khong cam USB duoc: nap qua Wi-Fi (OTA)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\esp32\nap_camera.ps1 -Ota
 
 # 5. Nghiem thu camera qua Wi-Fi
 uv run python scripts\esp32\camera_check.py --frames 300
@@ -47,8 +49,10 @@ py -3.13 scripts\bench_tfmini.py COM5
 | `hotspot-on.ps1` | bật hotspot 2,4 GHz, tắt tự-tắt, in IP laptop + thiết bị đang nối |
 | `firewall-mavlink.ps1` | tạo/xoá rule UDP 14550, tự xin quyền Administrator, đọc lại rule |
 | `dronebridge-nvs.ps1` | cấu hình ESP32 telemetry qua USB (NVS) |
-| `camera-secrets.ps1` | sinh `firmware/camera/include/secrets.h` từ hotspot |
-| `nap_camera.ps1` | secrets → build → nạp → đọc IP, tự dò cổng CH343P |
+| `camera-secrets.ps1` | sinh `firmware/camera/include/secrets.h` từ hotspot + token OTA (giữ nguyên qua các lần sinh) |
+| `nap_camera.ps1` | secrets → build → nạp → đọc IP, tự dò cổng CH343P; `-Ota`: nạp qua Wi-Fi |
+| `ota_camera.py` | gửi `firmware.bin` tới `POST /update`, chứng minh chip chạy đúng bản vừa nạp (SHA + khe) |
+| `camera_net.py` | tên máy, cổng, URL của camera — chỗ duy nhất các script lấy địa chỉ camera |
 | `esp32_log.py` | đọc log Serial, `--reset`, `--until`, che mật khẩu |
 | `camera_check.py` | nghiệm thu camera qua Wi-Fi bằng parser MJPEG của backend |
 | `wifi_ping_check.py` | ping đồng thời các bo, tìm giây mất gói CHUNG, đánh dấu giây trùng lúc laptop quét Wi-Fi |

@@ -3,6 +3,7 @@
 //   GET http://<ip>:STREAM_PORT/stream      luong MJPEG, dung hop dong docs/hop-dong-mjpeg.md
 //   GET http://<ip>:HTTP_PORT/set?quality=N doi jpeg_quality luc dang chay (N trong 0..63)
 //   GET http://<ip>:HTTP_PORT/status        JSON trang thai
+//   POST http://<ip>:HTTP_PORT/update       nap firmware qua Wi-Fi (ota_update.cpp, plan §12.9)
 //
 // Chay o che do STA: noi vao Mobile Hotspot cua laptop, khong tu phat Wi-Fi. Camera hong thi
 // /status van tra loi (camera:"FAIL") de backend biet - camera chet khong duoc keo gi theo
@@ -15,6 +16,8 @@
 #include "lwip/sockets.h"
 #include "secrets.h"
 #include "camera_pins.h"
+#include "http_json.h"
+#include "ota_update.h"
 
 static const int JPEG_QUALITY_MIN = 0;
 static const int JPEG_QUALITY_MAX = 63;
@@ -31,6 +34,10 @@ static const uint32_t XCLK_FREQ_HZ = 10000000;
 static const int GRAB_FAIL_LIMIT = 10;           // lien tiep khong lay duoc khung -> dong luong
 static const uint32_t SLOW_FRAME_LOG_MS = 1000;  // vong lay+gui mot khung lau hon -> in ra Serial
 static const char *STREAM_CONTENT_TYPE = "multipart/x-mixed-replace; boundary=frame";
+// Doi luong /stream dung truoc khi tat camera de nap OTA. Lon hon send_wait_timeout (5 s) cua may
+// chu HTTP: mot lan gui dang ket se het han va vong phat thoat ra.
+static const uint32_t OTA_STREAM_STOP_WAIT_MS = 6000;
+static const size_t HTTPD_STACK_BYTES = 8192;  // OTA ghi flash ngay trong task may chu
 
 static esp_err_t camErr = ESP_FAIL;
 static uint16_t sensorPid = 0;
@@ -113,15 +120,10 @@ static camera_fb_t *grabLabeledFrame(int *quality, uint32_t *frameId) {
   }
 }
 
-static esp_err_t sendJson(httpd_req_t *req, const char *status, const char *body) {
-  httpd_resp_set_status(req, status);
-  httpd_resp_set_type(req, "application/json");
-  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-  return httpd_resp_sendstr(req, body);
-}
-
 static esp_err_t streamHandler(httpd_req_t *req) {
-  if (camErr != ESP_OK) return sendJson(req, "503 Service Unavailable", "{\"error\":\"camera init failed\"}");
+  if (camErr != ESP_OK || otaInProgress()) {
+    return sendJson(req, "503 Service Unavailable", "{\"error\":\"camera khong san sang\"}");
+  }
   httpd_resp_set_type(req, STREAM_CONTENT_TYPE);
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
   // Tat Nagle: duoi cung cua moi khung la mot goi nho, khong de no nam cho ACK (Windows tri hoan
@@ -136,7 +138,7 @@ static esp_err_t streamHandler(httpd_req_t *req) {
   bool firstPart = true;
   int failures = 0;
   esp_err_t res = ESP_OK;
-  while (res == ESP_OK) {
+  while (res == ESP_OK && !otaInProgress()) {  // OTA bat dau -> nha camera cho viec ghi flash
     int quality = 0;
     uint32_t frameId = 0;
     uint32_t t0 = millis();
@@ -191,7 +193,9 @@ static esp_err_t setHandler(httpd_req_t *req) {
   if (!parseQuality(req, &q)) {
     return sendJson(req, "400 Bad Request", "{\"error\":\"quality phai la so nguyen trong 0..63\"}");
   }
-  if (camErr != ESP_OK) return sendJson(req, "503 Service Unavailable", "{\"error\":\"camera init failed\"}");
+  if (camErr != ESP_OK || otaInProgress()) {
+    return sendJson(req, "503 Service Unavailable", "{\"error\":\"camera khong san sang\"}");
+  }
   sensor_t *s = esp_camera_sensor_get();
   xSemaphoreTake(stateLock, portMAX_DELAY);
   bool changed = q != activeQuality;
@@ -207,19 +211,42 @@ static esp_err_t setHandler(httpd_req_t *req) {
   return sendJson(req, "200 OK", body);
 }
 
+static const char *cameraState() {
+  if (otaInProgress()) return "OTA";
+  return camErr == ESP_OK ? "OK" : "FAIL";
+}
+
 static esp_err_t statusHandler(httpd_req_t *req) {
   xSemaphoreTake(stateLock, portMAX_DELAY);
   int quality = activeQuality;
   xSemaphoreGive(stateLock);
-  char body[320];
+  bool cameraOk = camErr == ESP_OK && !otaInProgress();
+  char body[420];
   snprintf(body, sizeof body,
            "{\"quality\":%d,\"framesize\":\"%s\",\"rssi\":%d,\"uptime_ms\":%lu,\"frames_sent\":%u,"
            "\"camera\":\"%s\",\"sensor_pid\":\"0x%04x\",\"stream_clients\":%d,\"stream_port\":%d,"
-           "\"free_psram\":%u}",
-           quality, camErr == ESP_OK ? currentFramesizeName() : "UNKNOWN", (int)WiFi.RSSI(),
-           (unsigned long)millis(), (unsigned)framesSent.load(), camErr == ESP_OK ? "OK" : "FAIL", sensorPid,
-           streamClients.load(), STREAM_PORT, (unsigned)ESP.getFreePsram());
+           "\"free_psram\":%u,\"firmware_sha\":\"%s\",\"partition\":\"%s\"}",
+           quality, cameraOk ? currentFramesizeName() : "UNKNOWN", (int)WiFi.RSSI(),
+           (unsigned long)millis(), (unsigned)framesSent.load(), cameraState(), sensorPid,
+           streamClients.load(), STREAM_PORT, (unsigned)ESP.getFreePsram(), otaFirmwareSha(),
+           otaRunningPartition());
   return sendJson(req, "200 OK", body);
+}
+
+// Goi tu otaUpdateHandler ngay truoc khi ghi flash (luc nay otaInProgress() da la true): doi vong
+// /stream thoat ra roi tat camera, de DMA cua camera khong chay song song voi viec ghi flash. Nap
+// xong hay hong, bo deu khoi dong lai nen khong can bat camera lai o day.
+static void stopCameraForOta() {
+  uint32_t t0 = millis();
+  while (streamClients.load() > 0 && millis() - t0 < OTA_STREAM_STOP_WAIT_MS) delay(10);
+  if (streamClients.load() > 0) {
+    Serial.println("OTA: luong /stream chua dung kip, de camera chay tiep trong luc ghi");
+    return;
+  }
+  if (camErr == ESP_OK) {
+    camErr = ESP_ERR_INVALID_STATE;
+    esp_camera_deinit();
+  }
 }
 
 static httpd_handle_t startServer(uint16_t port, uint16_t ctrlOffset, const httpd_uri_t *uris, size_t count) {
@@ -227,6 +254,7 @@ static httpd_handle_t startServer(uint16_t port, uint16_t ctrlOffset, const http
   config.server_port = port;
   config.ctrl_port += ctrlOffset;  // hai may chu phai khac cong dieu khien noi bo (UDP)
   config.lru_purge_enable = true;
+  config.stack_size = HTTPD_STACK_BYTES;
   httpd_handle_t server = nullptr;
   if (httpd_start(&server, &config) != ESP_OK) {
     Serial.printf("HTTP start FAIL port=%u\n", port);
@@ -241,11 +269,12 @@ static void startServers() {
   static const httpd_uri_t controlUris[] = {
       {"/status", HTTP_GET, statusHandler, nullptr},
       {"/set", HTTP_GET, setHandler, nullptr},
+      {"/update", HTTP_POST, otaUpdateHandler, nullptr},
   };
   static const httpd_uri_t streamUris[] = {
       {"/stream", HTTP_GET, streamHandler, nullptr},
   };
-  startServer(HTTP_PORT, 0, controlUris, 2);
+  startServer(HTTP_PORT, 0, controlUris, 3);
   startServer(STREAM_PORT, 1, streamUris, 1);
 }
 
@@ -283,6 +312,8 @@ void setup() {
   delay(200);
   Serial.printf("BOOT iotcv-camera chip=%s psram=%u\n", ESP.getChipModel(), (unsigned)ESP.getPsramSize());
   stateLock = xSemaphoreCreateMutex();
+  otaInit(stopCameraForOta);
+  Serial.printf("FIRMWARE sha=%s partition=%s\n", otaFirmwareSha(), otaRunningPartition());
   camErr = initCamera();
   if (camErr == ESP_OK) {
     Serial.printf("camera init OK pid=0x%04x framesize=%s quality=%d\n", sensorPid, currentFramesizeName(),
@@ -296,6 +327,7 @@ void setup() {
 
 void loop() {
   static uint32_t lastStatus = 0;
+  otaLoop();
   maintainWifi();
   if (millis() - lastStatus >= STATUS_LOG_MS) {
     lastStatus = millis();

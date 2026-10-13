@@ -18,3 +18,8 @@
 // nen /stream (khong bao gio ket thuc) ma chung cong voi /set thi /set se treo suot luc phat.
 #define STREAM_PORT           81
 #define STATUS_LOG_MS         5000            // chu ky in dong STATUS ra Serial
+
+// Bi mat cho POST /update (nap firmware qua Wi-Fi). camera-secrets.ps1 sinh 32 ky tu hex ngau nhien
+// MOT lan va giu nguyen o cac lan sau; doi token thi ban dang chay tren chip se tu choi ban moi,
+// phai nap USB mot lan. Dung de nguyen gia tri mau nay.
+#define OTA_TOKEN             "chay-camera-secrets-ps1-de-sinh"
