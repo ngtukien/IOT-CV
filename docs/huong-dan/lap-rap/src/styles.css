@@ -74,6 +74,7 @@ svg text{font-family:var(--font)}
 .icon-btn:hover{border-color:var(--line2)}
 .icon-btn svg{width:18px;height:18px}
 .search{position:relative}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .search input{width:220px;padding:8px 10px 8px 32px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
 .search svg{position:absolute;left:9px;top:9px;width:16px;height:16px;color:var(--muted)}
 .search-res{position:absolute;right:0;top:42px;width:380px;max-height:60vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:none;z-index:40}
@@ -150,7 +151,7 @@ main{padding:22px 26px 80px;min-width:0}
 .fig figcaption{padding:8px 12px;font-size:.84rem;color:var(--ink2);border-top:1px solid var(--line)}
 .fig .zoom{position:absolute;top:8px;right:8px;opacity:.0;transition:opacity .15s}
 .fig:hover .zoom{opacity:1}
-.svgbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;position:relative}
+.svgbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;position:relative;cursor:zoom-in}
 .svgbox > svg{display:block;width:100%;height:auto}
 .svgbox .cap{padding:8px 12px;font-size:.84rem;color:var(--ink2);border-top:1px solid var(--line)}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
@@ -278,7 +279,6 @@ main{padding:22px 26px 80px;min-width:0}
 .ph-filter .chip .dot{background:var(--accent)}
 
 
-.svgbox{cursor:zoom-in}
 .wiring .cx.off{opacity:.07;pointer-events:none}
 .part .ph > svg{max-height:100%}
 .steplink{font-family:var(--mono);font-weight:700}
@@ -288,11 +288,11 @@ details[open] > summary::before{content:'▾ ';}
 
 /* ---------- in ---------- */
 @media print{
-  .top,.side,.snav,.v3d,.chip,.btn,.icon-btn{display:none !important}
+  body .top,body .side,body .snav,body .v3d,body .chip,body .btn,body .icon-btn{display:none}
   .shell{display:block}
   main{padding:0}
-  .view{display:none !important}
-  .view.print-on{display:block !important}
+  #main .view{display:none}
+  #main .view.print-on{display:block}
   body{background:#fff;color:#000}
 }
 .printlist h3{margin-top:16px;border-bottom:2px solid #000}

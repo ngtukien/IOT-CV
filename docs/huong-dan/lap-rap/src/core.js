@@ -23,6 +23,8 @@ LR.store = {
       const v = localStorage.getItem('lr-s500:' + key);
       return v == null ? fallback : JSON.parse(v);
     } catch (e) {
+      /* bộ nhớ trình duyệt bị chặn hoặc dữ liệu hỏng: dùng giá trị mặc định, trang vẫn chạy */
+      console.warn('LR.store.get', key, e);
       return fallback;
     }
   },
@@ -43,7 +45,9 @@ LR.pic = (id, cap, opt) => {
   const src = LR.img[id];
   if (!src) return `<div class="callout c-warn">Thiếu ảnh <code>${LR.esc(id)}</code></div>`;
   const o = opt || {};
-  return `<figure class="fig"${o.style ? ` style="${o.style}"` : ''}><img src="${src}" alt="${LR.esc(cap || id)}" data-lb="${LR.esc(cap || '')}" loading="lazy">${cap ? `<figcaption>${LR.fmt(cap)}</figcaption>` : ''}</figure>`;
+  const style = o.style ? ' style="' + o.style + '"' : '';
+  const caption = cap ? '<figcaption>' + LR.fmt(cap) + '</figcaption>' : '';
+  return `<figure class="fig"${style}><img src="${src}" alt="${LR.esc(cap || id)}" data-lb="${LR.esc(cap || '')}" loading="lazy">${caption}</figure>`;
 };
 
 /* Sơ đồ SVG: LR.svgfig('ten', 'chú thích', thamSo) gọi LR.diag.ten(thamSo). */
@@ -55,7 +59,8 @@ LR.svgfig = (name, cap, arg) => {
   const wide = vb && Number(vb[1]) >= 1.45 * Number(vb[2]);
   /* Không phóng sơ đồ quá 1,2 lần cỡ vẽ — chữ to quá khó đọc lướt. */
   const sized = vb ? svg.replace('<svg ', `<svg style="max-width:${Math.round(Number(vb[1]) * 1.2)}px;margin:0 auto" `) : svg;
-  return `<div class="svgbox${wide ? ' wide' : ''}" data-svg="${name}">${sized}${cap ? `<div class="cap">${LR.fmt(cap)}</div>` : ''}</div>`;
+  const caption = cap ? '<div class="cap">' + LR.fmt(cap) + '</div>' : '';
+  return `<div class="svgbox${wide ? ' wide' : ''}" data-svg="${name}">${sized}${caption}</div>`;
 };
 
 LR.WHO = {

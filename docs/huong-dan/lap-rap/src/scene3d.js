@@ -523,7 +523,10 @@ function mount(container, opt) {
     ray.setFromCamera(mouse, camera);
     const hits = ray.intersectObjects(W.root.children, true).filter((h) => {
       let o = h.object;
-      while (o) { if (o.visible === false) return false; o = o.parent; }
+      while (o) {
+        if (o.visible === false) return false;
+        o = o.parent;
+      }
       const m = Array.isArray(h.object.material) ? h.object.material[0] : h.object.material;
       return h.object.userData.part && m && m.depthWrite !== false;
     });
@@ -531,15 +534,15 @@ function mount(container, opt) {
     if (hit) {
       const k = hit.object.userData.part;
       setHighlight(k);
-      opt.onPick && opt.onPick(Object.assign({ key: k }, PARTS[k]));
+      opt.onPick?.({ key: k, ...PARTS[k] });
       if (opt.tip) {
         opt.tip.innerHTML = `<b>${PARTS[k].name}</b>`;
         opt.tip.classList.add('on');
       }
     } else {
       setHighlight(null);
-      opt.onPick && opt.onPick(null);
-      opt.tip && opt.tip.classList.remove('on');
+      opt.onPick?.(null);
+      opt.tip?.classList.remove('on');
     }
   });
 
@@ -587,7 +590,7 @@ function mount(container, opt) {
       const k = 0.5 + 0.5 * Math.sin(now / 220);
       pulse.setRGB(1, 0.42 * k + 0.2, 0.1 * k);
       W.root.traverse((o) => {
-        if (o.userData.hl && o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.emissive && m.emissive.copy(pulse).multiplyScalar(0.55 + 0.35 * k));
+        if (o.userData.hl && o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => m.emissive?.copy(pulse).multiplyScalar(0.55 + 0.35 * k));
       });
     }
     renderer.render(scene, camera);
@@ -595,7 +598,7 @@ function mount(container, opt) {
     const vis = [];
     labelEls.forEach((l) => {
       const g = W.groups[l.k];
-      if (!st.labels || !g || !g.visible) {
+      if (!st.labels || !g?.visible) {
         l.el.style.display = 'none';
         return;
       }
@@ -642,7 +645,10 @@ function mount(container, opt) {
     },
     get(k) { return st[k]; },
     stageIndexFor(stepId) {
-      return STEP_STAGE[stepId] ?? (stepId && /^[A-E]/.test(stepId) ? STAGES.length - 2 : stepId && /^G/.test(stepId) ? STAGES.length - 2 : null);
+      if (stepId in STEP_STAGE) return STEP_STAGE[stepId];
+      /* Bước chặng A–E và phần G còn lại: xem drone hoàn chỉnh, chưa cánh (F15). */
+      if (stepId && /^[A-EG]/.test(stepId)) return STAGES.length - 2;
+      return null;
     },
     setExplode(t) {
       st.explode = t;
