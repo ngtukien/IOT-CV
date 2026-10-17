@@ -72,3 +72,20 @@ bản sau đè bản trước mà không báo gì.
   pyserial mở cổng theo mặc định là reset bo.
 - SITL: mô hình vật lý phải khớp `FRAME_TYPE` (`-f bfx`); cảm biến dòng ảo cố định 17 A/V.
 - Mã thoát của một đường ống (`cmd | tail`) là của lệnh cuối — đọc chính kết quả trước khi kết luận PASS.
+
+## Lắp ráp phần cứng (Phase 14.1 → 19)
+
+Hướng dẫn tương tác (sơ đồ, 3D, 76 bước có tick): `docs/huong-dan/lap-rap-phan-cung.html`, mở thẳng
+trong trình duyệt. Nguồn ở `docs/huong-dan/lap-rap/src/`, dựng lại bằng
+`py -3.13 docs/huong-dan/lap-rap/build.py` — sửa nguồn, đừng sửa file HTML.
+
+- **Người dùng chỉ làm phần tay**: hàn, cắm cáp, lắp khung, đo đồng hồ, cầm / xoay / đặt drone, đọc số đo.
+- **Mọi việc trên laptop do agent tự làm**, không đẩy cho người dùng: nạp firmware và tham số
+  (`scripts/fc/`), đọc trạng thái FC, hiệu chỉnh trong Mission Planner qua `cua-driver`, cấu hình ESP32,
+  bật hotspot, chạy backend + web, đọc log, ghi sổ tay và `plans/PROGRESS.md`. Việc không tự động được
+  (giữ BOOT, rút / cắm cáp) thì dừng lại và nói đúng thao tác cần làm. Ngoại lệ vẫn là luật 6: motor THẬT
+  quay (ARM, Motor Test, đo lực đẩy) thì người vận hành tự bấm.
+- `chay-tat-ca.bat` chỉ dành cho drone ảo: nó ép `tcp:127.0.0.1:5760` và tắt backend đang chạy. Drone thật
+  thì agent chạy backend với `MAVLINK_ENDPOINT=udpin:0.0.0.0:14550`, `CAMERA_FAKE=0`,
+  `CAMERA_STREAM_URL=http://iotcv-camera.mshome.net:81/stream`, rồi `pnpm dev`. Mission Planner và
+  backend không nghe chung cổng UDP 14550.
