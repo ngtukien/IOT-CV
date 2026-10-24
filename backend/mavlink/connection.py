@@ -43,6 +43,9 @@ log = logging.getLogger(__name__)
 MAV_CMD_SET_MESSAGE_INTERVAL = 511
 MAV_CMD_REQUEST_MESSAGE = 512
 
+# HEARTBEAT.autopilot của thiết bị KHÔNG phải flight controller (GCS, cầu ESP32).
+MAV_AUTOPILOT_INVALID = 8
+
 # HOME_POSITION không có stream rate: nó là message sự kiện, phải xin từng lần.
 MSG_ID_HOME_POSITION = 242
 
@@ -116,21 +119,47 @@ class MavlinkConnection:
             source_component=config.MAVLINK_SOURCE_COMPONENT,
         )
 
-        heartbeat = self.master.wait_heartbeat(timeout=wait)
+        heartbeat = self._wait_vehicle_heartbeat(wait)
         if heartbeat is None:
             # Đóng trước khi ném: `self.master` đã bind cổng UDP ở dòng trên,
             # để nguyên là bỏ lại một cổng đã chiếm cho gc dọn hộ.
             self.close()
-            raise TimeoutError(f"Không nhận được HEARTBEAT từ {self.endpoint} sau {wait:.0f}s")
+            raise TimeoutError(
+                f"Không nhận được HEARTBEAT của flight controller từ {self.endpoint} "
+                f"sau {wait:.0f}s"
+            )
 
-        self.target_system = self.master.target_system
-        self.target_component = self.master.target_component
+        # Lấy sysid từ CHÍNH gói của máy bay. `master.target_system` của pymavlink
+        # chỉ đổi khi nó tự đoán gói là của máy bay, nên trước đó vẫn là 0.
+        self.target_system = heartbeat.get_srcSystem()
+        self.target_component = heartbeat.get_srcComponent()
+        self.master.target_system = self.target_system
+        self.master.target_component = self.target_component
         log.info(
             "Heartbeat OK — system=%s component=%s",
             self.target_system,
             self.target_component,
         )
         return self.target_system, self.target_component
+
+    def _wait_vehicle_heartbeat(self, wait: float):
+        """Chờ HEARTBEAT của flight controller, bỏ qua heartbeat của thiết bị khác.
+
+        ĐÃ ĐO trên drone thật 25/10/2026 (ESP32 DroneBridge, UDP 14550): cổng nhận ba
+        nguồn heartbeat — (255,0) type GCS và (255,68) DroneBridge type
+        ONBOARD_CONTROLLER, đều autopilot INVALID, cùng FC (1,1). Gói GCS tới TRƯỚC.
+        `wait_heartbeat()` trả gói đầu tiên bất kể nguồn, backend chốt sysid 0 rồi
+        `_tu_flight_controller` lọc bỏ sạch gói của FC: web hiện toàn ô trống. SITL
+        không lộ lỗi này vì chỉ có FC phát heartbeat.
+        """
+        deadline = time.monotonic() + wait
+        while (remaining := deadline - time.monotonic()) > 0:
+            msg = self.master.recv_match(type="HEARTBEAT", blocking=True, timeout=remaining)
+            if msg is None:
+                return None
+            if getattr(msg, "autopilot", MAV_AUTOPILOT_INVALID) != MAV_AUTOPILOT_INVALID:
+                return msg
+        return None
 
     @property
     def connected(self) -> bool:

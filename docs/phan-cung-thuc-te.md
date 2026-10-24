@@ -1,6 +1,7 @@
 # Phần cứng thực tế — nguồn sự thật
 
-Cập nhật **12/10/2026**, người dùng xác nhận trực tiếp. Chỗ nào trong plan, sổ tay, code hay báo
+Cập nhật **25/10/2026** sau khi lắp ráp và kiểm bằng máy (`plans/reports/261025-kiem-tra-phan-cung-that.md`);
+danh sách linh kiện do người dùng xác nhận trực tiếp ngày 12/10/2026. Chỗ nào trong plan, sổ tay, code hay báo
 cáo khác với file này thì **file này đúng**. Các báo cáo nghiên cứu ngày 21/09/2026 trong
 `plans/reports/` được giữ nguyên như bản ghi lịch sử — đọc chúng để hiểu lý do, đừng lấy chúng làm
 danh sách linh kiện.
@@ -9,17 +10,17 @@ danh sách linh kiện.
 
 | Vai trò | Món thật | Trạng thái | Điều phải nhớ |
 |---|---|---|---|
-| Bo bay + ESC | Stack **SpeedyBee F405 V5 OX32 55A**, bản **"Model Aircraft"** (FC F405 V5 + ESC 4in1 OX32 55A) | Đã có; **FC đã chạy ArduPilot từ 13/10/2026** (bản `d450a747` + `01-base.param`, lên COM6 trên máy dự án) | ArduPilot board `speedybeef4v5`, nạp DFU không cần kích hoạt app; `FRAME_TYPE 12`; hệ số dòng 370,4 A/V. Chi tiết ở mục dưới |
-| Cảm biến tránh vật cản | **Benewake TFmini Plus** | Đã có | `SERIAL3` = pad T3/R3; **chỉ cấp 5 V** |
-| Cầu MAVLink qua Wi-Fi | **ESP32 DevKit có chip USB-UART CP2102** (ESP32-D0WD-V3, flash 4 MB) | Đã nạp DroneBridge v2.4.1 ngày 12/10/2026 | Lên COM4 trên máy dự án. STA vào hotspot laptop `IOTCV-HOTSPOT` (13/10/2026): ESP32 tên `DroneBridgeESP32.mshome.net` (IP DHCP, đổi mỗi lần hotspot khởi động lại), laptop `192.168.137.1`, UDP 14550. UART TX = GPIO17, RX = GPIO16, 115200, nối `SERIAL2` (pad T2/R2) của FC. Xem `firmware/dronebridge/README.md` |
+| Bo bay + ESC | Stack **SpeedyBee F405 V5 OX32 55A**, bản **"Model Aircraft"** (FC F405 V5 + ESC 4in1 OX32 55A) | Đã có; **FC đã chạy ArduPilot từ 13/10/2026** (bản `d450a747` + `01-base.param`, lên COM6 trên máy dự án); đã lắp lên khung, người dùng bay thử 24/10/2026 | ArduPilot board `speedybeef4v5`, nạp DFU không cần kích hoạt app; `FRAME_TYPE 12` (trên bo đang là `FRAME_TYPE 1` + `SERVO1..4_FUNCTION 36/33/34/35`, cùng thứ tự motor); hệ số dòng 370,4 A/V. **Cài đặt ESC đã đổi 25/10/2026** (`firmware/esc-ox32/`). Chi tiết ở mục dưới |
+| Cảm biến tránh vật cản | **Benewake TFmini Plus** | Đã hàn lên FC: xanh → R3, đỏ/đen → 5V/G cụm LED1, **dây trắng chưa hàn**. 25/10/2026: cảm biến **sai cấu hình** (1 khung/giây, đơn vị mm), ArduPilot báo `Rangefinder 1: No Data` | `SERIAL3` = pad T3/R3; **chỉ cấp 5 V**. Hàn dây trắng vào T3 thì cấu hình lại được qua FC (hướng dẫn lắp ráp bước E7) |
+| Cầu MAVLink qua Wi-Fi | **ESP32 DevKit có chip USB-UART CP2102** (ESP32-D0WD-V3, flash 4 MB) | Đã nạp DroneBridge v2.4.1 ngày 12/10/2026 | Lên COM4 trên máy dự án. STA vào hotspot laptop `IOTCV-HOTSPOT` (13/10/2026): ESP32 tên `DroneBridgeESP32.mshome.net` (IP DHCP, đổi mỗi lần hotspot khởi động lại), laptop `192.168.137.1`, UDP 14550. UART TX = GPIO17, RX = GPIO16, 115200, nối `SERIAL2` (pad T2/R2) của FC. Xem `firmware/dronebridge/README.md`. 25/10/2026 trên drone: web GCS nhận đủ telemetry qua Wi-Fi khi đã rút USB, nhưng mất 19–32% gói theo từng đợt |
 | Camera trên drone | **ESP32-S3 N16R8** (16 MB flash, 8 MB PSRAM octal) + module **OV3660** (3 MP) | Đã có; **kiểm trên bo 13/10/2026**: OV3660 ra ảnh, bảng chân `ESP32S3_EYE` đúng, PSRAM 8 MB chạy | Thay hẳn ESP32-CAM / XIAO ESP32S3 Sense trong tài liệu cũ. Cổng `USB-UART` (CH343P) lên COM7. Có tem bảo hành "không được xé". Chi tiết ở mục dưới |
 | USB-TTL | Mạch chuyển **USB to TTL UART CP2102** | Đã mua | Đọc TFmini Plus trên máy tính trước khi cắm vào bo bay (Phase 12.7 / 17). Không còn cần để nạp camera — ESP32-S3 có cổng USB |
 | Nguồn cho ESP32 + camera | **UBEC 5V 3A** | Đã mua | Lấy thẳng từ pin; **không** ăn 5 V của stack |
 | Khung | S500 | Như tài liệu, người dùng xác nhận không đổi | |
 | Motor + cánh | T-Motor Air Gear 450 II (motor AIR2216II, cánh T1045 tự siết) | Như tài liệu | 2 motor ren phải + 2 ren trái, xem Phase 18.3 |
-| GPS + la bàn | Holybro M10 (la bàn IST8310) | Như tài liệu | |
-| RC | FlySky FS-i6X + receiver iA6B (iBUS) | Như tài liệu | |
-| Pin | Ovonic 4S 5300 mAh | Như tài liệu | |
+| GPS + la bàn | Holybro M10 (la bàn IST8310) | Đã lắp; log 24/10/2026: 9–15 vệ tinh, HDOP 0,8–1,7 | **Chỉ có điện khi cắm pin.** La bàn chỉ được dò lúc FC khởi động: cắm USB trước rồi mới cắm pin thì phải khởi động lại FC (`COMPASS_DEV_ID` 658945 khi khởi động có pin, 0 khi chỉ USB). Đọc mạnh hơn mô hình WMM 11% → hiệu chỉnh lại ngoài trời |
+| RC | FlySky FS-i6X + receiver iA6B (iBUS) | Đã bind, FC đọc 14 kênh iBUS | Failsafe kênh 3 trên tay phát đã cài 25/10/2026: −118% ≈ 911 µs, thấp hơn `FS_THR_VALUE` 975. Quy trình ở Phase 15 §15.5. Radio chưa hiệu chỉnh (`RC1..8` vẫn 1100/1900) |
+| Pin | Ovonic 4S 5300 mAh | Như tài liệu | Người dùng còn **pin 6S** và đã bay bằng nó 24/10/2026. Motor định mức 4S; ngưỡng pin trên FC (`BATT_LOW_VOLT 14.0`, `BATT_CRT_VOLT 13.2`) là của 4S nên failsafe pin vô tác dụng với 6S. Chưa chốt dùng loại nào |
 | Sạc | SkyRC iMAX B6AC V2 | Như tài liệu | |
 
 ## Đã bỏ — đừng làm theo tài liệu cũ
@@ -53,6 +54,14 @@ ArduPilot 4.7.1; cấu hình Betaflight `SPEEDYBEEF405V5`.
 - ESC OX32 đánh số motor kiểu Betaflight: **M1 sau-phải, M2 trước-phải, M3 sau-trái, M4
   trước-trái** → `FRAME_TYPE 12`. Mép có 8 pad `V G C T 1 2 3 4` của ESC nằm cùng phía cổng 10 chân
   và cổng GPS của FC = phía **mũi**.
+- ESC OX32 chạy firmware **1.13**. Trình cấu hình `ox32.oxbot.com` **chỉ vào được ESC khi FC chạy
+  Betaflight**; passthrough của ArduPilot (`SERVO_BLH_AUTO = 1`) báo `4-way communication protocol
+  error`. 25/10/2026 đã tạm nạp Betaflight để đổi 4 mục cho motor KV thấp + cánh 10" (gốc lỗi M1
+  khựng khi khởi động trên 4S), rồi nạp lại ArduPilot và khôi phục tham số. Cài đặt trước/sau và cách
+  làm: `firmware/esc-ox32/README.md`.
+- Bản ArduPilot `speedybeef4v5` không bật `ENABLE_DFU_BOOT`: từ ArduPilot muốn vào DFU phải **giữ
+  BOOT khi cắm USB**. Từ Betaflight thì `scripts/fc/nap_dfu.py` vào DFU bằng lệnh MSP.
+- Chỉ cắm USB thì GPS M10 và la bàn **không lên** (đo thật 25/10/2026); chúng có điện khi cắm pin.
 - Cảm biến dòng của ESC: SpeedyBee ghi `Scale=27, Offset=-2644` (đơn vị Betaflight) →
   `BATT_AMP_PERVLT 370.4`, `BATT_AMP_OFFSET 0.0071`. Vẫn phải hiệu chỉnh theo mAh sạc trả.
 - Trong hộp: **1** tụ 1000 µF 35 V (không phải 2). Bản Deluxe có thêm "Short-Circuit Protection

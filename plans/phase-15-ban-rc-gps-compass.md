@@ -249,15 +249,26 @@ hoạt động.
 Có **hai lớp** phải cấu hình, và người mới thường chỉ làm một lớp:
 
 ```text
-LOP 1 - phia TAY PHAT / BO THU: day phai xuat gia tri ga THAP khi mat song
-  FS-i6X:  System Setup -> RX Setup -> Failsafe
-           -> chon Channel 3 (Throttle) -> bat Failsafe -> dat ve muc THAP NHAT
+LOP 1 - phia TAY PHAT / BO THU: day phai xuat gia tri ga THAP HON FS_THR_VALUE khi mat song
+  FS-i6X (da lam that 25/10/2026):
+  A. Functions Setup -> End points -> Ch3: keo can ga xuong DAY roi bam UP cho
+     phia thap len 120% (moi kenh co 2 cot; cot dang sua la cot theo vi tri can ga)
+     -> giu CANCEL de luu
+  B. Can ga van o day: System Setup -> RX Setup -> Failsafe -> Channel 3 -> OK
+     -> DOWN (bat On, hien khoang -118%) -> OK de VE DANH SACH (BAT BUOC: thoat
+     thang ra la mat, Channel 3 lai hien Off) -> giu CANCEL de luu.
+     Vao lai kiem Channel 3 con -118%.
+  C. Functions Setup -> End points -> Ch3: phia thap tra ve 100% -> giu CANCEL.
+     Gia tri failsafe da luu trong bo thu van giu -118%.
+  Vi sao phai 120%: -100% = 1000 us, KHONG thap hon FS_THR_VALUE 975 nen bo bay
+  khong coi la mat song. -118% ra ~911 us < 975.
   Khong lam buoc nay thi bo thu se GIU NGUYEN gia tri cuoi cung khi mat song,
   va bo bay khong bao gio biet la da mat song.
 
 LOP 2 - phia BO BAY: nguong va hanh dong
   FS_THR_ENABLE = 1     (da nap tu 01-base.param)
-  FS_THR_VALUE          de mac dinh; chi doi neu buoc test duoi khong kich hoat
+  FS_THR_VALUE = 975    de mac dinh; KHONG nang len de "chua" lop 1
+                        (phai thap hon RC3_MIN it nhat 10)
 ```
 
 Bài test (USB, **không cánh, không pin**):
@@ -265,7 +276,8 @@ Bài test (USB, **không cánh, không pin**):
 ```text
 1. Bo bay cam USB, Mission Planner dang CONNECT, tay phat dang BAT
 2. Xem tab Flight Data - khong co canh bao radio
-3. TAT tay phat
+3. Dat can ga o GIUA roi TAT tay phat (ga o giua thi moi phan biet duoc
+   "bo thu xuat gia tri failsafe" voi "bo thu giu gia tri cuoi")
 4. Trong vong vai giay, Mission Planner phai bao:
        "Radio Failsafe"   (bang chu do tren HUD, va mot dong trong tab Messages)
 5. BAT lai tay phat  ->  canh bao phai tu bien mat
@@ -280,6 +292,10 @@ danh sách phải tháo cánh — ở đây còn chưa có cánh nào để thá
 **Nếu lỗi:**
 - Không có cảnh báo nào → gần như chắc chắn chưa làm **Lớp 1**. Bộ thu đang giữ nguyên giá trị
   cuối. Quay lại menu Failsafe trên FS-i6X.
+- Không có cảnh báo, kênh ga khi tắt tay phát ra đúng **1000** → failsafe đã bật nhưng đặt lúc End
+  points còn 100%. 1000 µs không nhỏ hơn `FS_THR_VALUE` 975; làm lại bước A–C.
+- Menu Failsafe hiện `Off` ở Channel 3 dù đã đặt → lúc đặt đã thoát mà chưa bấm **OK** về danh
+  sách. Làm lại bước B.
 - Cảnh báo xuất hiện nhưng không biến mất khi bật lại → đợi thêm vài giây; nếu vẫn không, kiểm tra
   đèn iA6B đã sáng liên chưa.
 - Cảnh báo xuất hiện **ngẫu nhiên** dù tay phát vẫn bật → tín hiệu yếu hoặc dây signal tiếp xúc

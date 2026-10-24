@@ -118,7 +118,7 @@ LR.data.parts = [
     img: 'tfmini', more: ['tfmini_holes'], diag: 'cableTf',
     specs: [
       ['Nguồn', '**5 V ± 0,5 V**, ≤ 110 mA (đỉnh 140 mA), không có bảo vệ quá áp / ngược cực'],
-      ['Tín hiệu', 'UART 115200, logic 3,3 V → R3 (SERIAL3, `RNGFND1_TYPE 20`)'],
+      ['Tín hiệu', 'UART 115200, logic 3,3 V: TXD → R3, RXD ← T3 (SERIAL3, `RNGFND1_TYPE 20`)'],
       ['Tầm', '0,1–12 m (vật sáng), 0,1–4 m (vật tối); chùm tia 3,6°'],
       ['Cơ khí', '35 × 18,5 × 21 mm, 12 g, 2 lỗ M2 cách 28 × 11,5 mm, cáp 30 cm'],
       ['Màu dây', 'đỏ +5V · trắng RXD · xanh TXD · đen GND'],

@@ -493,7 +493,7 @@
       <div class="card"><h3>Motor</h3><table class="tbl"><thead><tr><th>Số</th><th>Vị trí</th><th>Quay</th><th>Ren</th><th>Cánh</th><th>Test</th></tr></thead><tbody>${D.motors.map((r) => `<tr>${r.map((c, i) => `<td>${i === 0 ? `<b>${c}</b>` : esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
       <div class="card"><h3>Cổng serial (đã nạp trong 01-base)</h3><table class="tbl"><tbody>
         <tr><td><b>SERIAL2</b> T2/R2</td><td>ESP32 DroneBridge</td><td>MAVLink2 115200</td></tr>
-        <tr><td><b>SERIAL3</b> R3</td><td>TFmini Plus</td><td>rangefinder (9) 115200</td></tr>
+        <tr><td><b>SERIAL3</b> T3/R3</td><td>TFmini Plus</td><td>rangefinder (9) 115200</td></tr>
         <tr><td><b>SERIAL4</b> T4/R4</td><td>GPS M10</td><td>GPS (5) 230400</td></tr>
         <tr><td><b>SERIAL5</b></td><td>ESC telemetry</td><td>16, firmware ép 115200</td></tr>
         <tr><td><b>SERIAL6</b> R6</td><td>iA6B</td><td>RCIN (23), <code>RC_PROTOCOLS 4</code></td></tr>
