@@ -810,27 +810,34 @@ trống vì còn việc tay: ảnh các món, đủ món, motor + chiều ren, E
 
 Plan: plans/phase-15-ban-rc-gps-compass.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/10/2026 · Ngày xong: ______
 
 - [ ] Đèn iA6B sáng liên khi bật cả hai; tay phát đã ở Output mode `i-BUS`.
 - [ ] Radio Calibration: 4 cần có dải ~1000–2000, cần ở giữa ~1500; không cần nào bị kẹt một đầu.
 - [ ] Gạt SwC qua 3 vị trí → tên chế độ đổi đúng **Stabilize → AltHold → Loiter**.
 - [ ] Gạt SwD → chế độ đổi thành **RTL**; gạt về thì trở lại chế độ cũ.
 - [ ] `RC7_OPTION = 0` và `RC8_OPTION = 0` (chưa gán Auto).
-- [ ] **RC failsafe đã test thật**: tắt tay phát → Mission Planner báo `Radio Failsafe`; bật lại → hết báo. Đã cấu hình **cả hai lớp** (failsafe trên FS-i6X + `FS_THR_ENABLE` trên bo bay).
-- [ ] GPS ngoài trời: `3D Fix`, `HDOP < 1.5`, số vệ tinh ≥ 9.
-- [ ] `COMPASS_DEV_ID` khác 0 (la bàn được nhận diện).
-- [ ] HUD phản ứng đúng chiều khi nghiêng bo bay.
+- [x] **RC failsafe đã test thật**: tắt tay phát → Mission Planner báo `Radio Failsafe`; bật lại → hết báo. Đã cấu hình **cả hai lớp** (failsafe trên FS-i6X + `FS_THR_ENABLE` trên bo bay). *(25/10: ga để giữa rồi tắt tay phát → CH3 = 911 µs, FC gửi `Radio Failsafe` sau < 0,5 s; bật lại → `Radio Failsafe Cleared`. Đọc STATUSTEXT qua MAVLink bằng script thay cho Mission Planner. `FS_THR_ENABLE 1`, `FS_THR_VALUE 975`.)*
+- [x] GPS ngoài trời: `3D Fix`, `HDOP < 1.5`, số vệ tinh ≥ 9. *(Log bay 24/10 của người dùng: 3D fix, 9–15 vệ tinh, HDOP trung vị 0,91–0,97, đỉnh 1,7.)*
+- [x] `COMPASS_DEV_ID` khác 0 (la bàn được nhận diện). *(658945 khi FC khởi động có pin; chỉ cắm USB thì 0 vì la bàn chưa có điện.)*
+- [x] HUD phản ứng đúng chiều khi nghiêng bo bay. *(25/10: nghiêng drone sang hai bên, roll trên web đi từ −49,6° tới +46,6° đúng chiều thao tác; FC đã gắn lên khung.)*
 - [ ] `02-radio.param` và `03-gps.param` đã lưu **và đã commit**.
 - [ ] **Chưa cắm pin lần nào.** **Chưa hiệu chỉnh la bàn và gia tốc kế** (để Phase 19).
 
-Ghi chú: 
+Ghi chú: 25/10/2026 — người dùng đã lắp xong cả drone và bay thử (24/10, pin 6S) trước khi làm
+các phase trên bàn, nên cổng "chưa cắm pin" không còn áp dụng. Kiểm bằng máy, chi tiết ở
+`plans/reports/261025-kiem-tra-phan-cung-that.md`. Tay phát trước đó **chưa cài failsafe** (bộ
+thu giữ giá trị cuối); đã cài, quy trình đúng ghi lại ở plan §15.5. FC đọc 14 kênh iBUS, CH1–4 đủ
+1000–2000, nhưng radio chưa hiệu chỉnh (`RC1..8` 1100/1900). Cấu hình chế độ của người dùng khác
+plan: `FLTMODE_CH 9`, `FLTMODE1..5 = 0` (Stabilize), `FLTMODE6 = 5` (Loiter), `RC8_OPTION 153`
+(công tắc arm) — chưa đổi, chờ người dùng quyết. `EK3_SRC1_POSZ` 3 → 1 (độ cao theo baro, người
+dùng duyệt).
 
 ## 🔧 Phase 16 — Bàn: nguồn + motor + ESC
 
 Plan: plans/phase-16-ban-nguon-motor-esc.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/10/2026 · Ngày xong: ______
 
 - [ ] Tụ 1000 µF đã hàn đúng cực vào pad BAT của ESC; hai tầng đã chồng có ốc nylon + đệm silicone.
 - [ ] **4 phép đo continuity đều không beep** — làm **trước** khi cắm pin.
@@ -840,38 +847,49 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] `BATT_ARM_VOLT` đã đặt 14.8 trên bo bay.
 - [ ] Motor Test: nút A/B/C/D quay đúng 4 motor theo thứ tự chiều kim đồng hồ; `FRAME_TYPE` cuối cùng đã xác định (X hoặc X Betaflight) **bằng thực nghiệm, không phải bằng phỏng đoán**.
 - [ ] Chiều quay 4 motor đúng bảng CCW/CCW/CW/CW; bảng "motor nào phải đổi dây" đã ghi.
-- [ ] 4 motor khởi động mượt và gần như cùng lúc ở 5–10% với DShot300.
-- [ ] ESC telemetry: có RPM, **hoặc** đã ghi nhận "chưa có" và quyết định thử lại ở Phase 22.
+- [x] 4 motor khởi động mượt và gần như cùng lúc ở 5–10% với DShot300. *(25/10, không cánh, pin 4S, `MOT_PWM_TYPE 5`: Motor Test 10% do người vận hành bấm, cả 4 motor bắt vòng quay sau 0,25–0,26 s, 1.703–1.757 vòng/phút, 0 lần sụt; sau khi đổi cài đặt ESC chạy lại, không có tiếng khựng.)*
+- [x] ESC telemetry: có RPM, **hoặc** đã ghi nhận "chưa có" và quyết định thử lại ở Phase 22. *(Có RPM và nhiệt độ của cả 4 ESC.)*
 - [ ] Thông điệp pre-arm đã ghi nguyên văn vào sổ tay; **`ARMING_CHECK` không bị đụng tới**.
 - [ ] Pin đã rút và cất trong túi chống cháy; mối nối tạm đã tháo và bọc lại.
 - [ ] **Không có cánh quạt nào được gắn trong toàn bộ phase.**
 
-Ghi chú: 
+Ghi chú: 25/10/2026 — drone đã lắp sẵn trên khung (xem Phase 15), kiểm không cánh. Lỗi M1 khựng
+~10 s khi khởi động trên 4S có cánh: gốc là cài đặt ESC OX32 kiểu motor đua, đã đổi 4 mục
+(`firmware/esc-ox32/README.md`), **chưa thử lại có cánh trên 4S**. `FRAME_TYPE 1` +
+`SERVO1..4_FUNCTION 36/33/34/35` trên bo cho cùng thứ tự motor với `FRAME_TYPE 12`. `BATT_ARM_VOLT`
+đang 0. ESC M2 nóng hơn 3 ESC kia 5–8 °C. Chi tiết: `plans/reports/261025-kiem-tra-phan-cung-that.md`.
 
 ## 🔧 Phase 17 — Bàn: ESP32 + TFmini + camera
 
 Plan: plans/phase-17-ban-esp32-tfmini-camera.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/10/2026 · Ngày xong: ______
 
 **Cổng pass chính của cả nhóm phase test trên bàn:**
 
-- [ ] **Web GCS hiện telemetry SỐNG của drone THẬT đang nằm trên bàn** — góc nghiêng, hướng, GPS, điện áp pin, chế độ bay, trạng thái armed — và **tất cả đi qua Wi-Fi với cáp USB đã rút**.
+- [x] **Web GCS hiện telemetry SỐNG của drone THẬT đang nằm trên bàn** — góc nghiêng, hướng, GPS, điện áp pin, chế độ bay, trạng thái armed — và **tất cả đi qua Wi-Fi với cáp USB đã rút**. *(25/10, sau khi sửa backend chốt nhầm sysid của GCS/DroneBridge: web nhận đủ 160/160 mẫu telemetry, trễ 39–165 ms; nghiêng drone bằng tay thì roll đổi đúng chiều (−49,6° → +46,6°); hiện hướng 68°, pin 16,36 V, `STABILIZE`, `DISARMED`, GPS "chưa fix" vì trong nhà. Ảnh `logs/camera/web-gcs-drone-that-20261025.png`, chỉ có trên máy dự án.)*
 - [ ] **Panel obstacle trên web hiện số thật của TFmini Plus** và đổi theo khi đưa tay lại gần.
 
 Các cổng phụ:
 
-- [ ] ESP32 bridge ở chế độ STA, nối được vào hotspot laptop.
+- [x] ESP32 bridge ở chế độ STA, nối được vào hotspot laptop. *(`DroneBridgeESP32.mshome.net` trên `IOTCV-HOTSPOT`, MAVLink đi hai chiều.)*
 - [ ] Mission Planner nối được qua UDP 14550 không dây (đã rút USB).
 - [ ] `MAVLINK_ENDPOINT=udpin:0.0.0.0:14550` trong `.env`; log backend hiện heartbeat của bo bay thật.
 - [ ] `rangefinder1` hiện trong Mission Planner tab Status và phản ứng đúng.
-- [ ] `PRX1_TYPE`, `RNGFND1_TYPE`, `AVOID_ENABLE`, `FENCE_ENABLE`, `OA_TYPE=0` đọc lại đúng giá trị sau khi nạp `02-avoid-tfmini.param`.
+- [x] `PRX1_TYPE`, `RNGFND1_TYPE`, `AVOID_ENABLE`, `FENCE_ENABLE`, `OA_TYPE=0` đọc lại đúng giá trị sau khi nạp `02-avoid-tfmini.param`. *(25/10: `4 / 20 / 3 / 1 / 0`, đọc lại cả sau lần khôi phục tham số.)*
 - [ ] Camera nối hotspot; `/stream` và `/set?quality=` chạy được khi truy cập trực tiếp; panel video trên web hiện ảnh thật kèm lớp phủ **giả**.
 - [ ] Bài kiểm tổng 10 phút: telemetry không đứt; mọi lần đứt (kể cả video) đã ghi lại.
 - [ ] fps camera thật đã đo và ghi vào sổ tay (thay cho con số *chưa xác minh* chép trên mạng).
-- [ ] **Không có cánh quạt nào trong toàn bộ phase; tay phát luôn bật và trong tầm tay khi bấm nút trên web; `FS_GCS_ENABLE` vẫn bằng 0.**
+- [x] **Không có cánh quạt nào trong toàn bộ phase; tay phát luôn bật và trong tầm tay khi bấm nút trên web; `FS_GCS_ENABLE` vẫn bằng 0.** *(25/10: không cánh; trên web chỉ xem telemetry, không bấm nút điều khiển nào; `FS_GCS_ENABLE 0`.)*
 
-Ghi chú: 
+Ghi chú: 25/10/2026 — kiểm trên drone đã lắp (xem Phase 15), báo cáo
+`plans/reports/261025-kiem-tra-phan-cung-that.md`. Backend chốt nhầm sysid 0 vì cổng 14550 nhận
+heartbeat của GCS (255,0) và DroneBridge (255,68) trước FC (1,1); đã sửa `backend/mavlink/connection.py`.
+Backend chạy bằng biến môi trường như `AGENTS.md`, chưa tạo `.env`. Mission Planner nối UDP 14550
+được nhưng lúc đó USB còn cắm, chưa thử khi rút. TFmini sai cấu hình (1 khung/giây, đơn vị mm) →
+`Rangefinder 1: No Data`; dây trắng chưa hàn, hướng dẫn E7 đã đổi sang hàn trắng → T3. Camera:
+`camera_check.py` PASS (VGA 6,8 fps, đổi quality giữa luồng đúng), web hiện ảnh thật; lớp phủ giả
+chưa kiểm, fps chưa ghi sổ tay. Wi-Fi mất 19–32% gói theo từng đợt.
 
 ## 🔧 Phase 18 — Lắp ráp khung
 
