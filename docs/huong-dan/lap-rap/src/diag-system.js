@@ -52,7 +52,7 @@
     const padsTop = [['T2', 510, 362], ['R2', 534, 362], ['G', 558, 362], ['B+', 616, 362], ['B−', 640, 362]];
     padsTop.forEach(([l, x, y]) => { b += K.pad(x, y, 18, 18, l, { on: true, ls: 9, lblY: y + 30 }); });
     const padsRear = [['9V', 598, 584, true], ['G', 622, 584], ['T3', 646, 584], ['R3', 670, 584], ['5V', 708, 548], ['G', 732, 548]];
-    padsRear.forEach(([l, x, y, bad]) => { b += K.pad(x, y, 18, 18, l, { on: !bad && l !== 'T3' && !(l === 'G' && x === 622), bad, ls: 9, lblY: y - 5 }); });
+    padsRear.forEach(([l, x, y, bad]) => { b += K.pad(x, y, 18, 18, l, { on: !bad && !(l === 'G' && x === 622), bad, ls: 9, lblY: y - 5 }); });
     b += K.text(729, 580, 'LED1', { a: 'middle', s: 9, w: 700, c: 'var(--silk)' });
     // cổng mặt dưới (nét đứt)
     const under = (x, y, w, lab) => K.rect(x, y, w, 22, { rx: 4, fill: 'none', stroke: '#e8d9a8', sw: 1.6, dash: '4 3' }) + K.text(x + w / 2, y + 15, lab, { a: 'middle', s: 9.5, w: 700, c: '#e8d9a8' });
@@ -102,9 +102,10 @@
     // ---- TFmini (phía trước, dây chạy trên FC về mép sau)
     b += K.box(800, 70, 200, 70, 'TFmini Plus', 'nhìn thẳng trước', { bg: 'var(--surface)' });
     b += g('tfmini', '17', K.wire('M860 140C840 230 700 260 679 584', W.green, { sw: 2.6 }) +
+      K.wire('M840 140C820 230 676 260 655 584', W.white, { sw: 2.6, outline: true }) +
       K.wire('M880 140C870 260 730 300 717 548', W.red, { sw: 2.6 }) +
       K.wire('M900 140C900 280 760 320 741 548', W.black, { sw: 2.6, outline: true }) +
-      K.pill(905, 260, 'xanh→R3 · đỏ→5V · đen→G', { s: 11, c: 'var(--accent)', bd: 'var(--accent)' }) +
+      K.pill(905, 260, 'xanh→R3 · trắng→T3 · đỏ→5V · đen→G', { s: 11, c: 'var(--accent)', bd: 'var(--accent)' }) +
       K.pill(560, 640, '9V: KHÔNG', { s: 10.5, a: 'middle', c: 'var(--danger)', bd: 'var(--danger)' }));
 
     // ---- GPS

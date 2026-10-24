@@ -74,14 +74,14 @@ LR.data.steps.push(
     p3d: 'tfmini',
   },
   {
-    id: 'E7', leg: 'E', t: 'Hàn TFmini lên FC (R3 + 5V)', who: 'ban', tags: ['han', 'do'], time: '30 phút',
-    figs: [{ d: 'cableTf', cap: 'Lấy 5V / G ở cụm LED1 (góc sau-phải), xa pad 9V.' }, { d: 'fcTop', arg: { hl: ['tfmini'] }, cap: 'Pad R3 ở mép sau, hàng ngoài — ngay cạnh T3 và 9V.' }],
+    id: 'E7', leg: 'E', t: 'Hàn TFmini lên FC (R3 · T3 + 5V)', who: 'ban', tags: ['han', 'do'], time: '30 phút',
+    figs: [{ d: 'cableTf', cap: 'Lấy 5V / G ở cụm LED1 (góc sau-phải), xa pad 9V.' }, { d: 'fcTop', arg: { hl: ['tfmini'] }, cap: 'Pad T3 · R3 ở mép sau, hàng ngoài — ngay cạnh pad 9V.' }],
     do: [
       '**Có pin**: đo pad định dùng — **5V của cụm LED1** phải ra ~5 V (không phải 9 V). Rồi rút pin.',
       'Cắt đầu xa của cáp TFmini (giữ đầu cắm phía cảm biến), tuốt, mạ thiếc.',
-      '**Xanh → R3 · đỏ → 5V · đen → G** (cùng cụm LED1). **Trắng**: cắt ngắn, bọc.',
+      '**Xanh → R3 · trắng → T3** (mép sau) · **đỏ → 5V · đen → G** (cụm LED1). Dây trắng cho FC gửi lệnh cấu hình TFmini (tần số, đơn vị, khôi phục gốc) mà không phải tháo cảm biến.',
     ],
-    ok: 'Thông mạch đúng; dây đỏ không chạm pad 9V.',
+    ok: 'Thông mạch đúng cả 4 dây; T3 và R3 không dính thiếc vào nhau; không dây nào chạm pad 9V.',
     warn: 'Không dùng cáp DJI 6 chân. Không dùng pad 9V.',
     p3d: 'tfmini',
   },

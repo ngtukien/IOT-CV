@@ -109,31 +109,29 @@
     const Wd = 1100;
     const H = 460;
     let b = '';
-    b += K.text(Wd / 2, 28, 'TFmini Plus → FC: 3 dây hàn vào pad (dây trắng bỏ)', { a: 'middle', s: 16, w: 800 });
+    b += K.text(Wd / 2, 28, 'TFmini Plus → FC: hàn cả 4 dây vào pad', { a: 'middle', s: 16, w: 800 });
     b += K.rect(40, 150, 120, 70, { rx: 8, fill: '#111', stroke: '#000' });
     b += K.circle(75, 185, 18, { fill: '#2a2a2a', stroke: '#555' }) + K.circle(125, 185, 18, { fill: '#2a2a2a', stroke: '#555' });
     b += K.text(100, 140, 'TFmini Plus', { a: 'middle', s: 13, w: 800 });
-    const wires = [['đỏ +5V', W.red, 'L1-5V'], ['trắng RXD', W.white, null], ['xanh TXD', W.green, 'R3'], ['đen GND', W.black, 'L1-G']];
+    const wires = [['đỏ +5V', W.red, 'L1-5V'], ['trắng RXD', W.white, 'T3'], ['xanh TXD', W.green, 'R3'], ['đen GND', W.black, 'L1-G']];
     // pad FC
     b += K.board(560, 90, 480, 300, { rx: 12 });
     b += K.text(800, 82, 'FC mặt trên — phần mép sau', { a: 'middle', s: 12.5, w: 800 });
-    const r2 = LR.k.padRow(600, 330, [[{ k: 'DA', l: 'DA' }, { k: 'CL', l: 'CL' }, { k: '4V5g', l: '4V5' }], [{ k: '9V', l: '9V', bad: true }, { k: 'G3', l: 'G' }, { k: 'T3', l: 'T3' }, { k: 'R3', l: 'R3' }], [{ k: 'G6', l: 'G' }, { k: '4V5r', l: '4V5' }, { k: 'RS', l: 'RS' }]], { on: ['R3'], pitch: 32, gap: 20, pw: 24, ph: 26 });
+    const r2 = LR.k.padRow(600, 330, [[{ k: 'DA', l: 'DA' }, { k: 'CL', l: 'CL' }, { k: '4V5g', l: '4V5' }], [{ k: '9V', l: '9V', bad: true }, { k: 'G3', l: 'G' }, { k: 'T3', l: 'T3' }, { k: 'R3', l: 'R3' }], [{ k: 'G6', l: 'G' }, { k: '4V5r', l: '4V5' }, { k: 'RS', l: 'RS' }]], { on: ['T3', 'R3'], pitch: 32, gap: 20, pw: 24, ph: 26 });
     b += r2.svg;
     const l1 = LR.k.padRow(910, 150, [[{ k: 'L1-D', l: 'D' }, { k: 'L1-5V', l: '5V' }, { k: 'L1-G', l: 'G' }]], { on: ['L1-5V', 'L1-G'], pitch: 32, pw: 24, ph: 24 });
     b += l1.svg + K.text(958, 206, 'cụm LED1 (góc sau-phải)', { a: 'middle', s: 11, w: 700, c: 'var(--silk)' });
-    const tgt = { 'L1-5V': l1.pos['L1-5V'], R3: r2.pos.R3, 'L1-G': l1.pos['L1-G'] };
+    const tgt = { 'L1-5V': l1.pos['L1-5V'], T3: r2.pos.T3, R3: r2.pos.R3, 'L1-G': l1.pos['L1-G'] };
     wires.forEach(([, col, k], i) => {
       const y = 160 + i * 18;
-      if (!k) {
-        b += K.wire(`M160 ${y}L330 ${y + 60}`, col, { sw: 3, outline: true }) + capEnd(334, y + 60) + K.text(352, y + 64, 'trắng: cắt ngắn, bọc', { s: 11.5, w: 700, c: 'var(--muted)' });
-        return;
-      }
       const [tx, ty] = tgt[k];
-      b += K.wire(ty < 200 ? `M160 ${y}C340 ${y} 420 ${ty - 30} ${tx} ${ty - 14}` : `M160 ${y}C440 ${y} 700 ${ty - 90} ${tx} ${ty - 14}`, col, { sw: 3, outline: col === W.black });
+      b += K.wire(ty < 200 ? `M160 ${y}C340 ${y} 420 ${ty - 30} ${tx} ${ty - 14}` : `M160 ${y}C440 ${y} ${tx - 124} ${ty - 90} ${tx} ${ty - 14}`, col, { sw: 3, outline: col === W.black || col === W.white });
     });
     // chú giải màu dây thay cho nhãn đè lên dây
-    [['đỏ → +5V (pad 5V cụm LED1)', W.red], ['đen → GND (pad G cụm LED1)', W.black], ['xanh (TXD) → pad R3', W.green]].forEach(([t, col], i) => {
-      b += K.line(44, 262 + i * 24, 70, 262 + i * 24, { stroke: col, sw: 5, lc: 'round' }) + K.text(80, 266 + i * 24, t, { s: 12, w: 700 });
+    [['đỏ → +5V (pad 5V cụm LED1)', W.red], ['đen → GND (pad G cụm LED1)', W.black], ['xanh (TXD) → pad R3', W.green], ['trắng (RXD) → pad T3', W.white]].forEach(([t, col], i) => {
+      const ly = 262 + i * 24;
+      if (col === W.white) b += K.line(44, ly, 70, ly, { stroke: 'var(--ink)', sw: 6.6, lc: 'round', op: 0.55 });
+      b += K.line(44, ly, 70, ly, { stroke: col, sw: 5, lc: 'round' }) + K.text(80, ly + 4, t, { s: 12, w: 700 });
     });
     b += K.pill(r2.pos['9V'][0], 420, '9V — KHÔNG CHẠM', { a: 'middle', s: 12, c: 'var(--danger)', bd: 'var(--danger)', bg: 'var(--danger-soft)' });
     b += K.text(300, 440, 'Có pin: đo pad "5V" ra ~5 V trước khi hàn. Không dùng cáp DJI 6 chân.', { a: 'middle', s: 12, w: 700, c: 'var(--danger)' });

@@ -49,7 +49,7 @@ LR.data.pc = {
 LR.data.pads = [
   ['T2 · R2 · G', 'Mặt trên, mép trước, hàng trong', 'ESP32 RX2 · TX2 · GND', 'E3'],
   ['B+ · B−', 'Mặt trên, mép trước, hàng ngoài', 'Còi (đỏ · đen)', 'C9'],
-  ['R3', 'Mặt trên, mép sau, hàng ngoài (cạnh T3, **9V**)', 'TFmini dây xanh (TXD)', 'E7'],
+  ['T3 · R3', 'Mặt trên, mép sau, hàng ngoài (cạnh **9V**)', 'TFmini trắng (RXD) · xanh (TXD)', 'E7'],
   ['5V · G (cụm LED1)', 'Mặt trên, góc sau-phải', 'TFmini đỏ · đen', 'E7'],
   ['Cổng GPS 6P', 'Mặt dưới, mép trước', 'GPS M10 qua cáp hộp Deluxe', 'C7'],
   ['Cổng receiver 4P', 'Mặt dưới, mép sau', 'iA6B i-BUS qua cáp hộp Deluxe', 'C2'],

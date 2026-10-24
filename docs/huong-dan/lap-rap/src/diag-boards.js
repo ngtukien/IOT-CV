@@ -34,7 +34,7 @@
     const on = [];
     if (hl.includes('esp32')) on.push('T2', 'R2', 'Gf');
     if (hl.includes('buzzer')) on.push('B+', 'B-');
-    if (hl.includes('tfmini')) on.push('R3', 'L1-5V', 'L1-G');
+    if (hl.includes('tfmini')) on.push('T3', 'R3', 'L1-5V', 'L1-G');
     if (hl.includes('gps')) on.push('G4', 'T4', 'R4', 'DA', 'CL', '4V5g');
     if (hl.includes('rx')) on.push('R6', 'T6', 'G6', '4V5r');
     const W = 860;
@@ -101,7 +101,7 @@
     if (hl.includes('esp32')) b += call(f2.pos.T2[0] - 11, f2.pos.T2[1], 176, 112, 'T2 · R2 · G → ESP32\nRX2 · TX2 · GND (E3)', 'var(--pc)', 'end');
     if (hl.includes('buzzer')) b += call(f1.pos['B+'][0], f1.pos['B+'][1] - 13, 520, 96, 'B+ / B− → còi (C9)', 'var(--accent)');
     if (hl.includes('tfmini')) {
-      b += call(r2.pos.R3[0], r2.pos.R3[1] + 14, 520, 700, 'R3 ← TFmini dây xanh (E7)', 'var(--accent)');
+      b += call((r2.pos.T3[0] + r2.pos.R3[0]) / 2, r2.pos.R3[1] + 14, 520, 700, 'T3 · R3 ← TFmini trắng · xanh (E7)', 'var(--accent)');
       b += call(l1.pos['L1-5V'][0] + 10, l1.pos['L1-5V'][1], 700, 560, '5V + G cụm LED1\n← TFmini đỏ + đen (E7)', 'var(--accent)');
     }
     if (hl.includes('warn9v') || hl.includes('tfmini')) b += call(r2.pos['9V'][0], r2.pos['9V'][1] + 14, 300, 700, '9V — KHÔNG cho TFmini chạm', 'var(--danger)', 'end');
