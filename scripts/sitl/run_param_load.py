@@ -161,6 +161,14 @@ def kiem_sau_reboot(sitl: SitlInstance, sau: dict[str, float], ket: dict[str, di
             bg["sau_reboot"] = sau.get(ten)
             if bg["sau_reboot"] is None or not gan(bg["sau_reboot"], bg["yeu_cau"]):
                 bg["trang_thai"] = DOI_SAU_REBOOT
+            elif bg["trang_thai"] == KHAC_GIA_TRI:
+                # Gói PARAM_VALUE lúc ghi là gói CŨ, bảng đọc sau reboot mới là sự thật.
+                # Đo trên bo thật 25/10/2026: khôi phục 865 tham số báo 11 dòng FAIL oan,
+                # toàn phần tử Y/Z của tham số vector (COMPASS_OFS_Y, INS_ACCOFFS_Z…) —
+                # ghi phần tử X làm FC báo lại cả X, Y, Z và lệnh ghi Y kế đó vớ phải gói
+                # Y cũ còn trong hàng đợi. Giá trị lưu đúng hết.
+                bg["trang_thai"] = NHAN
+                print(f"[param_load] {ten:<20} đọc lại sau reboot đúng -> {NHAN}", flush=True)
             continue
         if bg["trang_thai"] == KHONG_TON_TAI and ten in sau:
             fc = sitl.try_set_param(ten, bg["yeu_cau"])
