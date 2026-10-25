@@ -302,7 +302,7 @@ Cả hai bên của đoạn WP1→WP2 phải **trống hoàn toàn trong 20 m** 
 
 1. **Diễn tập trên bàn trước** (như Phase 21 mục 21.2): upload mission, `Read WPs`, xác nhận `OA_TYPE` = 1 sau reboot.
 2. Walk-around. Arm `Loiter`, cất cánh bằng tay lên 5 m, ổn định.
-3. Gạt `CH8` sang `Auto`. Buông cần.
+3. Xoay núm VrB (`CH9`) hết phải → `Auto`. Buông cần.
 4. **Ngón cái đặt sẵn trên `CH5`.** Theo dõi drone đi WP1 → tiến về WP2 → gặp vật cản.
 5. Quan sát: drone có **vòng qua** không? Vòng sang bên nào? Vòng rộng bao nhiêu?
 6. Sau khi qua vật cản, drone tiếp tục tới WP2 rồi RTL.
@@ -316,7 +316,8 @@ KẾT QUẢ A — vòng qua đúng và về lại đường bay
 
 KẾT QUẢ B — drone DỪNG trước vật cản và không đi tiếp (mission kẹt)
    -> BendyRuler không tìm được đường nó tin tưởng. Đây là hành vi AN TOÀN.
-      Gạt CH5 về Loiter, lái tay vòng qua, rồi gạt CH8 lại để mission tiếp tục.
+      Gạt CH5 về Loiter, lái tay vòng qua, rồi xoay VrB (CH9) về trái rồi
+      lại hết phải để mission tiếp tục.
 
 KẾT QUẢ C — drone vòng sang một hướng bất kỳ và đi khá xa khỏi đường bay
    -> Đây chính là điều mà file param đã cảnh báo trước: nó lệch sang hướng
@@ -502,7 +503,7 @@ AUTOTUNE để ArduPilot tự lắc drone theo từng trục và tự tìm hệ 
 | Lưu nhầm hệ số AUTOTUNE xấu (disarm sai mode) | 3 | 3 | 9 | Luật 7 ở 22.7 giải thích rõ cơ chế lưu/bỏ; bay thử trước khi hạ cánh |
 | Nắng gắt chiếu vào ống kính TFmini → số rác → `AVOID` phanh ở chỗ trống | 3 | 3 | 9 | Kiểm `rangefinder1` ngay tại bãi trước khi bay (22.1); mái che nhỏ; bay lúc nắng xiên |
 | Để `OA_TYPE,1` sau khi F10 cho kết quả B/C | 3 | 4 | 12 | Cổng pass có dòng riêng bắt buộc đặt về giá trị cuối cùng ở **cả bo bay lẫn file param**; khối chú thích cuối file ghi rõ kết luận |
-| `CH8` (`Auto`) gạt nhầm khi bo đang giữ một mission cũ đã quên | 2 | 4 | 8 | Quy tắc ở Phase 21 mục 21.3: sau mỗi buổi, upload lại mission đơn giản `Takeoff → RTL` nếu không chắc |
+| Núm VrB (`CH9`, `Auto`) xoay nhầm khi bo đang giữ một mission cũ đã quên | 2 | 4 | 8 | Quy tắc ở Phase 21 mục 21.3: để VrB hết bên trái; sau mỗi buổi, upload lại mission đơn giản `Takeoff → RTL` nếu không chắc |
 | Ghi đè mất khối chú thích quý ở đầu file param | 2 | 3 | 6 | Mục "File sở hữu" và 22.8 nêu rõ **giữ nguyên vẹn** khối đầu file, chỉ **thêm** khối mới ở cuối |
 
 ## Timeline

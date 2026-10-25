@@ -73,7 +73,8 @@ Ai hô "ABORT"  ->  NGƯỜI LÁI làm NGAY, không hỏi lại:
                    1. gạt CH5 về STABILIZE
                    2. hạ ga về giữa, giữ drone thăng bằng
                    3. hạ xuống đất chỗ gần nhất an toàn
-                   4. disarm (ga xuống hết + yaw trái 3 giây)
+                   4. disarm SAU KHI đã chạm đất (ga xuống hết, gạt SwB lên
+                      hoặc yaw trái 2-3 giây). KHÔNG gạt SwB khi còn trên không.
 Nếu drone đang lao về phía người -> hạ ga XUỐNG HẾT ngay lập tức.
    Rơi từ 1 m làm hỏng cánh. Đâm vào người làm rách da tới xương.
    Luôn chọn hỏng cánh.
@@ -94,13 +95,18 @@ Nếu drone đang lao về phía người -> hạ ga XUỐNG HẾT ngay lập t�
 **Bản đồ công tắc — chốt ở Phase 15, kiểm lại ở Phase 19 mục 19.5. Nói to một lần trước khi cắm pin:**
 
 ```text
-CH5 (3 vị trí)  vị trí 1 = STABILIZE   <- đường thoát cuối, lái tay hoàn toàn
-                vị trí 2 = ALTHOLD
-                vị trí 3 = LOITER      <- nút "đứng yên", dùng nhiều nhất
-CH6             = RTL                  <- nút "về nhà"
-CH7             = WEB CONTROL ENABLE   <- phase này KHÔNG dùng, để TẮT
-CH8             = (trống, Auto gán ở Phase 21)
+CH5 SwC (3 vị trí)  lên   = STABILIZE   <- đường thoát cuối, lái tay hoàn toàn
+                    giữa  = ALTHOLD
+                    xuống = LOITER      <- nút "đứng yên", dùng nhiều nhất
+CH6 SwD             = RTL               <- nút "về nhà"
+CH7 SwA             = WEB CONTROL ENABLE <- phase này KHÔNG dùng, để TẮT
+CH8 SwB             = ARM / DISARM      <- xuống = ARM. ĐANG BAY THÌ KHÔNG CHẠM:
+                                           gạt lên giữa trời = motor tắt, rơi
+CH9 VrB (núm)       = AUTO              <- phase này KHÔNG dùng, để HẾT BÊN TRÁI
 ```
+
+Cập nhật 25/10/2026 theo quyết định của người dùng (Phase 15 §15.4): SwB là công tắc arm, Auto
+nằm ở núm VrB. Arm/disarm bằng cần (ga xuống hết + yaw phải/trái) vẫn dùng được.
 
 > **AN TOÀN:** `CH7` phải ở vị trí **TẮT** trong suốt Phase 20. Bốn bài bay này là bay RC thuần; không có lý do gì để backend được phép gửi lệnh.
 
@@ -215,7 +221,7 @@ Changes since previous flight: (đổi tham số gì, sửa cơ khí gì)
 
 **Quy trình:**
 
-1. Arm (ga xuống hết + yaw phải 3 giây). Nghe 4 motor idle đều.
+1. Arm: ga xuống hết, gạt **SwB xuống** (hoặc yaw phải 2–3 giây). Motor quay sau ~2 giây. **Đợi cả 4 motor quay đều tiếng** rồi mới tăng ga — ESC OX32 có lúc khởi động hụt một nhịp ("khậc") trong giây đầu (`plans/reports/261025-hieu-chinh-bay-trong-nha.md` mục 6).
 2. **Đẩy ga LÊN TỪ TỪ.** Đếm thầm: ga lên khoảng 40 % thì drone bắt đầu nhẹ trên chân đáp; lên khoảng 50 % thì nó rời đất. Không giật ga.
 3. **Ngay khi 4 chân rời đất, dừng tăng ga.** Giữ drone ở **0,5–1 m**.
 4. Giữ nguyên **30 giây**. Chỉ chỉnh ga rất nhẹ để giữ độ cao; roll/pitch chỉ chỉnh rất nhỏ để chống trôi.
@@ -497,7 +503,7 @@ param: 05-loiter-good — sau khi F3 Loiter pass
 - [ ] `docs/test-log.md` có đủ 4 dòng F1–F4.
 - [ ] `docs/so-tay/20-bay-rc-co-ban.md` đã viết xong.
 - [ ] Sau mỗi chuyến, sờ 4 motor và ESC: **không cái nào nóng tới mức không giữ tay được**.
-- [ ] `CH7` (`WEB CONTROL ENABLE`) ở vị trí **TẮT** trong cả 4 bài; `CH8` vẫn chưa gán.
+- [ ] `CH7` (`WEB CONTROL ENABLE`) ở vị trí **TẮT** trong cả 4 bài; núm VrB (`CH9`, Auto) để **hết bên trái** trong cả 4 bài.
 
 ## Rủi ro
 

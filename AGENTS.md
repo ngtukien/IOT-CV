@@ -31,8 +31,10 @@ phần cứng trong đó có thể đã đổi.
    được bảo commit thì dùng dạng pathspec `git commit -m "..." -- <file>`, không `git add -A`.
 3. Không publish Artifact lên tài khoản claude.ai; mọi tài liệu là file trong repo.
 4. Không đưa dự án lên Plane, không hỏi về Plane.
-5. Trong một phiên, làm **đơn luồng**, không spawn sub-agent — kể cả khi rule kit trong
-   `.claude/rules/` bảo fan-out. Lệnh dài (SITL, build, test) thì chạy nền.
+5. **Được spawn sub-agent và chạy việc nền** (đổi ngày 23/10/2026, bỏ luật "đơn luồng" cũ). Việc
+   độc lập thì fan-out song song; lệnh dài (SITL, build, test) chạy nền. Sub-agent vẫn theo mọi luật
+   ở đây — không commit/push khi chưa được bảo, không đụng motor thật. Hai sub-agent cùng ghi file
+   trong repo này thì mỗi agent một `git worktree`, hoặc chia rõ file nào của agent nào.
 6. **Tự chạy nghiệm thu**, đừng đẩy cho người dùng: SITL (`scripts/run_sitl.sh`,
    `scripts/sitl/harness.py`, `bash scripts/sitl/run-all.sh`), `scripts/ws_probe.py`, và MCP
    `cua-driver` cho phần mềm có giao diện. Ngoại lệ **duy nhất**: thao tác làm motor THẬT quay (ARM,
@@ -59,6 +61,13 @@ bản sau đè bản trước mà không báo gì.
 - ESC OX32 đánh số motor kiểu Betaflight → `FRAME_TYPE 12`; ghi motor theo **vị trí** (trước-phải,
   sau-trái…), đừng dùng sơ đồ "Quad X chuẩn ArduPilot" trên mạng.
 - Pad **9V** của F405 V5 nằm sát T3/R3 và chân 1 cổng "HD Unit Plug" là 9V — TFmini Plus chỉ chịu 5 V.
+- GPS + la bàn chỉ có điện khi cắm pin, và FC chỉ dò la bàn lúc khởi động: **cắm pin trước, USB
+  sau**. Rút pin khi USB còn cắm > 10 s thì FC chốt failsafe pin và la bàn đọc sai (`Check mag
+  field`) → khởi động lại FC khi đang có pin. Khôi phục tham số sau khi nạp lại firmware: file
+  thiếu `INS_ACC_ID` / `COMPASS_DEV_ID` là FC đòi hiệu chỉnh lại
+  (`plans/reports/261025-hieu-chinh-bay-trong-nha.md`).
+- Tay phát: **SwB là công tắc ARM** — gạt lên khi đang bay là motor tắt, drone rơi; Auto ở núm VrB.
+  Bản đồ đầy đủ: `docs/phan-cung-thuc-te.md` hàng RC.
 - Bo ESP32 DroneBridge (CP2102, COM4) chỉ nạp được ở **115200** baud. Các bẫy khác của DroneBridge
   và hotspot (đừng cho laptop nối Wi-Fi không có internet, log boot in lộ mật khẩu Wi-Fi…): đọc
   `firmware/dronebridge/README.md` mục "Bẫy đã gặp" trước khi đụng vào ESP32.

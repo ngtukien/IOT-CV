@@ -160,16 +160,34 @@ không chủ động đẩy. Thói quen này sẽ cứu bạn ở Phase 20.
 
 ### 15.4 Gán chức năng cho 4 công tắc — quyết định đã chốt
 
-FS-i6X có 4 công tắc: SwA (2 vị trí), SwB (3 vị trí), SwC (3 vị trí), SwD (2 vị trí).
+FS-i6X có 4 công tắc: SwA (2 vị trí), SwB (2 vị trí), **SwC (3 vị trí, duy nhất)**, SwD (2 vị trí),
+và 2 núm xoay VrA, VrB. *(Sửa 25/10/2026: bản cũ ghi SwB 3 vị trí — sai, người dùng kiểm trên tay
+phát thật.)*
 
-**Quyết định đã chốt cho giai đoạn bay tập:**
+**Quyết định đã chốt cho giai đoạn bay tập** (cập nhật 25/10/2026, đã cài và kiểm trên drone thật —
+`plans/reports/261025-hieu-chinh-bay-trong-nha.md` mục 7):
 
 | Kênh | Công tắc | Chức năng | Tham số |
 |---|---|---|---|
 | CH5 | **SwC** (3 vị trí) | Chọn chế độ bay | `FLTMODE_CH,5` |
 | CH6 | **SwD** (2 vị trí) | **RTL — công tắc cứu hộ** | `RC6_OPTION` = RTL |
 | CH7 | **SwA** (2 vị trí) | **WEB CONTROL ENABLE** (backend đọc, ArduPilot bỏ qua) | `RC7_OPTION,0` |
-| CH8 | **SwB** (3 vị trí) | Auto Mode — **chỉ gán từ Phase 21**, trước đó để `0` | `RC8_OPTION,0` cho tới Phase 21 |
+| CH8 | **SwB** (2 vị trí) | **ARM / DISARM** — xuống = ARM, lên = DISARM | `RC8_OPTION` = ArmDisarm (153) |
+| CH9 | **VrB** (núm) | **Auto** — xoay gần hết phải = Auto, lùi lại = về chế độ của SwC | `RC9_OPTION` = Auto (16) |
+| CH10 | None | không dùng (đứng 1500) | |
+
+**Hai chỗ lệch bản chốt cũ, do người dùng quyết 25/10/2026:**
+
+- **SwB là công tắc ARM** thay vì để trống chờ Auto. Lý do: người dùng đã quen tay arm bằng SwB. Bản
+  cũ arm/disarm bằng cần (ga xuống hết + yaw phải/trái) — cách đó vẫn dùng được (`ARMING_RUDDER,2`).
+  **Rủi ro phải nhớ:** gạt SwB lên khi đang bay thì FC **disarm ngay, motor tắt, drone rơi** — cùng
+  loại rủi ro với Emergency Stop ở lý do 4 dưới đây. Quy ước: **khi đang bay không chạm SwB**; disarm
+  bằng SwB chỉ khi đã chạm đất. Arm bằng cần thì FC không cho disarm khi chưa chạm đất.
+- **Auto nằm trên núm VrB**, vì 4 công tắc đã có việc. ArduPilot chỉ đổi chế độ khi núm **vượt
+  ngưỡng** (lên ≥ ~1.800 µs thì vào Auto; xuống dưới ~1.800 µs là thoát ngay về chế độ của SwC —
+  đo thật 25/10/2026: vào ở 1.831, thoát ở 1.779), không theo vị trí núm
+  lúc khởi động, và không cho arm khi đang ở Auto. Núm không có nấc nên phải **để VrB hết bên trái**
+  khi không dùng, và nhìn núm trước mỗi chuyến.
 
 Ba chế độ trên SwC. Một công tắc 3 vị trí cho ra PWM khoảng 1000 / 1500 / 2000, rơi vào **khe 1,
 khe 4 và khe 6** của ArduPilot:
@@ -210,7 +228,8 @@ CONFIG -> Full Parameter List:
     FLTMODE4     = 2      AltHold
     FLTMODE6     = 5      Loiter
     RC7_OPTION   = 0      (de ArduPilot BO QUA kenh nay - backend se doc chan_raw)
-    RC8_OPTION   = 0      (se doi thanh Auto o Phase 21)
+    RC8_OPTION   = ArmDisarm   (SwB, nguoi dung chon 25/10/2026)
+    RC9_OPTION   = Auto        (num VrB, 25/10/2026)
 
 Gan RTL cho CH6: dung giao dien
     CONFIG -> Extended Tuning  hoac  Full Parameter List -> RC6_OPTION
@@ -229,7 +248,13 @@ Kiểm tra lại ngay trên bàn:
 Mission Planner -> Flight Data -> goc duoi trai hien ten che do hien tai
 Gat SwC qua 3 vi tri  ->  ten che do phai doi:  Stabilize -> AltHold -> Loiter
 Gat SwD               ->  ten che do doi thanh RTL, gat ve thi tro lai che do cu
+Xoay VrB het phai     ->  ten che do doi thanh AUTO; xoay ve het trai -> ve che do cua SwC
+Gat SwB xuong         ->  FC thu ARM (khong pin / con loi PreArm thi tu choi - dung)
 ```
+
+Đã kiểm 25/10/2026 bằng `scripts/fc/doc_tay_cam.py` (đọc `RC_CHANNELS` và chế độ FC báo lại thay
+cho màn hình Mission Planner). Khi đang **disarm**, FC cho vào RTL/Auto dù không có GPS hay mission;
+khi đã arm thì FC mới kiểm điều kiện và từ chối nếu thiếu.
 
 **Kết quả mong đợi:** tên chế độ đổi đúng theo từng vị trí công tắc; không có vị trí nào cho ra
 chế độ lạ.
@@ -455,7 +480,7 @@ Tick các dòng Phase 15 trong `plans/PROGRESS.md`.
 - [ ] Radio Calibration: 4 cần có dải ~1000–2000, cần ở giữa ~1500; không cần nào bị kẹt một đầu.
 - [ ] Gạt SwC qua 3 vị trí → tên chế độ đổi đúng **Stabilize → AltHold → Loiter**.
 - [ ] Gạt SwD → chế độ đổi thành **RTL**; gạt về thì trở lại chế độ cũ.
-- [ ] `RC7_OPTION = 0` và `RC8_OPTION = 0` (chưa gán Auto).
+- [ ] `RC7_OPTION = 0` (SwA = WEB CONTROL ENABLE); `RC8_OPTION` = ArmDisarm (SwB); `RC9_OPTION` = Auto (núm VrB) và xoay VrB → FC báo `AUTO`, xoay về → chế độ của SwC.
 - [ ] **RC failsafe đã test thật**: tắt tay phát → Mission Planner báo `Radio Failsafe`; bật lại → hết báo. Đã cấu hình **cả hai lớp** (failsafe trên FS-i6X + `FS_THR_ENABLE` trên bo bay).
 - [ ] GPS ngoài trời: `3D Fix`, `HDOP < 1.5`, số vệ tinh ≥ 9.
 - [ ] `COMPASS_DEV_ID` khác 0 (la bàn được nhận diện).
@@ -470,7 +495,8 @@ Tick các dòng Phase 15 trong `plans/PROGRESS.md`.
 | Chỉ cấu hình failsafe ở bo bay mà quên ở tay phát → bộ thu giữ nguyên giá trị cuối khi mất sóng → drone bay tiếp tới hết pin | 4 | 5 | **20** | **Rủi ro cao nhất của phase.** 15.5 tách rõ hai lớp; bài test tắt tay phát là cổng pass bắt buộc; nếu không thấy `Radio Failsafe` thì **không được sang Phase 16**. |
 | Đấu GPS TX→TX (quên bắt chéo) | 4 | 2 | 8 | 15.7 ghi thành "chỗ kiểm tra ĐẦU TIÊN"; triệu chứng (đèn sáng nhưng báo No GPS) đã ghi sẵn. |
 | Chập hai dây khi bấm giắc GPS → bo bay reset khi cắm | 3 | 4 | **12** | 15.7 bắt buộc đo chéo bằng đồng hồ **trước khi** cấp điện. |
-| Gán nhầm Auto hoặc Motor Emergency Stop cho công tắc → gạt nhầm khi bay | 2 | 5 | 10 | 15.4 chốt Auto **không** nằm trên công tắc chính, và cấm gán Emergency Stop; RC8 để 0 tới Phase 21. |
+| Gán nhầm Auto hoặc Motor Emergency Stop cho công tắc → gạt nhầm khi bay | 2 | 5 | 10 | 15.4 chốt Auto **không** nằm trên công tắc chế độ chính (nằm ở núm VrB, phải xoay gần hết hành trình), và cấm gán Emergency Stop. |
+| Gạt nhầm SwB (ArmDisarm) khi đang bay → motor tắt, drone rơi | 2 | 5 | 10 | Người dùng chọn giữ SwB = ARM (25/10/2026). Quy ước: khi bay không chạm SwB; disarm bằng SwB chỉ sau khi chạm đất. |
 | Gán số `RCx_OPTION` bằng tay nhưng số option khác giữa các bản ArduPilot | 3 | 3 | 9 | 15.4 bắt buộc chọn **theo tên** trong danh sách xổ xuống, không gõ số. |
 | Hiệu chỉnh la bàn trên bàn (cạnh laptop) rồi tưởng là xong | 3 | 4 | **12** | 15.8 ghi rõ **không** hiệu chỉnh ở phase này; cổng pass kiểm "chưa hiệu chỉnh". Phase 19 mới làm, ngoài trời, trên khung. |
 | Không có chỗ ngoài trời để thử GPS → tưởng GPS hỏng | 3 | 2 | 6 | 15.8 ghi rõ trong nhà không bao giờ có fix; sát cửa sổ thoáng là đủ để thử. |

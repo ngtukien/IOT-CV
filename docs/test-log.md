@@ -270,3 +270,17 @@ dừng ở "chip đã chạy đúng bản này".
 | `camera_check.py --frames 120` sau OTA | PASS, 120/120 khung sạch, 8,1 fps |
 | `nap_camera.ps1 -Ota` (lệnh gói) | build xong, "chip đã chạy đúng bản này", mã 0 |
 | `camera-secrets.ps1` chạy hai lần | token OTA 32 hex, giữ nguyên (cùng dấu băm dòng token) |
+
+## Phase 16–21 — drone thật, 25/10/2026
+
+Bằng chứng đầy đủ: `plans/reports/261025-kiem-tra-phan-cung-that.md` (sáng) và
+`plans/reports/261025-hieu-chinh-bay-trong-nha.md` (chiều–tối). Các chuyến dưới đây bay **trước
+khi** Phase 19 xong, nên **không** phải bài F1–F4 của Phase 20.
+
+| Bài | Cách chạy | Kết quả | Đạt |
+|---|---|---|---|
+| Nhấc thử pin 4S trong nhà, Stabilize | Người dùng lái; log `fc-dataflash-20261025-bay-trong-nha/005` | 2 lần rời đất (~24 s, ~33 s), cao 10–50 cm; nhấc ở ~41% cần ga / ~50–55% lệnh motor, 11–12 A; pin 16,29 → 16,01 V; rung ≤ 19,2 m/s², `Clip` 0 | ✅ (không tính F1) |
+| Khởi động motor có cánh, `MOT_SPIN_ARM` 0,10 / 0,13 / 0,15 | 7–8 lần arm mỗi mức, đọc ESC RPM trong log 005 / 006 / 007 | Lần khởi động hụt 13/32 → **2/28** → 6/32; M1 bắt vòng TB 0,43 → **0,31** → 0,40 s; chọn 0,13 | ✅ |
+| Tụt vòng sau khi đã quay | Quét log 005: lệnh ≥ 1.150 mà RPM < 800 hoặc > 20.000, sau 3 s đầu | 0 mẫu ở cả 4 motor, kể cả lúc bay | ✅ |
+| Bản đồ tay cầm | `scripts/fc/doc_tay_cam.py`, gạt từng công tắc | SwC → Stabilize/AltHold/Loiter; SwD → RTL; SwA đổi CH7; SwB → ARM/DISARM; VrB qua 1.831 → AUTO, xuống 1.779 → STABILIZE | ✅ |
+| PreArm sau hiệu chỉnh | `MAV_CMD_RUN_PREARM_CHECKS` qua USB, pin cắm | Không còn lỗi; `ARMING_SKIPCHK 0` (đang tắt tạm TFmini/PRX/fence) | ✅ (cấu hình tạm) |
