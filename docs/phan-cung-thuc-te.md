@@ -65,7 +65,8 @@ ArduPilot 4.7.1; cấu hình Betaflight `SPEEDYBEEF405V5`.
 - Chỉ cắm USB thì GPS M10 và la bàn **không lên** (đo thật 25/10/2026); chúng có điện khi cắm pin.
 - Cảm biến dòng của ESC: SpeedyBee ghi `Scale=27, Offset=-2644` (đơn vị Betaflight) →
   `BATT_AMP_PERVLT 370.4`, `BATT_AMP_OFFSET 0.0071`. Vẫn phải hiệu chỉnh theo mAh sạc trả.
-- Trong hộp: **1** tụ 1000 µF 35 V (không phải 2). Bản Deluxe có thêm "Short-Circuit Protection
+- Trong hộp: **1** tụ 1000 µF 35 V (không phải 2). **Trên drone thật thợ hàn tụ 1500 µF 35 V** thay
+  cho tụ trong hộp (người dùng xác nhận 25/10/2026) — 35 V vẫn dư cho cả 4S lẫn 6S. Bản Deluxe có thêm "Short-Circuit Protection
   Tool" — chính là smoke stopper dùng ở lần cắm pin đầu (`SAFETY.md` mục 7).
 
 ## Camera ESP32-S3 N16R8 + OV3660 — đã biết và chưa biết

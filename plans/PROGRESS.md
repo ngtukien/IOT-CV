@@ -812,6 +812,8 @@ trống vì còn việc tay: ảnh các món, đủ món, motor + chiều ren, E
 mọi món đã có và chạy được. Ba cổng còn trống vì **chưa có số đo**, không phải vì hỏng: phiếu Tờ 1 +
 ảnh; chiều ren từng motor (cánh tự siết đã vặn vào và đã bay, nhưng chưa ai kiểm riêng từng motor);
 điện áp từng cell của pin 4S (25/10 FC chỉ đọc tổng: 16,29 V ≈ 4,07 V/cell trước khi bay).
+**Người dùng xác nhận 25/10 tối** (thợ làm, không có số đo/ảnh): đã kiểm ren motor 2 + 2 — chưa
+tick vì không có bằng chứng ghi lại.
 
 ## 🔧 Phase 15 — Bàn: RC + GPS + compass
 
@@ -876,8 +878,10 @@ Ghi chú: 25/10/2026 — drone đã lắp sẵn trên khung (xem Phase 15), ki�
 25/10/2026 chiều — **thử 4S có cánh**: lỗi M1 kẹt ~10 s đã hết; còn khởi động hụt một nhịp ("khậc")
 trong giây đầu ở cả 4 kênh, M1 nhiều nhất. `MOT_SPIN_ARM` 0,10 → **0,13**: số lần hụt 13/32 → 2/28,
 M1 0/7; thử 0,15 không tốt hơn. Đã ghi `MOT_SPIN_ARM,0.13` vào `01-base.param`. Sau giây đầu không
-motor nào tụt vòng, kể cả lúc bay; ESC ≤ 51 °C. Các cổng đo bằng đồng hồ (tụ, continuity, đường 5V,
-HUD so đồng hồ) và `BATT_ARM_VOLT` (vẫn 0) **chưa làm**. Chi tiết:
+motor nào tụt vòng, kể cả lúc bay; ESC ≤ 51 °C. **Người dùng xác nhận 25/10 tối** (thợ làm, không
+có số đo/ảnh): tụ đã hàn vào ESC là **1500 µF 35 V** (to hơn tụ 1000 µF trong hộp), đã đo chập trước
+khi cắm pin — hai cổng đó chưa tick vì không có bằng chứng ghi lại. Đường 5V, HUD so đồng hồ và
+`BATT_ARM_VOLT` (vẫn 0) **chưa làm**. Chi tiết:
 `plans/reports/261025-hieu-chinh-bay-trong-nha.md` mục 5–6.
 
 ## 🔧 Phase 17 — Bàn: ESP32 + TFmini + camera
@@ -948,7 +952,9 @@ roll/pitch đúng chiều), thứ tự + chiều motor đúng (đã bay), GPS + 
 có điện và nối đúng cổng. Các cổng còn trống là **phiếu kiểm tay chưa ai làm** (mặt phẳng khung, lỗ
 khoan, nhãn cần, đo pha motor, continuity, tụ, bát chống rung, anten, cột GPS, tầm nhìn TFmini, cố
 định ESP32/UBEC, dây đai pin, cân bằng CG, cân khối lượng, 13 ảnh, sổ tay) — người dùng kiểm và báo
-thì mới tick. Cổng "cánh chưa từng gắn" không còn áp dụng.
+thì mới tick. Cổng "cánh chưa từng gắn" không còn áp dụng. Người dùng xác nhận 25/10 tối: thợ đã
+kiểm ren motor 2 + 2, hàn tụ 1500 µF 35 V, đo chập trước khi cắm pin (không có số đo/ảnh); chưa
+cân drone.
 
 ## 🔧 Phase 19 — Hiệu chỉnh trên khung + failsafe
 

@@ -144,7 +144,9 @@ Kiểm bằng `scripts/fc/doc_tay_cam.py` (đọc `RC_CHANNELS` + chế độ FC
 - Log: `logs/fc-dataflash-20261025-bay-trong-nha/` (log 001–005), `logs/fc-dataflash-20261025-spin-arm-013/006`,
   `logs/fc-dataflash-20261025-spin-arm-015/007` (gitignored).
 - Script mới: `scripts/fc/doc_tay_cam.py` (đọc bản đồ công tắc), `scripts/fc/tai_log.py` (tải log qua
-  MAVLink, `--tat-ca`, `--id`, `--liet-ke`). `scripts/fc/hieu_chinh_accel.py` **lỗi** (điều kiện "nằm
-  yên đủ lâu" không bao giờ đạt) — người dùng bảo không dùng; hiệu chỉnh accel làm bằng Mission
-  Planner.
+  MAVLink, `--tat-ca`, `--id`, `--liet-ke`). Một script hiệu chỉnh accel tự động viết trong phiên bị
+  lỗi (điều kiện "nằm yên đủ lâu" không bao giờ đạt) nên **đã xoá**, không commit; hiệu chỉnh accel làm
+  bằng Mission Planner.
+- Người dùng xác nhận (thợ làm, không có số đo): ren motor 2 + 2 đã kiểm, tụ trên ESC là 1500 µF 35 V,
+  đã đo chập trước khi cắm pin. Chưa cân drone.
 - Tham số: `firmware/ardupilot/params/01-base.param` thêm `MOT_SPIN_ARM,0.13` kèm số đo.
