@@ -135,17 +135,17 @@ lỗi gì và đã báo shop chưa — đây là lúc còn đổi trả được
 |---|---|---|
 | Ảnh hàng | Chụp mọi món, món nào còn hộp thì chụp cả hộp → `logs/kiem-hang/` | Đã có: FC 8 ảnh, ESP32 CP2102 3 ảnh, ESP32-S3 2 ảnh + 5 ảnh shop (`picture/`). Còn các món khác |
 | Đủ món | Đối chiếu bảng `docs/phan-cung-thuc-te.md` (danh sách mua `13-mua-sam.md` chưa có) | |
-| 4 motor AIR2216II | Trục thẳng, xoay tay êm, bạc đạn không lạo xạo, 3 dây không tróc, nam châm không cạ | |
-| Chiều ren motor | **2 ren phải + 2 ren trái.** Vặn tay một cánh T1045 lên trục từng motor như Phase 18.3 bước 1–3 (motor chưa nối gì, không cần điện): vào ngọt ở 2 motor, không vào ở 2 motor kia. Phải dùng lực là sai cặp, dừng. Cả 4 cùng một chiều → đổi hàng ngay | |
-| ESC OX32 | Không cháy, không phồng tụ, không biến dạng | |
-| Phụ kiện stack | Theo `v5_29.jpg` (Deluxe): 2 cáp 10 chân (25 và 75 mm); **1** tụ 1000 µF 35 V + 2 gen; 5 ốc nylon + 5 đệm + 10 vỏ silicone; 4 ốc M3×30 + dây XT60; dây GPS 6 chân, 6→4 chân, dây receiver 4 chân; smoke stopper, 4 bảng chia nguồn, bảng tập hàn, nối dài USB-C, còi | |
+| 4 motor AIR2216II | Trục thẳng, xoay tay êm, bạc đạn không lạo xạo, 3 dây không tróc, nam châm không cạ | **Chạy được** 25/10 — cả 4 quay, đã bay; chưa soi trục/bạc đạn từng cái |
+| Chiều ren motor | **2 ren phải + 2 ren trái.** Vặn tay một cánh T1045 lên trục từng motor như Phase 18.3 bước 1–3 (motor chưa nối gì, không cần điện): vào ngọt ở 2 motor, không vào ở 2 motor kia. Phải dùng lực là sai cặp, dừng. Cả 4 cùng một chiều → đổi hàng ngay | Chưa kiểm riêng từng motor — cánh tự siết đã vặn vào và drone đã bay 24–25/10 |
+| ESC OX32 | Không cháy, không phồng tụ, không biến dạng | **Chạy được** 25/10 — 4 kênh quay, telemetry RPM + nhiệt, ≤ 51 °C khi bay; chưa soi bằng mắt |
+| Phụ kiện stack | Theo `v5_29.jpg` (Deluxe): 2 cáp 10 chân (25 và 75 mm); **1** tụ 1000 µF 35 V + 2 gen; 5 ốc nylon + 5 đệm + 10 vỏ silicone; 4 ốc M3×30 + dây XT60; dây GPS 6 chân, 6→4 chân, dây receiver 4 chân; smoke stopper, 4 bảng chia nguồn, bảng tập hàn, nối dài USB-C, còi | Đã dùng khi thợ lắp; tụ 1000 µF đã hàn vào ESC hay chưa — **chưa kiểm** |
 | Bo FC F405 V5 | Không cháy, không phồng tụ; jumper SBUS hở, "BARO →" nối sẵn, tem QR còn | **Đạt** — soi ảnh 12/10, nạp và kiểm đủ 13/10 |
-| GPS Holybro M10 | Anten gốm không vỡ; cột nâng đủ ống + 2 đế + ốc | |
-| Receiver iA6B | Còn bind plug (jumper nhựa nhỏ) | |
-| Pin Ovonic 4S 5300 | `Battery Meter` của B6AC đo **từng cell**: mỗi cell 3,80–3,85 V, tổng 15,2–15,4 V, cao trừ thấp < 0,05 V; không phồng, rách vỏ, dây lỏng | |
+| GPS Holybro M10 | Anten gốm không vỡ; cột nâng đủ ống + 2 đế + ốc | **Chạy** — 24/10 ngoài trời 9–15 vệ tinh, HDOP 0,8–1,7; la bàn IST8310 nhận (`658945`) |
+| Receiver iA6B | Còn bind plug (jumper nhựa nhỏ) | **Chạy** — đã bind, FC đọc 14 kênh iBUS (25/10); bind plug chưa kiểm |
+| Pin Ovonic 4S 5300 | `Battery Meter` của B6AC đo **từng cell**: mỗi cell 3,80–3,85 V, tổng 15,2–15,4 V, cao trừ thấp < 0,05 V; không phồng, rách vỏ, dây lỏng | **Chưa đo từng cell.** 25/10 FC đọc tổng 16,29 V (≈ 4,07 V/cell) trước khi bay, sụt 0,3 V ở 11,8 A |
 | ESP32 CP2102 | Lên cổng COM, nạp được | **Đạt** — nạp DroneBridge 2.4.1 ngày 12/10 |
 | ESP32-S3 N16R8 + OV3660 | Chip, flash 16 MB, PSRAM 8 MB, camera ra ảnh | **Đạt** 13/10 — PSRAM 8 MB, flash 16 MB, OV3660 ra ảnh (mục 8) |
-| Món còn lại | Khung S500, TFmini Plus, FS-i6X, UBEC 5V 3A, USB-TTL CP2102, sạc B6AC: còn nguyên, không vỡ | |
+| Món còn lại | Khung S500, TFmini Plus, FS-i6X, UBEC 5V 3A, USB-TTL CP2102, sạc B6AC: còn nguyên, không vỡ | 25/10: khung đã lắp + bay; FS-i6X chạy (chỉ SwC 3 nấc); UBEC cấp ESP32 + camera chạy; TFmini có điện, gửi dữ liệu nhưng **sai cấu hình** |
 
 Đo cell là cắm dây cân bằng của pin vào **sạc**, không phải vào bo — luật "chưa cắm pin vào bo" vẫn
 giữ tới Phase 16.

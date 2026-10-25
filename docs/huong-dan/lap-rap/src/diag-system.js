@@ -387,18 +387,24 @@
     const H = 252;
     const x0 = 96;
     const cw = (Wd - x0 - 16) / ph.length;
+    /* Vị trí "Bạn đang ở đây" lấy từ status.here.phase: '14.1' (một phase) hoặc '19–20' (một khoảng). */
+    const here = LR.data.status.here.phase;
+    const [from, to = from] = String(here).split(/[–-]/).map((s) => parseInt(s, 10));
+    const iFrom = ph.findIndex((p) => Number(p.n) === from);
+    const iTo = ph.findIndex((p) => Number(p.n) === to);
+    if (iFrom < 0 || iTo < iFrom) throw new Error(`timeline: status.here.phase "${here}" không khớp LR.data.phases`);
     let b = '';
     ph.forEach((p, i) => {
       const x = x0 + i * cw;
       const fill = p.st === 'done' ? 'var(--ok)' : p.st === 'part' ? 'var(--warn)' : 'var(--sunken)';
-      b += K.rect(x + 2, 46, cw - 4, 34, { rx: 6, fill, stroke: p.n === '14' ? 'var(--accent)' : 'none', sw: 3 });
+      b += K.rect(x + 2, 46, cw - 4, 34, { rx: 6, fill, stroke: i >= iFrom && i <= iTo ? 'var(--accent)' : 'none', sw: 3 });
       b += K.text(x + cw / 2, 69, p.n, { a: 'middle', s: 13, w: 800, c: p.st === 'todo' ? 'var(--ink2)' : '#fff' });
       b += K.text(x + cw / 2 + 4, 96, p.name, { a: 'end', s: 10.5, w: 600, c: 'var(--ink2)', rot: -45 });
       if (p.hw) b += K.text(x + cw / 2, 40, '🔧', { a: 'middle', s: 11 });
     });
-    const xh = x0 + 14 * cw + cw / 2;
+    const xh = x0 + ((iFrom + iTo) / 2) * cw + cw / 2;
     b += K.path(`M${xh} 8L${xh} 40`, { stroke: 'var(--accent)', sw: 3, arrow: 'accent' });
-    b += K.text(xh + 8, 18, 'Bạn đang ở đây (14.1)', { s: 12.5, w: 800, c: 'var(--accent)' });
+    b += K.text(xh + 8, 18, `Bạn đang ở đây (${here})`, { s: 12.5, w: 800, c: 'var(--accent)' });
     const yl = H - 14;
     b += K.rect(20, yl - 10, 14, 12, { fill: 'var(--ok)', rx: 3 }) + K.text(40, yl, 'xong', { s: 11.5 });
     b += K.rect(90, yl - 10, 14, 12, { fill: 'var(--warn)', rx: 3 }) + K.text(110, yl, 'làm dở', { s: 11.5 });

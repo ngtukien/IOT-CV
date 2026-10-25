@@ -24,7 +24,7 @@ Phải đọc trước:
 - `params/obstacle-avoidance-tfminiplus-serial3.param` — đã nạp ở Phase 17; ở phase này chỉ xác nhận `FENCE_ENABLE,1` và các `AVOID_*` còn nguyên (việc chỉnh `AVOID_*` thuộc Phase 22).
 - `docs/do-dac/18-can-khoi-luong.md` — số AUW cân thật ở Phase 18, dùng ở mục 19.14.
 - Checklist đấu dây in giấy (Phase 13) và 13 ảnh lắp ráp (`docs/so-tay/anh/18/`).
-- **Ghi chú Phase 15** — bản đồ công tắc đã chốt: `CH5` (3 vị trí) = `Stabilize` / `AltHold` / `Loiter`; `CH6` = `RTL`; `CH7` = `WEB CONTROL ENABLE` (backend đọc kênh này); `CH8` để dành cho `Auto`, gán ở Phase 21.
+- **Ghi chú Phase 15** — bản đồ công tắc đã chốt (cập nhật 25/10/2026): `CH5` (SwC, 3 vị trí) = `Stabilize` / `AltHold` / `Loiter`; `CH6` (SwD) = `RTL`; `CH7` (SwA) = `WEB CONTROL ENABLE` (backend đọc kênh này); `CH8` (SwB) = **ARM/DISARM**; `CH9` (núm VrB) = `Auto`.
 - **Ghi chú Phase 16** — danh sách lỗi pre-arm ghi nhận khi bo còn trên bàn. Danh sách đó là checklist của mục 19.12.
 
 Phải có sẵn và đã pass:
@@ -196,11 +196,12 @@ Radio đã hiệu chỉnh ở Phase 15, nhưng phải kiểm tra lại **trên k
 [ ] Không cần nào bị lệch tâm (về giữa mà không ra 1500 +-20)
 [ ] Công tắc mode đổi đúng chế độ hiển thị trên Mission Planner
     (Flight Data -> góc dưới trái hiện tên mode)
-[ ] Bản đồ công tắc ĐÃ CHỐT Ở PHASE 15 — kiểm đủ 4 kênh:
-      CH5 (3 vị trí, FLTMODE_CH) : Stabilize / AltHold / Loiter
-      CH6 (RC6_OPTION)           : RTL
-      CH7 (RC7_OPTION / đọc thô) : WEB CONTROL ENABLE — BACKEND đọc kênh này
-      CH8                        : ĐỂ DÀNH cho Auto, sẽ gán RC8_OPTION ở Phase 21
+[ ] Bản đồ công tắc ĐÃ CHỐT Ở PHASE 15 (cập nhật 25/10/2026) — kiểm đủ 5 kênh:
+      CH5 SwC (3 vị trí, FLTMODE_CH) : Stabilize / AltHold / Loiter
+      CH6 SwD (RC6_OPTION)           : RTL
+      CH7 SwA (RC7_OPTION / đọc thô) : WEB CONTROL ENABLE — BACKEND đọc kênh này
+      CH8 SwB (RC8_OPTION)           : ARM / DISARM — xuống = ARM, lên = DISARM
+      CH9 VrB (RC9_OPTION)           : Auto — xoay gần hết phải; để hết trái khi không dùng
 ```
 
 4. Kiểm tra **tầm** sơ bộ: nhờ người giữ drone (hoặc đặt xuống đất), cầm tay đi ra **50 m**, gạt công tắc và xem Mission Planner có đổi mode không. Đây chưa phải test tầm đầy đủ nhưng bắt được lỗi anten đặt sai ở Phase 18 mục 18.10.
@@ -209,7 +210,7 @@ Radio đã hiệu chỉnh ở Phase 15, nhưng phải kiểm tra lại **trên k
 
 > **CH7 = `WEB CONTROL ENABLE`, và backend đọc thẳng kênh RC này.** Nghĩa là công tắc cho phép web điều khiển **nằm trên tay người vận hành**, không phải chỉ là một nút trên trình duyệt. Đây là hiện thực mạnh nhất của `SAFETY.md` mục 4 ("web không được tự giành quyền"): muốn cắt mọi lệnh từ web, gạt CH7 về tắt — không cần laptop, không cần Wi-Fi. Ở phase này chỉ **kiểm tra kênh có ra đúng giá trị** khi gạt (nhìn `rcin` kênh 7 trên tab `Status`); việc backend dùng nó được test ở Phase 21.
 >
-> **CH8 để trống ở phase này.** `RC8_OPTION` cho `Auto` sẽ được gán ở Phase 21 mục 21.3 — không gán sớm, vì một công tắc `Auto` sống trong khi chưa có mission nào được kiểm chứng là một cách vào `Auto` ngoài ý muốn.
+> **CH8 (SwB) = ARM/DISARM, CH9 (VrB) = Auto** — người dùng quyết 25/10/2026, lệch bản chốt cũ (CH8 để trống tới Phase 21). Hai điều phải nhớ: gạt SwB lên khi đang bay là **motor tắt, drone rơi**; và Auto đã sống trên núm VrB từ phase này, nên **luôn biết mission nào đang nằm trong bo** (hiện `MIS_TOTAL` 0) và để VrB hết bên trái. Lý do và rủi ro: Phase 15 §15.4.
 
 **Nếu lỗi:**
 
@@ -472,7 +473,7 @@ Bảng cảnh báo hay gặp và cách sửa **đúng**:
 **Test arm (không cánh):**
 
 4. Kéo cần ga xuống hết. Gạt mode về `Stabilize`.
-5. **Arm:** giữ cần yaw sang phải hết cỡ trong 3–5 giây (hoặc dùng nút arm đã map ở Phase 15).
+5. **Arm:** gạt **SwB xuống** (công tắc arm đã map ở Phase 15), hoặc giữ cần yaw sang phải hết cỡ khoảng 2–3 giây. FC kêu bíp, motor bắt đầu quay sau ~2 giây.
 6. Quan sát:
 
 ```text
@@ -482,7 +483,7 @@ Bảng cảnh báo hay gặp và cách sửa **đúng**:
 [ ] Đẩy ga lên rất nhẹ (10%): cả 4 lên đều
 ```
 
-7. **Disarm:** kéo ga xuống hết, giữ cần yaw sang trái 3–5 giây. Cả 4 motor phải dừng.
+7. **Disarm:** kéo ga xuống hết, gạt **SwB lên** (hoặc giữ cần yaw sang trái 2–3 giây). Cả 4 motor phải dừng.
 8. Lặp lại chu trình arm/disarm 3 lần.
 
 **Kết quả mong đợi:** không còn cảnh báo pre-arm nào; arm/disarm 3/3 lần thành công; 4 motor idle đều.
@@ -682,7 +683,7 @@ param: 04-pre-first-flight — hieu chinh tren khung + failsafe
 - [ ] Cấp điện qua smoke stopper: đèn nháy rồi tắt, không board nào nóng, mọi đèn sáng, Mission Planner nhận bo bay.
 - [ ] `Accel Calibration` 6 vị trí báo `Calibration Successful`; `Calibrate Level` đã chạy trên mặt phẳng ngang; HUD nằm ngang khi drone đậu trên mặt phẳng ngang.
 - [ ] `Onboard Mag Calibration` chạy **ngoài trời**, thanh tiến trình tới 100% không tụt lùi; offset tổng nhỏ; chĩa mũi drone về Bắc thật thì biểu tượng trên bản đồ Mission Planner cũng chỉ Bắc (lệch ≤ 15°); không còn cảnh báo compass.
-- [ ] Radio: 4 cần đúng dải 1000/1500/2000; CH5 ra đủ `Stabilize`/`AltHold`/`Loiter`, CH6 ra `RTL`, CH7 (`WEB CONTROL ENABLE`) đổi giá trị `rcin` khi gạt, CH8 vẫn để trống; ở 50 m vẫn đổi được mode.
+- [ ] Radio: 4 cần đúng dải 1000/1500/2000; CH5 ra đủ `Stabilize`/`AltHold`/`Loiter`, CH6 ra `RTL`, CH7 (`WEB CONTROL ENABLE`) đổi giá trị `rcin` khi gạt, CH8 (SwB) arm/disarm được, CH9 (VrB) ra `Auto`; ở 50 m vẫn đổi được mode.
 - [ ] Motor Test: 4 nút A/B/C/D ra đúng 4 motor (đã đối chiếu với **sơ đồ khung hiển thị trong Mission Planner**, không dựa vào trí nhớ).
 - [ ] 4 chiều quay đúng: trước-phải (M2) CCW, sau-trái (M3) CCW, trước-trái (M4) CW, sau-phải (M1) CW.
 - [ ] Test desync: đẩy ga 10→20→30→50 % trên cả 4 motor, **không** có tiếng khục / giật / tự dừng; tăng ga đột ngột cũng không; 4 motor khởi động mượt và gần như cùng lúc ở 5–10 %.

@@ -84,6 +84,15 @@ MOT_PWM_TYPE,5
 SERVO_BLH_POLES,14
 # 10Hz du cho hien thi; nang len 100 khi bat harmonic notch theo RPM (Phase 22).
 SERVO_BLH_TRATE,10
+# Sua 25/10/2026, truoc la 0.10 (mac dinh). Pin 4S + canh T1045: ESC OX32 khoi dong
+# hut ngay sau khi arm (vong quay vot len roi tut ve ~0 = tieng "khac"), M1 sau-phai
+# nang nhat. Do 25/10 (logs/fc-dataflash-20261025-bay-trong-nha/005 va
+# logs/fc-dataflash-20261025-spin-arm-013/006): lan motor tut <300 RPM trong 3 s dau
+# 13/32 lan khoi dong o 0.10 -> 2/28 o 0.13; M1 bat vong TB 0.43 s (max 0.99) -> 0.31 s
+# (max 0.39). Phai <= MOT_SPIN_MIN (0.15). Cai dat ESC cung da doi: firmware/esc-ox32/.
+# Da thu 0.15 cung ngay (logs/fc-dataflash-20261025-spin-arm-015/007): 6/32 lan hut,
+# M1 TB 0.40 s (max 0.69) -> KHONG tot hon 0.13, nen giu 0.13.
+MOT_SPIN_ARM,0.13
 
 # ---------- pin 4S ----------
 # 4 = Analog Voltage and Current (mac dinh cua board)

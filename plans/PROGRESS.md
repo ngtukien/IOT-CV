@@ -765,7 +765,9 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] **Đã hàn được 5 mối liên tiếp đạt tiêu chí** ở bài 2; ảnh mối đạt và mối nguội đã dán vào sổ tay.
 - [ ] Mọi giá trong danh sách mua đều được đánh dấu *chưa xác minh*.
 
-Ghi chú: 
+Ghi chú: 25/10/2026 — người dùng nhờ thợ lắp ráp cả drone (trước 24/10), không đi theo các tờ
+chuẩn bị của phase này; drone đã lắp xong và đã bay. Các cổng còn trống ở đây **không còn chặn**
+phase sau. Không tick vì không có bằng chứng các tờ/bài tập hàn đã làm.
 
 ## 🔧 Phase 14 — Hàng về + nạp firmware
 
@@ -806,17 +808,24 @@ theo Tờ 1, chiều ren motor, điện áp từng cell pin.
 Phase 13 chưa có, nên sổ tay 14 mục 6 thành phiếu kiểm hàng có cột kết quả. Cổng đầu của phase vẫn
 trống vì còn việc tay: ảnh các món, đủ món, motor + chiều ren, ESC, phụ kiện, GPS, iA6B, điện áp cell.
 
+25/10/2026 — drone đã do thợ lắp và đã bay (24/10 pin 6S ngoài trời, 25/10 pin 4S trong nhà), nên
+mọi món đã có và chạy được. Ba cổng còn trống vì **chưa có số đo**, không phải vì hỏng: phiếu Tờ 1 +
+ảnh; chiều ren từng motor (cánh tự siết đã vặn vào và đã bay, nhưng chưa ai kiểm riêng từng motor);
+điện áp từng cell của pin 4S (25/10 FC chỉ đọc tổng: 16,29 V ≈ 4,07 V/cell trước khi bay).
+**Người dùng xác nhận 25/10 tối** (thợ làm, không có số đo/ảnh): đã kiểm ren motor 2 + 2 — chưa
+tick vì không có bằng chứng ghi lại.
+
 ## 🔧 Phase 15 — Bàn: RC + GPS + compass
 
 Plan: plans/phase-15-ban-rc-gps-compass.md
 
 Ngày bắt đầu: 25/10/2026 · Ngày xong: ______
 
-- [ ] Đèn iA6B sáng liên khi bật cả hai; tay phát đã ở Output mode `i-BUS`.
+- [x] Đèn iA6B sáng liên khi bật cả hai; tay phát đã ở Output mode `i-BUS`. *(25/10: FC báo `RC Protocol: IBUS`, `RC_CHANNELS` đủ 14 kênh; tắt tay phát → `Radio Failsafe`, bật lại → hết.)*
 - [ ] Radio Calibration: 4 cần có dải ~1000–2000, cần ở giữa ~1500; không cần nào bị kẹt một đầu.
-- [ ] Gạt SwC qua 3 vị trí → tên chế độ đổi đúng **Stabilize → AltHold → Loiter**.
-- [ ] Gạt SwD → chế độ đổi thành **RTL**; gạt về thì trở lại chế độ cũ.
-- [ ] `RC7_OPTION = 0` và `RC8_OPTION = 0` (chưa gán Auto).
+- [x] Gạt SwC qua 3 vị trí → tên chế độ đổi đúng **Stabilize → AltHold → Loiter**. *(25/10 tối, `scripts/fc/doc_tay_cam.py`: CH5 1000 / 1500 / 2000 → FC báo `STABILIZE` / `ALT_HOLD` / `LOITER`, gạt ngược lại đúng thứ tự.)*
+- [x] Gạt SwD → chế độ đổi thành **RTL**; gạt về thì trở lại chế độ cũ. *(25/10 tối: CH6 2000 → `RTL`, về 1000 → `STABILIZE`; đang disarm nên FC cho vào RTL dù không có GPS.)*
+- [x] `RC7_OPTION = 0` (SwA = WEB CONTROL ENABLE); `RC8_OPTION` = ArmDisarm (SwB); `RC9_OPTION` = Auto (núm VrB) và xoay VrB → FC báo `AUTO`, xoay về → chế độ của SwC. *(25/10 tối: 3 tham số đọc lại `0 / 153 / 16`; gạt SwB xuống → FC xử lý lệnh ARM (bị chặn bởi PreArm lúc đó); VrB qua 1.831 → `AUTO`, xuống 1.779 → `STABILIZE`.)*
 - [x] **RC failsafe đã test thật**: tắt tay phát → Mission Planner báo `Radio Failsafe`; bật lại → hết báo. Đã cấu hình **cả hai lớp** (failsafe trên FS-i6X + `FS_THR_ENABLE` trên bo bay). *(25/10: ga để giữa rồi tắt tay phát → CH3 = 911 µs, FC gửi `Radio Failsafe` sau < 0,5 s; bật lại → `Radio Failsafe Cleared`. Đọc STATUSTEXT qua MAVLink bằng script thay cho Mission Planner. `FS_THR_ENABLE 1`, `FS_THR_VALUE 975`.)*
 - [x] GPS ngoài trời: `3D Fix`, `HDOP < 1.5`, số vệ tinh ≥ 9. *(Log bay 24/10 của người dùng: 3D fix, 9–15 vệ tinh, HDOP trung vị 0,91–0,97, đỉnh 1,7.)*
 - [x] `COMPASS_DEV_ID` khác 0 (la bàn được nhận diện). *(658945 khi FC khởi động có pin; chỉ cắm USB thì 0 vì la bàn chưa có điện.)*
@@ -830,8 +839,15 @@ các phase trên bàn, nên cổng "chưa cắm pin" không còn áp dụng. Ki�
 thu giữ giá trị cuối); đã cài, quy trình đúng ghi lại ở plan §15.5. FC đọc 14 kênh iBUS, CH1–4 đủ
 1000–2000, nhưng radio chưa hiệu chỉnh (`RC1..8` 1100/1900). Cấu hình chế độ của người dùng khác
 plan: `FLTMODE_CH 9`, `FLTMODE1..5 = 0` (Stabilize), `FLTMODE6 = 5` (Loiter), `RC8_OPTION 153`
-(công tắc arm) — chưa đổi, chờ người dùng quyết. `EK3_SRC1_POSZ` 3 → 1 (độ cao theo baro, người
-dùng duyệt).
+(công tắc arm) — chưa đổi, chờ người dùng quyết (đã đổi tối 25/10, xem dưới). `EK3_SRC1_POSZ` 3 → 1
+(độ cao theo baro, người dùng duyệt).
+
+25/10/2026 tối — **bản đồ công tắc đã đổi theo §15.4**, trừ SwB người dùng giữ làm công tắc ARM
+(quen tay): CH5 SwC chế độ, CH6 SwD RTL, CH7 SwA web, **CH8 SwB ArmDisarm, CH9 núm VrB Auto**
+(`FLTMODE_CH 5`, `FLTMODE4 2`, `RC6_OPTION 4`, `RC9_OPTION 16`; đọc lại PASS). Plan §15.4 đã sửa
+theo; tay phát chỉ SwC có 3 nấc (plan cũ ghi sai SwB 3 nấc). Radio **chưa hiệu chỉnh** (`RC1..4`
+vẫn 1100/1900) → `02-radio.param` chưa lưu vì nó là ảnh chụp *sau* radio calibration. `03-gps.param`
+chưa lưu. Chi tiết: `plans/reports/261025-hieu-chinh-bay-trong-nha.md` mục 7.
 
 ## 🔧 Phase 16 — Bàn: nguồn + motor + ESC
 
@@ -845,8 +861,8 @@ Ngày bắt đầu: 25/10/2026 · Ngày xong: ______
 - [ ] Đường 5V của stack trong 4,8–5,2 V; chân 4V5 của cổng GPS ≥ 4,7 V (hoặc đã hàn dây bù).
 - [ ] HUD và đồng hồ vạn năng khớp nhau trong **0,05 V**; `BATT_VOLT_MULT` mới đã ghi vào `01-base.param` và **đã commit**.
 - [ ] `BATT_ARM_VOLT` đã đặt 14.8 trên bo bay.
-- [ ] Motor Test: nút A/B/C/D quay đúng 4 motor theo thứ tự chiều kim đồng hồ; `FRAME_TYPE` cuối cùng đã xác định (X hoặc X Betaflight) **bằng thực nghiệm, không phải bằng phỏng đoán**.
-- [ ] Chiều quay 4 motor đúng bảng CCW/CCW/CW/CW; bảng "motor nào phải đổi dây" đã ghi.
+- [x] Motor Test: nút A/B/C/D quay đúng 4 motor theo thứ tự chiều kim đồng hồ; `FRAME_TYPE` cuối cùng đã xác định (X hoặc X Betaflight) **bằng thực nghiệm, không phải bằng phỏng đoán**. *(Chứng minh bằng bay thật: 24/10 Stabilize ngoài trời 82 s và Loiter 155 s, 25/10 hai lần rời đất trong nhà — sai thứ tự motor thì drone lật ngay khi nhấc. Cấu hình đúng trên bo: `FRAME_TYPE 1` + `SERVO1..4_FUNCTION 36/33/34/35`, tương đương `FRAME_TYPE 12`. Chưa bấm riêng từng nút A/B/C/D.)*
+- [x] Chiều quay 4 motor đúng bảng CCW/CCW/CW/CW; bảng "motor nào phải đổi dây" đã ghi. *(Cùng bằng chứng bay thật — sai chiều thì drone xoay tít quanh trục đứng. Không motor nào phải đổi dây.)*
 - [x] 4 motor khởi động mượt và gần như cùng lúc ở 5–10% với DShot300. *(25/10, không cánh, pin 4S, `MOT_PWM_TYPE 5`: Motor Test 10% do người vận hành bấm, cả 4 motor bắt vòng quay sau 0,25–0,26 s, 1.703–1.757 vòng/phút, 0 lần sụt; sau khi đổi cài đặt ESC chạy lại, không có tiếng khựng.)*
 - [x] ESC telemetry: có RPM, **hoặc** đã ghi nhận "chưa có" và quyết định thử lại ở Phase 22. *(Có RPM và nhiệt độ của cả 4 ESC.)*
 - [ ] Thông điệp pre-arm đã ghi nguyên văn vào sổ tay; **`ARMING_CHECK` không bị đụng tới**.
@@ -858,6 +874,15 @@ Ghi chú: 25/10/2026 — drone đã lắp sẵn trên khung (xem Phase 15), ki�
 (`firmware/esc-ox32/README.md`), **chưa thử lại có cánh trên 4S**. `FRAME_TYPE 1` +
 `SERVO1..4_FUNCTION 36/33/34/35` trên bo cho cùng thứ tự motor với `FRAME_TYPE 12`. `BATT_ARM_VOLT`
 đang 0. ESC M2 nóng hơn 3 ESC kia 5–8 °C. Chi tiết: `plans/reports/261025-kiem-tra-phan-cung-that.md`.
+
+25/10/2026 chiều — **thử 4S có cánh**: lỗi M1 kẹt ~10 s đã hết; còn khởi động hụt một nhịp ("khậc")
+trong giây đầu ở cả 4 kênh, M1 nhiều nhất. `MOT_SPIN_ARM` 0,10 → **0,13**: số lần hụt 13/32 → 2/28,
+M1 0/7; thử 0,15 không tốt hơn. Đã ghi `MOT_SPIN_ARM,0.13` vào `01-base.param`. Sau giây đầu không
+motor nào tụt vòng, kể cả lúc bay; ESC ≤ 51 °C. **Người dùng xác nhận 25/10 tối** (thợ làm, không
+có số đo/ảnh): tụ đã hàn vào ESC là **1500 µF 35 V** (to hơn tụ 1000 µF trong hộp), đã đo chập trước
+khi cắm pin — hai cổng đó chưa tick vì không có bằng chứng ghi lại. Đường 5V, HUD so đồng hồ và
+`BATT_ARM_VOLT` (vẫn 0) **chưa làm**. Chi tiết:
+`plans/reports/261025-hieu-chinh-bay-trong-nha.md` mục 5–6.
 
 ## 🔧 Phase 17 — Bàn: ESP32 + TFmini + camera
 
@@ -891,6 +916,10 @@ Backend chạy bằng biến môi trường như `AGENTS.md`, chưa tạo `.env`
 `camera_check.py` PASS (VGA 6,8 fps, đổi quality giữa luồng đúng), web hiện ảnh thật; lớp phủ giả
 chưa kiểm, fps chưa ghi sổ tay. Wi-Fi mất 19–32% gói theo từng đợt.
 
+25/10/2026 chiều — vì TFmini `No Data` chặn arm, người dùng chọn **tạm tắt** `RNGFND1_TYPE` và
+`PRX1_TYPE` (= 0), `FENCE_ENABLE` = 0, giống lúc bay 24/10. Dòng `PRX1_TYPE … đọc lại đúng giá trị`
+ở trên là đúng tại thời điểm tick; bật lại `20 / 4 / 1` sau khi sửa TFmini.
+
 ## 🔧 Phase 18 — Lắp ráp khung
 
 Plan: plans/phase-18-lap-rap-khung.md
@@ -917,29 +946,37 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] `docs/so-tay/18-lap-rap-khung.md` đã viết xong.
 - [ ] **Cánh T1045 vẫn còn nguyên trong hộp, chưa từng gắn lên drone.**
 
-Ghi chú: 
+Ghi chú: 25/10/2026 — **thợ đã lắp xong cả drone trước 24/10** (không theo từng bước của plan), và
+drone đã bay. Phần chứng minh được bằng máy: FC đúng hướng (`AHRS_ORIENTATION 0`, nghiêng tay thì
+roll/pitch đúng chiều), thứ tự + chiều motor đúng (đã bay), GPS + la bàn + receiver + TFmini + 2 ESP32
+có điện và nối đúng cổng. Các cổng còn trống là **phiếu kiểm tay chưa ai làm** (mặt phẳng khung, lỗ
+khoan, nhãn cần, đo pha motor, continuity, tụ, bát chống rung, anten, cột GPS, tầm nhìn TFmini, cố
+định ESP32/UBEC, dây đai pin, cân bằng CG, cân khối lượng, 13 ảnh, sổ tay) — người dùng kiểm và báo
+thì mới tick. Cổng "cánh chưa từng gắn" không còn áp dụng. Người dùng xác nhận 25/10 tối: thợ đã
+kiểm ren motor 2 + 2, hàn tụ 1500 µF 35 V, đo chập trước khi cắm pin (không có số đo/ảnh); chưa
+cân drone.
 
 ## 🔧 Phase 19 — Hiệu chỉnh trên khung + failsafe
 
 Plan: plans/phase-19-hieu-chinh-tren-khung-failsafe.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 25/10/2026 · Ngày xong: ______
 
 - [ ] 4 nhóm phép đo continuity trên khung đã lắp cho kết quả **giống hệt** Phase 18.
 - [ ] Cấp điện qua smoke stopper: đèn nháy rồi tắt, không board nào nóng, mọi đèn sáng, Mission Planner nhận bo bay.
-- [ ] `Accel Calibration` 6 vị trí báo `Calibration Successful`; `Calibrate Level` đã chạy trên mặt phẳng ngang; HUD nằm ngang khi drone đậu trên mặt phẳng ngang.
+- [x] `Accel Calibration` 6 vị trí báo `Calibration Successful`; `Calibrate Level` đã chạy trên mặt phẳng ngang; HUD nằm ngang khi drone đậu trên mặt phẳng ngang. *(25/10 tối, người dùng làm trong Mission Planner: báo thành công; `INS_ACCOFFS_*` / `INS_ACCSCAL_*` mới, `AHRS_TRIM_X/Y` 0,0558 / 0,0332 rad; hết `3D Accel calibration needed`. Báo cáo `261025-hieu-chinh-bay-trong-nha.md` mục 2–3.)*
 - [ ] `Onboard Mag Calibration` chạy **ngoài trời**, thanh tiến trình tới 100% không tụt lùi; offset tổng nhỏ; chĩa mũi drone về Bắc thật thì biểu tượng trên bản đồ Mission Planner cũng chỉ Bắc (lệch ≤ 15°); không còn cảnh báo compass.
-- [ ] Radio: 4 cần đúng dải 1000/1500/2000; CH5 ra đủ `Stabilize`/`AltHold`/`Loiter`, CH6 ra `RTL`, CH7 (`WEB CONTROL ENABLE`) đổi giá trị `rcin` khi gạt, CH8 vẫn để trống; ở 50 m vẫn đổi được mode.
-- [ ] Motor Test: 4 nút A/B/C/D ra đúng 4 motor (đã đối chiếu với **sơ đồ khung hiển thị trong Mission Planner**, không dựa vào trí nhớ).
-- [ ] 4 chiều quay đúng: trước-phải (M2) CCW, sau-trái (M3) CCW, trước-trái (M4) CW, sau-phải (M1) CW.
+- [ ] Radio: 4 cần đúng dải 1000/1500/2000; CH5 ra đủ `Stabilize`/`AltHold`/`Loiter`, CH6 ra `RTL`, CH7 (`WEB CONTROL ENABLE`) đổi giá trị `rcin` khi gạt, CH8 (SwB) arm/disarm được, CH9 (VrB) ra `Auto`; ở 50 m vẫn đổi được mode.
+- [x] Motor Test: 4 nút A/B/C/D ra đúng 4 motor (đã đối chiếu với **sơ đồ khung hiển thị trong Mission Planner**, không dựa vào trí nhớ). *(Chứng minh bằng bay thật 24–25/10, xem Phase 16; chưa bấm riêng từng nút.)*
+- [x] 4 chiều quay đúng: trước-phải (M2) CCW, sau-trái (M3) CCW, trước-trái (M4) CW, sau-phải (M1) CW. *(Như trên.)*
 - [ ] Test desync: đẩy ga 10→20→30→50 % trên cả 4 motor, **không** có tiếng khục / giật / tự dừng; tăng ga đột ngột cũng không; 4 motor khởi động mượt và gần như cùng lúc ở 5–10 %.
-- [ ] `esc1..4_rpm` có số trên tab `Status` khi chạy Motor Test (nếu không có: đã ghi lại, không chặn Phase 20, phải xử lý trước Phase 22).
-- [ ] Test RC failsafe: tắt tay FS-i6X → cảnh báo hiện trong ≤ 3 giây **và** giá trị kênh ga tụt xuống dưới `FS_THR_VALUE`; bật lại → cảnh báo tự hết.
+- [x] `esc1..4_rpm` có số trên tab `Status` khi chạy Motor Test (nếu không có: đã ghi lại, không chặn Phase 20, phải xử lý trước Phase 22). *(Log ESC có RPM + nhiệt độ cả 4 kênh, 10 mẫu/giây; áp/dòng của ESC không dùng được.)*
+- [x] Test RC failsafe: tắt tay FS-i6X → cảnh báo hiện trong ≤ 3 giây **và** giá trị kênh ga tụt xuống dưới `FS_THR_VALUE`; bật lại → cảnh báo tự hết. *(25/10 trên drone đã lắp: CH3 = 911 < 975, `Radio Failsafe` < 0,5 s; bật lại → `Radio Failsafe Cleared`. Xem Phase 15.)*
 - [ ] Điện áp Mission Planner khớp đồng hồ vạn năng trong **0,05 V**; `BATT_LOW_VOLT,14.0` / `BATT_CRT_VOLT,13.2` / `BATT_FS_LOW_ACT,2` / `BATT_FS_CRT_ACT,1` / `BATT_LOW_TIMER,10` / `BATT_CAPACITY,5300` đã đặt; `BATT_ARM_VOLT` đã bật lại.
-- [ ] `FS_GCS_ENABLE` = **0**.
+- [x] `FS_GCS_ENABLE` = **0**. *(Đọc lại 25/10.)*
 - [ ] `FENCE_ENABLE,1` + `FENCE_TYPE,3` + `FENCE_ALT_MAX,30` + `FENCE_RADIUS,50` + `FENCE_ACTION,1` + `FENCE_MARGIN,2`; hàng rào hiện đúng trên bản đồ Mission Planner; giá trị 30/50 đã được đối chiếu với kích thước bãi bay thật.
-- [ ] **Không còn cảnh báo pre-arm nào**, và **không một pre-arm check nào bị disable** (`ARMING_CHECK` giữ nguyên giá trị mặc định đầy đủ).
-- [ ] Arm/disarm không cánh 3/3 lần thành công; cả 4 motor idle đều, không motor nào đứng im.
+- [x] **Không còn cảnh báo pre-arm nào**, và **không một pre-arm check nào bị disable** (`ARMING_CHECK` giữ nguyên giá trị mặc định đầy đủ). *(25/10 tối: `MAV_CMD_RUN_PREARM_CHECKS` không trả lỗi nào, bit PreArm của `SYS_STATUS` = khoẻ; `ARMING_SKIPCHK 0`. **Lưu ý:** đang ở cấu hình tạm — TFmini/PRX/fence tắt; bật lại thì phải kiểm lại cổng này.)*
+- [x] Arm/disarm không cánh 3/3 lần thành công; cả 4 motor idle đều, không motor nào đứng im. *(25/10: 15 lần arm/disarm **có cánh** bằng SwB, log 006–007; sau giây đầu cả 4 motor idle đều ~2.000 vòng/phút.)*
 - [ ] 4 cánh gắn đúng: CCW trên trước-phải/sau-trái (M2/M3), CW trên trước-trái/sau-phải (M4/M1); vặn vào **không cần lực**; xoay theo chiều quay thì **siết chặt thêm**; không rơ; không cánh nào nứt.
 - [ ] Đo lực đẩy thật trên cân ở 25/50/75/100 %; tỉ số `(lực đẩy 100% × 4) / AUW` ≥ **2 : 1**; đã ghi vào `docs/do-dac/19-do-luc-day.md`.
 - [ ] `docs/checklist-truoc-bay.md` đã viết và **đã in ra giấy**.
@@ -947,13 +984,21 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] `firmware/ardupilot/params/04-pre-first-flight.param` đã lưu và commit với prefix `param:`.
 - [ ] `docs/so-tay/19-hieu-chinh-failsafe.md` đã viết xong.
 
-Ghi chú: 
+Ghi chú: 25/10/2026 — sau lần nạp Betaflight → ArduPilot buổi sáng, file khôi phục thiếu
+`INS_ACC_ID` / `COMPASS_DEV_ID` → FC đòi hiệu chỉnh lại accel và la bàn. Người dùng đã hiệu chỉnh
+accel 6 mặt + Level (tick ở trên) và la bàn **trong nhà** (offset 20,4 / 31,3 / 59,7; cổng la bàn
+ngoài trời còn trống). Đang ở **cấu hình tạm cho bay trong nhà**: `FS_THR_ENABLE 3` và
+`BATT_FS_LOW_ACT 1` (Land thay RTL), fence + TFmini/PRX tắt → cổng pin và fence chưa đạt. Test
+desync: đã treo ở ~50–55% lệnh motor không tụt vòng, nhưng chưa quét 10→50% có chủ đích. Cánh đã
+lắp đúng chiều (đã bay) nhưng chưa ai kiểm siết/rơ/nứt; lực đẩy chưa đo; `docs/checklist-truoc-bay.md`
+chưa có; pin mới ~4,07 V/cell. Bẫy nguồn điện (USB trước pin, rút pin khi còn USB) đã ghi ở báo cáo
+`261025-hieu-chinh-bay-trong-nha.md` mục 4.
 
 ## 🔧 Phase 20 — Bay RC cơ bản
 
 Plan: plans/phase-20-bay-rc-co-ban.md
 
-Ngày bắt đầu: ______ · Ngày xong: ______
+Ngày bắt đầu: 24/10/2026 · Ngày xong: ______
 
 - [ ] **F1 Stabilize PASS:** cất cánh thẳng, hover 0,5–1 m trong 30 giây, hạ cánh có kiểm soát, không phải ABORT.
 - [ ] **F2 AltHold PASS:** ở cần ga giữa, độ cao dao động ≤ ±0,3 m trong 30 giây; không nảy theo chu kỳ.
@@ -964,14 +1009,26 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] Với **cả 4** bộ log: `VIBE` X/Y/Z < 30 m/s²; `Clip0` = `Clip1` = `Clip2` = **0**; EKF variance < 0.5; compass innovation dao động quanh 0 và độ lớn từ trường **không đổi theo ga**; `BAT.Volt` lúc treo **không** tụt dưới 14,0 V; 4 đường `RCOU` chụm.
 - [ ] `MOT_THST_HOVER` học được đã ghi lại; nếu > 0,65 thì đã xử lý (giảm payload) trước khi sang Phase 21.
 - [ ] `BATT_AMP_PERVLT` đã hiệu chỉnh ít nhất một vòng theo mAh sạc lại.
-- [ ] `RTL_ALT_M` (mét, **không phải** `RTL_ALT` cm) đã đặt cao hơn mọi vật cản trong bãi và thấp hơn `FENCE_ALT_MAX`; **đã đọc ngược lại giá trị để xác nhận**.
+- [ ] `RTL_ALT_M` (mét, **không phải** `RTL_ALT` cm) đã đặt cao hơn mọi vật cản trong bãi và thấp hơn `FENCE_ALT_MAX`; **đã đọc ngược lại giá trị để xác nhận firmware thật sự nhận**.
 - [ ] `firmware/ardupilot/params/05-loiter-good.param` đã lưu và commit với prefix `param:`.
 - [ ] `docs/test-log.md` có đủ 4 dòng F1–F4.
 - [ ] `docs/so-tay/20-bay-rc-co-ban.md` đã viết xong.
 - [ ] Sau mỗi chuyến, sờ 4 motor và ESC: **không cái nào nóng tới mức không giữ tay được**.
-- [ ] `CH7` (`WEB CONTROL ENABLE`) ở vị trí **TẮT** trong cả 4 bài; `CH8` vẫn chưa gán.
+- [ ] `CH7` (`WEB CONTROL ENABLE`) ở vị trí **TẮT** trong cả 4 bài; núm VrB (`CH9`, Auto) để **hết bên trái** trong cả 4 bài.
 
-Ghi chú: 
+Ghi chú: Người dùng đã bay **trước khi** Phase 19 xong, nên các chuyến dưới đây **không tính** là
+bài F1–F4 chính thức (chưa đủ điều kiện vào phase: la bàn ngoài trời, fence, đo lực đẩy, checklist):
+
+- 24/10/2026, pin **6S**, ngoài trời: Stabilize treo 82 s, cao ≤ 2,8 m; Loiter treo 155 s, cao ≤ 7,5 m
+  (baro). Log `logs/fc-dataflash-20261025/001-*.bin` + `1980-01-12 18-07-38.bin`
+  (`plans/reports/261025-kiem-tra-phan-cung-that.md` mục 3).
+- 25/10/2026, pin **4S**, trong nhà: Stabilize, 2 lần rời đất (~24 s và ~33 s), cao 10–50 cm; nhấc ở
+  ~41% cần ga / ~50–55% lệnh motor, 11–12 A; pin 16,29 → 16,01 V; rung ≤ 19,2 m/s², `Clip` 0
+  (`plans/reports/261025-hieu-chinh-bay-trong-nha.md` mục 5). Log
+  `logs/fc-dataflash-20261025-bay-trong-nha/005-*.bin`.
+
+`MOT_THST_HOVER` FC đang nhớ là 0,27 (cao hơn mức cần thật ~0,20 trong nhà); chỉ học lại khi bay
+AltHold/Loiter. Chưa có thư mục `logs/flight_YYYYMMDD_HHMM/` + `notes.md` theo đúng quy ước 20.2.
 
 ## 🔧 Phase 21 — Bay tự động + từ web
 
@@ -987,7 +1044,7 @@ Ngày bắt đầu: ______ · Ngày xong: ______
 - [ ] **F8 PASS:** web đang giữ `W` + RC gạt mode → **drone dừng ngay**, mode đổi đúng trên cả hai màn hình; biến thể A (`RTL`) đúng; biến thể B (`Auto` tạm dừng rồi tiếp tục) đúng; sau khi tắt `WEB CONTROL ENABLE` thì lái tay ở `Stabilize` bình thường.
 - [ ] **RC nằm trong tay người vận hành trong cả 4 bài**, kể cả F5.
 - [ ] `CH7` (`WEB CONTROL ENABLE`) **mặc định TẮT**; backend đọc kênh RC này, không đọc nút trên trình duyệt; web chỉ **hiển thị** trạng thái, không đặt được.
-- [ ] `RC8_OPTION` đã gán `Auto` và đã kiểm trên bàn không cánh (gạt `CH8` → Mission Planner hiện `AUTO`; gạt xuống → về mode của `CH5`).
+- [x] `RC9_OPTION` = `Auto` (núm VrB) và đã kiểm trên bàn không cánh (xoay VrB hết phải → Mission Planner hiện `AUTO`; xoay về hết trái → về mode của `CH5`). *(Kiểm sớm 25/10/2026, drone disarm suốt bài: FC báo `AUTO` / `STABILIZE` qua MAVLink thay cho màn hình Mission Planner. Trước F5 vẫn kiểm lại một lần.)*
 - [ ] Endpoint backend `udpin:0.0.0.0:14550` nhận được telemetry sau khi backend gửi gói đầu tiên.
 - [ ] Đủ **4 thư mục** `logs/flight_YYYYMMDD_HHMM/` cho F5–F8, mỗi thư mục có `flight.bin`, `notes.md`, và `events.json` (với F6, F7, F8).
 - [ ] 7 mục đọc log của Phase 20 mục 20.2 **cộng** 4 mục 8–11 ở mục 21.7 đã kiểm và ghi vào `docs/do-dac/21-ket-qua-bay-web.md`.

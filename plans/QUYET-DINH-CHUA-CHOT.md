@@ -2,6 +2,29 @@
 
 > **Cập nhật 12/10/2026:** Quyết định 1 (camera) **đã chốt** — ESP32-S3 N16R8 + module OV3660, xem
 > mục dưới và `docs/phan-cung-thuc-te.md`. Chỉ còn **Quyết định 2** (đề tài Xử lý ảnh) đang mở.
+>
+> **Cập nhật 25/10/2026:** sau khi lắp ráp và bay thử, có thêm 5 quyết định **đã chốt** và 2 quyết
+> định **đang mở** về drone thật — xem mục "Drone thật" ngay dưới.
+
+## Drone thật — 25/10/2026
+
+**Đã chốt** (người dùng chọn; bằng chứng ở `plans/reports/261025-kiem-tra-phan-cung-that.md` và
+`plans/reports/261025-hieu-chinh-bay-trong-nha.md`):
+
+| # | Quyết định | Vì sao |
+|---|---|---|
+| 1 | Bay pin **4S**, không 6S | Motor định mức 4S; 4S đã dư lực (nhấc ở ~50–55% lệnh motor); ngưỡng pin trên FC là của 4S |
+| 2 | Cài đặt ESC OX32 "Mức 2" (timing 20°, demag High, rampup 80%, low-RPM On Adaptive) | Gốc lỗi M1 kẹt khi khởi động trên 4S (`firmware/esc-ox32/`) |
+| 3 | `MOT_SPIN_ARM` **0,13** | Khởi động hụt 13/32 → 2/28; 0,15 không tốt hơn |
+| 4 | **SwB = công tắc ARM/DISARM**, lệch plan (plan arm bằng cần, để SwB cho Auto) | Người dùng đã quen tay. Rủi ro: gạt SwB lên khi đang bay là drone rơi |
+| 5 | **Auto trên núm VrB (CH9)** | 4 công tắc đã có việc; núm phải xoay gần hết hành trình mới vào Auto |
+
+**Đang mở** — chỉ cần chốt trước Phase 21 (lái từ web):
+
+1. **Wi-Fi mất 19–32% gói** — đủ để dead-man 300 ms tự dừng drone khi lái từ web. Hai cách đã nêu:
+   card Wi-Fi USB riêng cho hotspot của laptop, hoặc một router riêng. Chưa chọn.
+2. **Kích thước geofence** (`FENCE_ALT_MAX`, `FENCE_RADIUS`) — plan Phase 19.10 gợi ý 30 m / 50 m,
+   phải đối chiếu với bãi bay thật. Chưa chọn bãi.
 
 > Cách dùng: mở phiên Claude mới, dán câu này: *"Đọc file `plans/QUYET-DINH-CHUA-CHOT.md` rồi giải thích cho tôi từng lựa chọn như nói với người chưa biết gì, sau đó hỏi tôi từng câu một để chốt."*
 > Bốn báo cáo nghiên cứu gốc nằm ở `plans/reports/260921-research-*.md`. Không cần đọc chúng trước, file này đã tóm tắt đủ để quyết.

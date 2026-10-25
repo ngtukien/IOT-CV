@@ -3,7 +3,7 @@
 LR.data.parts = [
   {
     id: 'fc', name: 'Bo bay SpeedyBee F405 V5', sub: 'bản "Model Aircraft" — não của drone',
-    st: 'ok', stText: 'Đã nạp ArduPilot 4.7.1 (13/10) — COM6',
+    st: 'ok', stText: 'ArduPilot 4.7.1 (13/10) — COM6; accel + la bàn hiệu chỉnh 25/10',
     img: 'real_fc_top', more: ['real_fc_bot', 'real_fc_side', 'sb_fclayout', 'sb_wiring', 'sb_dims'], diag: 'fcTop',
     specs: [
       ['Chip', 'STM32F405, 1 MB flash, gyro ICM-42688, baro SPA06, blackbox 16 MB'],
@@ -22,7 +22,7 @@ LR.data.parts = [
   },
   {
     id: 'esc', name: 'ESC SpeedyBee OX32 55A 4-in-1', sub: 'tầng dưới của stack — cấp dòng cho 4 motor',
-    st: 'todo', stText: 'Chưa kiểm bằng mắt',
+    st: 'ok', stText: 'Chạy, 4 kênh có RPM; cài đặt đổi 25/10 — chưa soi bằng mắt',
     img: 'sb_esc_top', more: ['sb_esc_bot', 'sb_esclayout', 'sb_motor', 'sb_fcesc'], diag: 'escTop',
     specs: [
       ['Dòng', '55 A liên tục mỗi kênh, pin 3–6S'],
@@ -38,7 +38,7 @@ LR.data.parts = [
   },
   {
     id: 'motor', name: 'Motor T-Motor AIR2216 II KV920 × 4', sub: 'bộ AIR GEAR 450 II',
-    st: 'todo', stText: 'Chưa kiểm ren 2+2',
+    st: 'part', stText: 'Chạy, đã bay — chưa kiểm ren từng motor',
     img: 'tm_motors', more: ['tm_dims', 'tm_props'], diag: 'threadSort',
     specs: [
       ['Kích thước', 'Ø27,7 × 31 mm, 64 g; trục ren M6 (cánh vặn thẳng lên, tự siết)'],
@@ -53,7 +53,7 @@ LR.data.parts = [
   },
   {
     id: 'prop', name: 'Cánh T1045 × 8', sub: '4 dùng + 4 dự phòng',
-    st: 'todo', stText: 'Chưa kiểm — để trong hộp tới bước 19.13',
+    st: 'part', stText: 'Đã lắp, đúng chiều (đã bay) — chưa kiểm siết / nứt',
     img: 'tm_props', more: ['ap_cwlegend'], diag: 'propId',
     specs: [
       ['Cỡ', '10 inch, bước 4,5'],
@@ -64,7 +64,7 @@ LR.data.parts = [
   },
   {
     id: 'frame', name: 'Khung Holybro S500 V2', sub: '480 mm, tấm đế là bo chia nguồn (PDB)',
-    st: 'todo', stText: 'Chưa kiểm',
+    st: 'part', stText: 'Đã lắp (thợ), đã bay — phiếu kiểm khung chưa làm',
     img: 's500_parts', more: ['s500_built', 's500_side'], diag: 'frameTop',
     specs: [
       ['Khối lượng', '782 g (khung + chân đáp, theo Holybro)'],
@@ -78,7 +78,7 @@ LR.data.parts = [
   },
   {
     id: 'gps', name: 'GPS Holybro M10 + la bàn IST8310', sub: 'cáp JST-GH 1,25 mm 10 chân + cột nâng',
-    st: 'todo', stText: 'Chưa kiểm (xem vỏ là V1 hay V2)',
+    st: 'part', stText: 'Chạy, 9–15 vệ tinh — la bàn mới hiệu chỉnh trong nhà',
     img: 'm10_pin_v1', more: ['m10_pin_v2'], diag: 'cableGps',
     specs: [
       ['Nguồn', '4,7–5,2 V (cổng GPS của FC ghi 4V5 — phải đo)'],
@@ -93,17 +93,17 @@ LR.data.parts = [
   },
   {
     id: 'rc', name: 'Tay phát FlySky FS-i6X', sub: 'AFHDS 2A, 4 công tắc SwA–SwD',
-    st: 'todo', stText: 'Chưa bind',
+    st: 'ok', stText: 'Đã bind, failsafe CH3, bản đồ kênh 25/10',
     img: 'fs_i6x', more: [], diag: 'txSwitches',
     specs: [
-      ['Gán kênh (chốt)', 'CH5 = SwC (chế độ bay) · CH6 = SwD (RTL) · CH7 = SwA (WEB CONTROL) · CH8 = SwB (để dành Auto)'],
+      ['Gán kênh (chốt 25/10)', 'CH5 = SwC (chế độ bay) · CH6 = SwD (RTL) · CH7 = SwA (WEB CONTROL) · CH8 = SwB (ARM / DISARM) · CH9 = VrB (Auto)'],
       ['Phải đặt', 'Output **i-BUS**; failsafe kênh ga = thấp nhất'],
     ],
-    traps: ['Failsafe phải đặt **cả trên tay phát** (lớp 1) **và** trên FC (`FS_THR_ENABLE 1`, lớp 2).'],
+    traps: ['Failsafe phải đặt **cả trên tay phát** (lớp 1) **và** trên FC (`FS_THR_ENABLE 1`, lớp 2).', '**SwB là công tắc ARM** — gạt lên khi đang bay là motor tắt, drone rơi. Chỉ SwC có 3 nấc.'],
   },
   {
     id: 'rx', name: 'Bộ thu FlySky FS-iA6B', sub: 'nói với FC bằng i-BUS',
-    st: 'todo', stText: 'Chưa kiểm (còn bind plug?)',
+    st: 'ok', stText: 'Đã bind, FC đọc 14 kênh i-BUS',
     img: 'ia6b_ports', more: [], diag: 'cableRx',
     specs: [
       ['Nguồn', '4,0–8,4 V'],
@@ -114,7 +114,7 @@ LR.data.parts = [
   },
   {
     id: 'tfmini', name: 'Cảm biến khoảng cách TFmini Plus', sub: 'Benewake LiDAR, nhìn thẳng phía trước',
-    st: 'todo', stText: 'Chưa thử (Phase 17)',
+    st: 'part', stText: 'Có điện, gửi dữ liệu nhưng sai cấu hình — đang tắt trên FC',
     img: 'tfmini', more: ['tfmini_holes'], diag: 'cableTf',
     specs: [
       ['Nguồn', '**5 V ± 0,5 V**, ≤ 110 mA (đỉnh 140 mA), không có bảo vệ quá áp / ngược cực'],
@@ -166,7 +166,7 @@ LR.data.parts = [
   },
   {
     id: 'ubec', name: 'UBEC 5V 3A', sub: 'nguồn riêng cho hai bo ESP32',
-    st: 'todo', stText: 'Đã mua, chưa đo',
+    st: 'ok', stText: 'Cấp ESP32 + camera trên drone, chạy — chưa đo áp',
     img: null, more: [], diag: 'power',
     specs: [
       ['Vào', 'thẳng từ pin 4S (hàn song song pad + − của ESC)'],
@@ -180,7 +180,7 @@ LR.data.parts = [
   },
   {
     id: 'bat', name: 'Pin Ovonic LiPo 4S 5300 mAh 110C', sub: 'giắc XT60 + dây cân bằng',
-    st: 'todo', stText: 'Chưa đo từng cell',
+    st: 'part', stText: 'Đã bay 25/10 (16,29 V tổng) — chưa đo từng cell',
     img: null, more: [], diag: 'charger',
     specs: [
       ['Khối lượng', '423 g'],

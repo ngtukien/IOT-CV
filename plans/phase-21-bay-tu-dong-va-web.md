@@ -31,7 +31,7 @@ Phải đọc trước:
 - `plans/reports/260921-research-esp32-bridge-camera.md` mục 4 — tầm Wi-Fi 2,4 GHz (~50–200 m, **chưa xác minh thực địa** trên khung có nhiễu ESC); vì sao `FS_GCS_ENABLE` vẫn để 0; và ghi chú quan trọng: với UDP, **GCS phải gửi gói trước** thì ESP32 mới biết địa chỉ trả lời.
 - `docs/checklist-truoc-bay.md` (Phase 19) — đã in.
 - `docs/do-dac/20-ket-qua-bay.md` (Phase 20) — 4 bộ số log nền, dùng để so sánh.
-- **Ghi chú Phase 15** — bản đồ công tắc: `CH5` = `Stabilize`/`AltHold`/`Loiter`, `CH6` = `RTL`, `CH7` = `WEB CONTROL ENABLE` (backend đọc), `CH8` để dành cho `Auto` và **được gán ở phase này**.
+- **Ghi chú Phase 15** — bản đồ công tắc (cập nhật 25/10/2026): `CH5` (SwC) = `Stabilize`/`AltHold`/`Loiter`, `CH6` (SwD) = `RTL`, `CH7` (SwA) = `WEB CONTROL ENABLE` (backend đọc), `CH8` (SwB) = **ARM/DISARM**, `CH9` (núm VrB) = `Auto` — **đã gán từ 25/10/2026**, phase này chỉ kiểm lại trước khi bay.
 - **Ghi chú Phase 17** — endpoint backend `udpin:0.0.0.0:14550`.
 
 Phải có sẵn và đã pass:
@@ -82,8 +82,9 @@ Sửa:
 ```text
 CH5 (3 vị trí)  vị trí 1 = STABILIZE   vị trí 2 = ALTHOLD   vị trí 3 = LOITER
 CH6             = RTL
-CH7             = WEB CONTROL ENABLE   <- BACKEND ĐỌC THẲNG KÊNH RC NÀY
-CH8             = AUTO                 <- GÁN Ở PHASE NÀY (mục 21.3)
+CH7 SwA         = WEB CONTROL ENABLE   <- BACKEND ĐỌC THẲNG KÊNH RC NÀY
+CH8 SwB         = ARM / DISARM         <- ĐANG BAY KHÔNG CHẠM (gạt lên = motor tắt)
+CH9 VrB (núm)   = AUTO                 <- xoay gần hết phải; để hết trái khi không dùng
 ```
 
 **Hai công tắc an toàn — cả hai đều nằm trên tay FS-i6X:**
@@ -191,20 +192,21 @@ Dead-man 4 (thêm cho phần cứng thật): nhấn giữ W rồi TẮT WI-FI C�
 8. MỌI WAYPOINT PHẢI NHÌN THẤY ĐƯỢC từ chỗ người lái đứng.
 ```
 
-**Gán `CH8` = `Auto` — việc riêng của phase này:**
+**Auto trên núm VrB (`CH9`) — đã gán 25/10/2026, phase này kiểm lại:**
 
-Phase 15 để `CH8` trống có chủ đích: một công tắc `Auto` sống trong khi chưa có mission nào được kiểm chứng là một đường vào `Auto` ngoài ý muốn. Bây giờ mới gán:
+Bản chốt cũ để `CH8` trống tới phase này, vì một công tắc `Auto` sống khi chưa có mission được kiểm chứng là một đường vào `Auto` ngoài ý muốn. Ngày 25/10/2026 người dùng giữ SwB (`CH8`) làm công tắc ARM, nên Auto chuyển sang núm VrB và được gán luôn:
 
 ```text
-RC8_OPTION = <giá trị "Auto" trong danh sách RCx_OPTION>   <-- chưa xác minh,
-             ĐỌC danh sách ngay trong Mission Planner (Full Parameter List ->
-             gõ RC8_OPTION -> xem hộp mô tả liệt kê từng giá trị) thay vì
-             gõ theo một con số nhớ được.
+RC9_OPTION = 16 (Auto)     <- đã ghi + đọc lại 25/10/2026 (danh sách RCx_OPTION
+                              của ArduPilot 4.7.1: 16 = Auto)
+FS-i6X: Functions setup -> Aux. channels -> Channel 9 = VrB
 ```
 
-Sau khi gán, **kiểm trên bàn, không cánh**: gạt `CH8` lên → Mission Planner phải hiện mode `AUTO`; gạt xuống → quay về mode mà `CH5` đang chỉ. Chỉ khi phép thử này đúng mới mang ra bãi.
+ArduPilot chỉ đổi chế độ khi núm vượt ngưỡng: lên ≥ ~1.800 µs thì vào Auto, xuống dưới ~1.800 µs là thoát ngay về chế độ của `CH5` (đo thật 25/10/2026: vào ở 1.831, thoát ở 1.779). Không theo vị trí núm lúc khởi động, và không cho arm khi đang ở Auto.
 
-> **AN TOÀN:** Từ lúc `CH8` được gán, gạt nhầm nó khi đang bay sẽ **chạy mission đang nạp trong bo bay**. Luôn biết mission nào đang nằm trong bo. Sau mỗi buổi bay, nếu không chắc, upload lại một mission đơn giản `Takeoff → RTL` để bo không giữ một mission cũ đã quên.
+Trước khi mang ra bãi, **kiểm trên bàn, không cánh**: xoay VrB hết phải → Mission Planner phải hiện mode `AUTO`; xoay về hết trái → quay về mode mà `CH5` đang chỉ.
+
+> **AN TOÀN:** Núm VrB là đường vào Auto từ ngày 25/10/2026 — xoay nhầm nó khi đang bay sẽ **chạy mission đang nạp trong bo bay**. Luôn biết mission nào đang nằm trong bo; để VrB hết bên trái khi không dùng và nhìn núm trước mỗi chuyến. Sau mỗi buổi bay, nếu không chắc, upload lại một mission đơn giản `Takeoff → RTL` để bo không giữ một mission cũ đã quên.
 
 **Quy trình bay — cất cánh bằng tay trước, rồi mới vào Auto:**
 
@@ -215,7 +217,7 @@ Dự án này **không** dùng cách "arm ở mode Auto rồi đẩy ga để mi
 3. `Save WP File` → lưu thành `missions/21-f5-3wp.waypoints`.
 4. Chạy checklist walk-around (`docs/checklist-truoc-bay.md`).
 5. Arm ở `Loiter` (`CH5` vị trí 3), cất cánh bằng tay lên **5 m**, giữ ổn định 10 giây. Xác nhận drone bay bình thường (giống F3).
-6. **Gạt `CH8` sang `Auto`.** Buông cần.
+6. **Xoay núm VrB (`CH9`) hết sang phải → `Auto`.** Buông cần.
 7. **Không chạm cần.** Quan sát drone đi WP1 → WP2 → WP3 → RTL → hạ cánh.
 8. Nếu tất cả bình thường: để drone tự hạ cánh và disarm.
 
@@ -266,7 +268,7 @@ Dự án này **không** dùng cách "arm ở mode Auto rồi đẩy ga để mi
    - Người lái RC: ngón cái **trên** công tắc mode, mắt trên drone.
    - Drone phải đi tới điểm đó rồi **đứng lại**.
    - Lặp lại với một điểm khác, cách 10 m về hướng khác.
-7. **Phần Auto sau:** trên web bấm `Start Mission` (đổi mode sang `Auto` **từ web**, không dùng `CH8` — bài này kiểm đường lệnh của web).
+7. **Phần Auto sau:** trên web bấm `Start Mission` (đổi mode sang `Auto` **từ web**, không dùng núm VrB — bài này kiểm đường lệnh của web).
    - Drone chạy đủ mission như F5 rồi RTL.
 8. Sau khi hạ cánh và disarm: **người lái RC gạt `CH7` xuống**.
 
@@ -384,7 +386,7 @@ Biến thể A: web đang giữ W  ->  RC gạt CH6 (RTL)
 
 Biến thể B: web đang chạy Auto (mission) -> RC gạt CH5 sang Loiter
             KẾT QUẢ ĐÚNG: mission tạm dừng, drone đứng yên.
-            Gạt CH8 (Auto) -> mission TIẾP TỤC từ waypoint đang dở.
+            Xoay VrB (CH9, Auto) -> mission TIẾP TỤC từ waypoint đang dở.
             (Nắm được hành vi này để không hoảng khi nó xảy ra thật.)
 ```
 
@@ -463,7 +465,7 @@ Ghi `docs/test-log.md`: 4 dòng `F5`–`F8`, mỗi dòng `PASS`/`FAIL` + một c
 - [ ] **F8 PASS:** web đang giữ `W` + RC gạt mode → **drone dừng ngay**, mode đổi đúng trên cả hai màn hình; biến thể A (`RTL`) đúng; biến thể B (`Auto` tạm dừng rồi tiếp tục) đúng; sau khi tắt `WEB CONTROL ENABLE` thì lái tay ở `Stabilize` bình thường.
 - [ ] **RC nằm trong tay người vận hành trong cả 4 bài**, kể cả F5.
 - [ ] `CH7` (`WEB CONTROL ENABLE`) **mặc định TẮT**; backend đọc kênh RC này, không đọc nút trên trình duyệt; web chỉ **hiển thị** trạng thái, không đặt được.
-- [ ] `RC8_OPTION` đã gán `Auto` và đã kiểm trên bàn không cánh (gạt `CH8` → Mission Planner hiện `AUTO`; gạt xuống → về mode của `CH5`).
+- [ ] `RC9_OPTION` = `Auto` (núm VrB) và đã kiểm trên bàn không cánh (xoay VrB hết phải → Mission Planner hiện `AUTO`; xoay về hết trái → về mode của `CH5`).
 - [ ] Endpoint backend `udpin:0.0.0.0:14550` nhận được telemetry sau khi backend gửi gói đầu tiên.
 - [ ] Đủ **4 thư mục** `logs/flight_YYYYMMDD_HHMM/` cho F5–F8, mỗi thư mục có `flight.bin`, `notes.md`, và `events.json` (với F6, F7, F8).
 - [ ] 7 mục đọc log của Phase 20 mục 20.2 **cộng** 4 mục 8–11 ở mục 21.7 đã kiểm và ghi vào `docs/do-dac/21-ket-qua-bay-web.md`.
