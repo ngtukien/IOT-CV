@@ -297,7 +297,7 @@ LR.data.steps.push(
     id: 'G4', leg: 'G', t: 'Kiểm lại radio + thử tầm 50 m', who: 'ca2', tags: ['pin', 'pc', 'ngoai'], time: '20 phút',
     figs: [{ d: 'txSwitches', cap: 'Chỉ nhìn — không calibrate lại.' }],
     you: ['Bật tay phát **trước** khi cắm pin. Đi xa 50 m, gạt SwC / SwD / SwA.'],
-    pc: ['Xác nhận dải 1000 / 1500 / 2000; chế độ đổi theo công tắc; CH7 đổi giá trị khi gạt SwA; CH8 trống.'],
+    pc: ['Xác nhận dải 1000 / 1500 / 2000; chế độ đổi theo công tắc; CH7 đổi giá trị khi gạt SwA; SwB arm/disarm được; xoay VrB hết phải ra Auto.'],
     ok: 'Ở 50 m vẫn đổi được chế độ.',
   },
   {

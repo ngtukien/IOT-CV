@@ -182,7 +182,7 @@ LR.data.steps.push(
     figs: [{ d: 'txSwitches', cap: 'Bản đồ công tắc đã chốt.' }],
     do: [
       'SYSTEM → RX setup → **Output mode → i-BUS**.',
-      'FUNCTIONS → Aux. channels: **CH5 = SwC · CH6 = SwD · CH7 = SwA · CH8 = SwB**.',
+      'FUNCTIONS → Aux. channels: **CH5 = SwC · CH6 = SwD · CH7 = SwA · CH8 = SwB · CH9 = VrB · CH10 = None**.',
       'SYSTEM → RX setup → **Failsafe → CH3** (ga): bật, đẩy cần ga **thấp nhất**, lưu.',
       'Thói quen: cần ga để thấp nhất mỗi khi không chủ động đẩy.',
     ],
@@ -190,11 +190,11 @@ LR.data.steps.push(
   },
   {
     id: 'C5', leg: 'C', t: 'Hiệu chỉnh radio và gán chế độ bay', who: 'ca2', tags: ['pc'], time: '30 phút',
-    figs: [{ d: 'txSwitches', cap: 'SwC: Stabilize / AltHold / Loiter · SwD: RTL · SwA: WEB CONTROL · SwB: để dành Auto.' }],
+    figs: [{ d: 'txSwitches', cap: 'SwC: Stabilize / AltHold / Loiter · SwD: RTL · SwA: WEB CONTROL · SwB: ARM / DISARM · VrB: Auto.' }],
     you: ['Khi Claude báo: đẩy **hết biên** cả 4 cần, gạt hết 4 công tắc, rồi để cần về giữa.', 'Gạt SwC qua 3 nấc, gạt SwD, để Claude đọc chế độ.'],
     pc: [
       'Đọc `RC_CHANNELS` qua USB; chạy Radio Calibration (Mission Planner qua cua-driver).',
-      'Đặt `FLTMODE_CH 5`, `FLTMODE1 0` (Stabilize), `FLTMODE4 2` (AltHold), `FLTMODE6 5` (Loiter), `RC6_OPTION` = **RTL** (đối chiếu theo tên), `RC7_OPTION 0`, `RC8_OPTION 0`.',
+      'Đặt `FLTMODE_CH 5`, `FLTMODE1 0` (Stabilize), `FLTMODE4 2` (AltHold), `FLTMODE6 5` (Loiter), `RC6_OPTION` = **RTL** (đối chiếu theo tên), `RC7_OPTION 0`, `RC8_OPTION` = **ArmDisarm** (SwB), `RC9_OPTION` = **Auto** (núm VrB).',
       'Xác nhận chế độ đổi đúng khi bạn gạt.',
     ],
     ok: 'Cần giữa ~1500, hai đầu ~1000 / 2000; SwC ra đúng 3 chế độ; SwD ra RTL.',

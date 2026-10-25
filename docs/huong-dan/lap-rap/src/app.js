@@ -59,6 +59,21 @@
     $('#progTxt').textContent = `${n}/${STEPS.length} bước`;
     $('#progBar').style.width = `${(100 * n) / STEPS.length}%`;
   }
+  /* Gộp từng đợt D.stepsDoneSeeds (các bước đã xong theo báo cáo) vào tick đã lưu, mỗi `ver` đúng một lần.
+     Đợt mới chỉ thêm id của chính nó: không xoá tick đã có, và bước người dùng đã bỏ tick sau một đợt
+     cũ không bị ép lại. */
+  function applyDoneSeed() {
+    const seeded = LR.store.get('seeded', []);
+    const moi = (D.stepsDoneSeeds || []).filter((seed) => !seeded.includes(seed.ver));
+    if (!moi.length) return;
+    moi.forEach((seed) => {
+      const unknown = seed.ids.filter((id) => !byId[id]);
+      if (unknown.length) throw new Error(`stepsDoneSeeds ${seed.ver}: id không có trong D.steps: ${unknown.join(', ')}`);
+      seed.ids.forEach((id) => state.done.add(id));
+    });
+    LR.store.set('done', [...state.done]);
+    LR.store.set('seeded', [...seeded, ...moi.map((seed) => seed.ver)]);
+  }
 
   /* ---------------- tiện ích hiển thị ---------------- */
   const whoBadge = (w) => `<span class="badge ${LR.WHO[w].cls}">${LR.WHO[w].label}</span>`;
@@ -813,6 +828,7 @@
     if (th) document.documentElement.dataset.theme = th;
     $('#metaLine').textContent = `Trạng thái ${D.status.asOf} · dựng ${LR.meta.built || ''} · commit ${LR.meta.commit || ''}`;
     renderNav();
+    applyDoneSeed();
     updateProgress();
     bind();
     route();

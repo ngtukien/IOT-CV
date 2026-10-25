@@ -285,17 +285,18 @@
 
   LR.diag.txSwitches = () => {
     let b = '';
-    b += K.text(500, 26, 'FS-i6X — gán công tắc (đã chốt ở Phase 15)', { a: 'middle', s: 15, w: 800 });
+    b += K.text(500, 26, 'FS-i6X — gán công tắc (chốt Phase 15, cập nhật 25/10/2026)', { a: 'middle', s: 15, w: 800 });
     b += K.rect(250, 70, 500, 300, { rx: 50, fill: '#2a2d30', stroke: '#111' });
     b += K.circle(380, 250, 64, { fill: '#1b1d1f', stroke: '#555', sw: 3 }) + K.circle(620, 250, 64, { fill: '#1b1d1f', stroke: '#555', sw: 3 });
     b += K.circle(380, 250, 14, { fill: '#c33' }) + K.circle(620, 250, 14, { fill: '#c33' });
     b += K.text(380, 340, 'ga / yaw', { a: 'middle', s: 12, w: 700, c: '#ddd' }) + K.text(620, 340, 'pitch / roll', { a: 'middle', s: 12, w: 700, c: '#ddd' });
     const sw = (x, lab, ch, fn, col, tx, ty, an) => K.rect(x - 9, 82, 18, 46, { rx: 4, fill: '#bbb' }) + K.text(x, 148, lab, { a: 'middle', s: 12, w: 900, c: '#fff' }) + K.path(`M${x} 82L${tx} ${ty + 10}`, { stroke: col, sw: 2 }) + K.text(tx, ty, `${ch}: ${fn}`, { a: an, s: 13.5, w: 800, c: col });
     b += sw(300, 'SwA', 'CH7', 'WEB CONTROL', 'var(--pc)', 230, 60, 'end');
-    b += sw(350, 'SwB', 'CH8', 'để dành Auto (Phase 21)', 'var(--muted)', 230, 400, 'end');
+    b += sw(350, 'SwB', 'CH8', 'ARM / DISARM — đang bay KHÔNG chạm', 'var(--danger)', 230, 400, 'end');
+    b += K.circle(560, 100, 11, { fill: '#bbb' }) + K.text(560, 148, 'VrB', { a: 'middle', s: 12, w: 900, c: '#fff' }) + K.path('M560 111L500 382', { stroke: 'var(--pc)', sw: 2 }) + K.text(500, 398, 'CH9: Auto — để hết trái', { a: 'middle', s: 13.5, w: 800, c: 'var(--pc)' });
     b += sw(650, 'SwC', 'CH5', 'Stabilize / AltHold / Loiter', 'var(--you)', 770, 60, 'start');
     b += sw(700, 'SwD', 'CH6', 'RTL — công tắc cứu hộ', 'var(--danger)', 770, 400, 'start');
-    b += K.text(500, 430, 'Vị trí công tắc theo nhãn in trên tay phát. SwC là công tắc 3 nấc. Không gán "Motor Emergency Stop".', { a: 'middle', s: 12, w: 700 });
+    b += K.text(500, 430, 'Vị trí theo nhãn in trên tay phát. Chỉ SwC có 3 nấc; VrA không dùng. Không gán "Motor Emergency Stop".', { a: 'middle', s: 12, w: 700 });
     return K.svg(1000, 450, b, { title: 'Công tắc tay phát' });
   };
 
