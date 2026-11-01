@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       # --locked: uv.lock phải khớp pyproject.toml, lệch thì fail thay vì âm thầm
       #   giải lại. Đây là cổng thật, không phải chiều lòng linter.
       # --no-build: chỉ cài wheel dựng sẵn, không chạy setup script của sdist nào.
@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv sync --extra dev --locked --no-build
       # Job này KHÔNG build frontend, nên `frontend/dist` vắng mặt và
       # `test_frontend_duoc_serve` tự skip (pytest.mark.skipif). Đó là chủ đích,
@@ -70,7 +70,7 @@ jobs:
           # trong package.json, mà mặc định tìm file đó ở GỐC repo — ở đây
           # package.json nằm trong frontend/.
           package_json_file: frontend/package.json
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: "24"
           cache: pnpm
